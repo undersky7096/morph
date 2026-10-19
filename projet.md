@@ -185,8 +185,30 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
    incrément testable indépendamment.
 
 ## Chemin à suivre pour la suite (instructions pour Claude)
-- Reprendre directement à **M0** sauf indication contraire de
-  l'utilisateur.
+- **Reprendre à M5 (Compress)** — M0 à M4 sont faits (v0.4.0, commit
+  `8d9742f`). Rien n'a encore été codé pour M5. Passer la version à 0.5.0
+  (`npm run bump -- 0.5.0`) et reconstruire l'installeur à la fin.
+- **Décisions déjà prises pour M5** (validées par l'utilisateur le 2026-10-19) :
+  - **PNG** : optimisation sans perte toujours appliquée, **plus** une option
+    « réduire les couleurs » (quantification façon TinyPNG, gain 60-80 %).
+    Attention licence : `imagequant` (libimagequant) est GPL → vérifier /
+    choisir une alternative compatible si distribution prévue.
+  - **Vidéo** : les deux modes — curseur de qualité (léger / moyen / fort)
+    **et** champ « taille cible en Mo » qui calcule le débit
+    automatiquement. Préréglage Discord = **20 Mo** (valeur donnée par
+    l'utilisateur, ne pas mettre 25).
+  - Rappels spec : aperçu du poids avant/après, applicable à un lot,
+    résultat `nom Compressed.ext` à côté de l'original, s'intègre dans
+    l'enchaînement « Outil suivant » (retirer `comingIn: "M5"` dans
+    `src/tools/registry.tsx`).
+  - Pistes techniques : WebP avec perte via ffmpeg (la crate `image`
+    n'encode le WebP qu'en sans perte), JPEG via la qualité de l'encodeur.
+- Méthode de travail : une étape (milestone) à la fois, s'arrêter et
+  attendre le feu vert, un commit par étape, poser les questions
+  avant de coder.
+- Build Linux (AppImage via GitHub Actions) en attente : l'utilisateur
+  doit d'abord créer un repo GitHub. Logo définitif en attente : PNG
+  1024×1024 fourni par l'utilisateur → `npx tauri icon <png>`.
 - Respecter strictement les choix déjà validés ci-dessus (stack Tauri,
   ffmpeg + Konva, enchaînement d'outils via bouton "outil suivant",
   sous-menus par groupe de type pour les lots mixtes, etc.) — ne pas
