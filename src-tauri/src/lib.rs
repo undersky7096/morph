@@ -1,6 +1,8 @@
 mod commands;
 pub mod convert;
+pub mod edit;
 mod radial;
+mod tools;
 #[cfg(windows)]
 mod shift_drag;
 
@@ -8,6 +10,7 @@ mod shift_drag;
 pub fn run() {
     tauri::Builder::default()
         .manage(radial::Pending::default())
+        .manage(tools::Pending::default())
         .setup(|app| {
             #[cfg(windows)]
             shift_drag::start(app.handle().clone());
@@ -29,6 +32,11 @@ pub fn run() {
             commands::open_radial,
             commands::take_radial_payload,
             commands::close_radial,
+            commands::open_tool,
+            commands::take_tool_payload,
+            commands::read_image,
+            commands::crop_image,
+            commands::log_frontend_error,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Morph");

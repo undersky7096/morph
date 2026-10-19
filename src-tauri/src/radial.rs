@@ -2,6 +2,7 @@
 
 use std::path::Path;
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition};
@@ -15,8 +16,13 @@ pub const LABEL: &str = "radial";
 #[derive(Default)]
 pub struct Pending(pub Mutex<Option<RadialPayload>>);
 
+static NEXT_ID: AtomicU64 = AtomicU64::new(1);
+
 #[derive(Clone, Serialize)]
 pub struct RadialPayload {
+    /// Identifiant croissant : le webview ignore une demande déjà reçue
+    /// (elle peut arriver à la fois par l'événement et par `take_pending`).
+    id: u64,
     paths: Vec<String>,
     menu: TargetMenu,
 }
@@ -43,7 +49,7 @@ pub fn show(app: &AppHandle, paths: Vec<String>) -> tauri::Result<()> {
 
     let refs: Vec<&Path> = paths.iter().map(Path::new).collect();
     let menu = formats::menu_for(&refs);
-    let payload = RadialPayload { paths, menu };
+    let payload = RadialPayload { id: NEXT_ID.fetch_add(1, Ordering::Relaxed), paths, menu };
     *app.state::<Pending>().0.lock().unwrap() = Some(payload.clone());
     app.emit_to(LABEL, "radial-open", payload)?;
 

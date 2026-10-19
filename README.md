@@ -29,6 +29,10 @@ cargo test                                                 # tests unitaires
 
 ## Statut
 
+Version actuelle : **0.4.0** (`0.<milestone>.0` ; changer avec `npm run bump -- x.y.z`).
+
+- M4 : menu d'actions (après conversion, ou pétale « Éditer ») + outil Recadrer dans une popup, bouton « Outil suivant ».
+
 - M0 : squelette — build Windows (installeur NSIS) OK ; build Linux (AppImage) via GitHub Actions à venir. Logo temporaire (`assets/logo-temp.svg`).
 - M1 : moteur de conversion — images (crate `image` : png, jpg, webp, bmp, gif, tiff, ico, tga) et audio/vidéo (ffmpeg sidecar : mp4, webm, mkv, mov, avi, gif, mp3, wav, ogg, flac, m4a, opus), progression, noms sans écrasement.
 - M3 : déclencheur Shift + glisser depuis l'explorateur/le bureau (Windows), halo de survol, dépôt toujours en copie.

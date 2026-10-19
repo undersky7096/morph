@@ -15,6 +15,7 @@ export interface TargetMenu {
 }
 
 export interface RadialPayload {
+  id: number;
   paths: string[];
   menu: TargetMenu;
 }

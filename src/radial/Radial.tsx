@@ -3,14 +3,16 @@ import { AnimatePresence, motion } from "motion/react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
+import { TOOLS } from "../tools/registry";
 import type { ConvertProgress, ConvertResult, RadialPayload } from "../types";
-import { buildItems, type Item } from "./items";
+import { actionItems, buildItems, type Item } from "./items";
 import "./Radial.css";
 
 const RADIUS = 118;
 const HUB_RING = 2 * Math.PI * 34;
 
-type Level = { label: string; items: Item[] };
+/** Niveau du menu. `done` : anneau d'actions affiché après une conversion réussie. */
+type Level = { label: string; items: Item[]; done?: boolean };
 type Phase =
   | { name: "menu" }
   | { name: "running"; progress: number }
@@ -34,22 +36,26 @@ export default function Radial() {
   const close = useCallback(() => setOpen(false), []);
 
   useEffect(() => {
+    let lastId = 0;
     const openWith = (payload: RadialPayload) => {
+      // Une même demande peut arriver par l'événement et par take_radial_payload.
+      if (payload.id <= lastId) return;
+      lastId = payload.id;
       setFileCount(payload.paths.length);
       setStack([{ label: "", items: buildItems(payload.menu) }]);
       setPhase({ name: "menu" });
       setSession((s) => s + 1);
       setOpen(true);
     };
-    // Menu demandé avant que ce webview ne soit prêt (ex : lancement avec des fichiers).
-    invoke<RadialPayload | null>("take_radial_payload").then((p) => p && openWith(p));
 
     const win = getCurrentWebviewWindow();
+    const opened = win.listen<RadialPayload>("radial-open", ({ payload }) => openWith(payload));
+    // Une fois abonné, on récupère une demande arrivée avant que ce webview ne soit prêt
+    // (ex : lancement avec des fichiers en arguments).
+    opened.then(() => invoke<RadialPayload | null>("take_radial_payload")).then((p) => p && openWith(p));
+
     const unlisten = [
-      win.listen<RadialPayload>("radial-open", ({ payload }) => {
-        invoke("take_radial_payload");
-        openWith(payload);
-      }),
+      opened,
       // Menu non modal : il se ferme dès que la fenêtre perd le focus (clic ailleurs).
       win.onFocusChanged(({ payload: focused }) => {
         if (!focused) setOpen(false);
@@ -86,6 +92,12 @@ export default function Radial() {
       setStack((s) => [...s, { label: item.label, items: item.items }]);
       return;
     }
+    if (item.type === "action") {
+      if (TOOLS[item.tool].comingIn) return;
+      await invoke("open_tool", { tool: item.tool, path: item.paths[0] });
+      close();
+      return;
+    }
     const mySession = sessionRef.current;
     progressRef.current = item.paths.map(() => 0);
     setPhase({ name: "running", progress: 0 });
@@ -95,6 +107,14 @@ export default function Radial() {
     });
     if (sessionRef.current !== mySession) return;
     const errors = results.filter((r) => r.error).map((r) => `${r.input}\n${r.error}`);
+    const outputs = results.flatMap((r) => (r.output ? [r.output] : []));
+    const actions = errors.length ? [] : actionItems(outputs);
+    if (actions.length) {
+      // Conversion réussie : le menu enchaîne sur les actions d'édition du résultat.
+      setStack([{ label: "", items: actions, done: true }]);
+      setPhase({ name: "menu" });
+      return;
+    }
     setPhase({ name: "done", ok: results.length - errors.length, errors });
     setTimeout(() => sessionRef.current === mySession && close(), errors.length ? 4000 : 1300);
   }
@@ -127,24 +147,26 @@ export default function Radial() {
             {phase.name === "menu" && (
               <motion.div key={stack.length} className="radial-ring">
                 {items.map((item, i) => {
+                  const soon = item.type === "action" ? TOOLS[item.tool].comingIn : undefined;
                   const angle = -Math.PI / 2 + (i / items.length) * 2 * Math.PI;
                   const x = Math.cos(angle) * RADIUS;
                   const y = Math.sin(angle) * RADIUS;
                   return (
                     <motion.button
-                      key={item.type === "format" ? item.format : item.label}
+                      key={itemKey(item)}
                       className={`petal petal-${item.type}`}
                       data-kind={item.kind}
-                      title={item.type === "group" ? `${item.label} : ${item.items.length} formats` : undefined}
+                      aria-disabled={soon ? true : undefined}
+                      title={itemTitle(item)}
                       initial={{ x: 0, y: 0, scale: 0.3, opacity: 0 }}
                       animate={{ x, y, scale: 1, opacity: 1, transition: { ...spring, delay: i * 0.02 } }}
                       exit={{ x: 0, y: 0, scale: 0.3, opacity: 0, transition: { duration: 0.12 } }}
-                      whileHover={{ scale: 1.14 }}
-                      whileTap={{ scale: 0.94 }}
+                      whileHover={soon ? undefined : { scale: 1.14 }}
+                      whileTap={soon ? undefined : { scale: 0.94 }}
                       transition={spring}
                       onClick={() => choose(item)}
                     >
-                      {item.type === "format" ? item.format.toUpperCase() : `${item.label} ›`}
+                      <PetalContent item={item} />
                     </motion.button>
                   );
                 })}
@@ -198,6 +220,14 @@ function HubContent(props: { phase: Phase; fileCount: number; level?: Level; emp
       </>
     );
   }
+  if (level?.done) {
+    return (
+      <>
+        <span className="hub-icon is-ok">✓</span>
+        <span className="hub-caption">Converti</span>
+      </>
+    );
+  }
   if (empty) return <span className="hub-caption">Format non pris en charge</span>;
   if (level && level.label) {
     return (
@@ -212,5 +242,32 @@ function HubContent(props: { phase: Phase; fileCount: number; level?: Level; emp
       <span className="hub-value">{fileCount}</span>
       <span className="hub-caption">fichier{fileCount > 1 ? "s" : ""}</span>
     </>
+  );
+}
+
+function itemKey(item: Item) {
+  if (item.type === "format") return item.format;
+  if (item.type === "action") return item.tool;
+  return item.label;
+}
+
+function itemTitle(item: Item) {
+  if (item.type === "group") return `${item.label} : ${item.items.length} choix`;
+  if (item.type === "action") {
+    const tool = TOOLS[item.tool];
+    return tool.comingIn ? `${tool.label} : disponible bientôt (${tool.comingIn})` : tool.label;
+  }
+  return undefined;
+}
+
+function PetalContent({ item }: { item: Item }) {
+  if (item.type === "format") return <>{item.format.toUpperCase()}</>;
+  if (item.type === "group" && !item.icon) return <>{item.label} ›</>;
+  const Icon = TOOLS[item.type === "group" ? item.icon! : item.tool].icon;
+  return (
+    <span className="petal-action">
+      <Icon />
+      <span>{item.type === "group" ? `${item.label} ›` : TOOLS[item.tool].label}</span>
+    </span>
   );
 }

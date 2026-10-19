@@ -2,7 +2,7 @@
 
 pub mod ffmpeg;
 pub mod formats;
-mod raster;
+pub(crate) mod raster;
 
 use std::path::{Path, PathBuf};
 
@@ -56,9 +56,7 @@ pub fn convert(
     let output = unique_output(input, &target);
     on_progress(0.0);
     if kind == Kind::Image && IMAGE_OUT.contains(&target.as_str()) {
-        raster::convert(input, &output, &target).inspect_err(|_| {
-            let _ = std::fs::remove_file(&output);
-        })?;
+        raster::convert(input, &output, &target)?;
         on_progress(1.0);
     } else {
         ffmpeg::convert(input, &output, &target, on_progress)?;
@@ -68,8 +66,19 @@ pub fn convert(
 
 /// `dossier/nom.ext`, ou `dossier/nom (2).ext`, `(3)`… si le fichier existe déjà.
 pub fn unique_output(input: &Path, ext: &str) -> PathBuf {
-    let dir = input.parent().unwrap_or(Path::new("."));
     let stem = input.file_stem().and_then(|s| s.to_str()).unwrap_or("fichier");
+    unique_in_dir(input, stem, ext)
+}
+
+/// Résultat d'un outil d'édition : `dossier/nom Suffixe.ext` (ex : `Page 001 Cropped.jpg`).
+pub fn suffixed_output(input: &Path, suffix: &str) -> PathBuf {
+    let stem = input.file_stem().and_then(|s| s.to_str()).unwrap_or("fichier");
+    let ext = input.extension().and_then(|s| s.to_str()).unwrap_or("png");
+    unique_in_dir(input, &format!("{stem} {suffix}"), ext)
+}
+
+fn unique_in_dir(input: &Path, stem: &str, ext: &str) -> PathBuf {
+    let dir = input.parent().unwrap_or(Path::new("."));
     let mut candidate = dir.join(format!("{stem}.{ext}"));
     let mut n = 2;
     while candidate.exists() {
@@ -92,6 +101,7 @@ mod tests {
         assert_eq!(unique_output(&input, "jpg"), dir.join("photo.jpg"));
         std::fs::write(dir.join("photo.jpg"), b"").unwrap();
         assert_eq!(unique_output(&input, "jpg"), dir.join("photo (2).jpg"));
+        assert_eq!(suffixed_output(&input, "Cropped"), dir.join("photo Cropped.png"));
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }

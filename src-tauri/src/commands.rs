@@ -1,10 +1,11 @@
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
+use tauri::ipc::Response;
 use tauri::{AppHandle, Emitter};
 
-use crate::convert::{self, formats};
-use crate::radial;
+use crate::convert::{self, ConvertError, formats};
+use crate::{edit, radial, tools};
 
 #[tauri::command]
 pub fn get_targets(paths: Vec<String>) -> formats::TargetMenu {
@@ -62,4 +63,45 @@ pub async fn convert_files(app: AppHandle, paths: Vec<String>, target: String) -
     })
     .await
     .unwrap_or_default()
+}
+
+// Async : sous Windows, créer une fenêtre depuis une commande synchrone bloque l'application.
+#[tauri::command]
+pub async fn open_tool(app: AppHandle, tool: String, path: String) -> Result<(), String> {
+    tools::open(&app, tool, path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn take_tool_payload(app: AppHandle) -> Option<tools::ToolPayload> {
+    tools::take_pending(&app)
+}
+
+/// Contenu brut d'une image, pour l'aperçu dans les outils (limité aux images reconnues).
+#[tauri::command]
+pub async fn read_image(path: String) -> Result<Response, ConvertError> {
+    let path = PathBuf::from(path);
+    if formats::kind_of(&path) != Some(formats::Kind::Image) {
+        return Err(ConvertError::Unsupported(path.display().to_string()));
+    }
+    Ok(Response::new(read_file(path).await?))
+}
+
+async fn read_file(path: PathBuf) -> std::io::Result<Vec<u8>> {
+    tauri::async_runtime::spawn_blocking(move || std::fs::read(path))
+        .await
+        .map_err(std::io::Error::other)?
+}
+
+#[tauri::command]
+pub async fn crop_image(path: String, rect: edit::Rect) -> Result<String, ConvertError> {
+    tauri::async_runtime::spawn_blocking(move || edit::crop(Path::new(&path), rect))
+        .await
+        .map_err(|e| ConvertError::Io(std::io::Error::other(e)))?
+        .map(|out| out.display().to_string())
+}
+
+/// Erreurs non gérées de l'interface, recopiées dans la console de l'application.
+#[tauri::command]
+pub fn log_frontend_error(window: tauri::WebviewWindow, message: String) {
+    eprintln!("[ui:{}] {message}", window.label());
 }

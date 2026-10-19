@@ -1,0 +1,252 @@
+html[data-window="tool"] body {
+  overflow: hidden;
+}
+
+.tool {
+  --surface: color-mix(in srgb, var(--text) 4%, var(--bg));
+  --canvas: color-mix(in srgb, var(--text) 7%, var(--bg));
+  --checker: color-mix(in srgb, var(--text) 5%, transparent);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  font-size: 13px;
+}
+
+.tool button {
+  font: inherit;
+  color: inherit;
+}
+
+/* Barre de titre personnalisée (fenêtre sans décorations) */
+.titlebar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 40px;
+  padding-left: 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.titlebar-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.titlebar-title svg {
+  color: var(--kind-image);
+}
+
+.titlebar-file {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.titlebar-saved {
+  color: var(--kind-image);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.titlebar-buttons {
+  display: flex;
+  margin-left: auto;
+  align-self: stretch;
+}
+
+.titlebar-buttons button {
+  width: 46px;
+  border: 0;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.titlebar-buttons button:hover {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+.titlebar-buttons .is-close:hover {
+  background: #c42b1c;
+  color: #fff;
+}
+
+.tool-body {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Panneau latéral et contrôles communs */
+.tool-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 18px;
+  border-left: 1px solid var(--line);
+  background: var(--surface);
+  overflow-y: auto;
+}
+
+.tool-panel h2 {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tool-hint {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.chips {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.chip {
+  padding: 7px 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: color-mix(in srgb, var(--kind-video) 60%, var(--line));
+}
+
+.chip.is-active {
+  border-color: var(--kind-video);
+  background: color-mix(in srgb, var(--kind-video) 16%, transparent);
+}
+
+.tool input[type="number"] {
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.tool input:focus-visible,
+.tool button:focus-visible {
+  outline: 2px solid var(--kind-video);
+  outline-offset: 1px;
+}
+
+.link {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--kind-video) !important;
+  cursor: pointer;
+}
+
+/* Pied de fenêtre : statut, outil suivant, action principale */
+.tool-footer {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.tool-status {
+  margin-right: auto;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tool-status.is-error {
+  color: var(--danger);
+}
+
+.tool-footer > button,
+.next-tool > button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.tool-footer > button.primary {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--kind-image), var(--kind-video));
+  color: #06121a;
+  font-weight: 600;
+}
+
+.tool-footer > button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.next-tool {
+  position: relative;
+}
+
+.next-tool-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  min-width: 190px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  box-shadow: 0 10px 30px var(--radial-shadow);
+}
+
+.next-tool-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.next-tool-menu button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+}
+
+.next-tool-menu button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.next-tool-menu em {
+  margin-left: auto;
+  font-size: 11px;
+  font-style: normal;
+  color: var(--muted);
+}

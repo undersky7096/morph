@@ -65,6 +65,25 @@ html[data-window="radial"] body {
     0 0 22px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
+.petal-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-size: 9.5px;
+  letter-spacing: 0;
+}
+
+.petal[aria-disabled] {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.petal[aria-disabled]:hover {
+  background: var(--radial-surface);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
 .petal-group {
   font-size: 11px;
   letter-spacing: 0;
