@@ -1,0 +1,144 @@
+html[data-window="radial"],
+html[data-window="radial"] body {
+  background: transparent;
+  overflow: hidden;
+  user-select: none;
+}
+
+.radial {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.radial-disc {
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--radial-halo) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.radial-ring {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.petal {
+  --accent: var(--kind-image);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 60px;
+  height: 60px;
+  margin: -30px 0 0 -30px;
+  border-radius: 50%;
+  border: 1px solid var(--radial-border);
+  background: var(--radial-surface);
+  box-shadow:
+    inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 45%, transparent),
+    0 6px 18px var(--radial-shadow);
+  color: var(--radial-text);
+  font: 600 12px/1 var(--font);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  pointer-events: auto;
+  backdrop-filter: blur(14px);
+}
+
+.petal[data-kind="video"] {
+  --accent: var(--kind-video);
+}
+.petal[data-kind="audio"] {
+  --accent: var(--kind-audio);
+}
+
+.petal:hover,
+.petal:focus-visible {
+  outline: none;
+  background: color-mix(in srgb, var(--accent) 24%, var(--radial-surface));
+  box-shadow:
+    inset 0 0 0 1.5px var(--accent),
+    0 0 22px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.petal-group {
+  font-size: 11px;
+  letter-spacing: 0;
+  border-style: dashed;
+}
+
+.hub {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  border: 1px solid var(--radial-border);
+  background: var(--radial-surface-strong);
+  box-shadow: 0 10px 30px var(--radial-shadow);
+  color: var(--radial-text);
+  font-family: var(--font);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  backdrop-filter: blur(18px);
+}
+
+.hub-value {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.hub-running .hub-value {
+  font-size: 15px;
+}
+
+.hub-caption {
+  max-width: 70px;
+  font-size: 10.5px;
+  line-height: 1.2;
+  color: var(--radial-muted);
+  text-align: center;
+}
+
+.hub-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.hub-icon.is-ok {
+  color: var(--kind-image);
+}
+
+.hub-icon.is-error {
+  color: var(--danger);
+  font-weight: 800;
+}
+
+.hub-progress {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+
+.hub-progress circle {
+  fill: none;
+  stroke-width: 4;
+}
+
+.hub-progress .track {
+  stroke: var(--radial-border);
+}
+
+.hub-progress .bar {
+  stroke: var(--kind-video);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.2s ease-out;
+}

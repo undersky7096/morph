@@ -71,16 +71,17 @@ pub fn targets_for(path: &Path) -> Vec<&'static str> {
     targets
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct TargetGroup {
     pub kind: Kind,
     pub targets: Vec<&'static str>,
+    pub paths: Vec<String>,
 }
 
 /// Menu de formats pour un lot de fichiers.
 /// `common` : formats applicables à tous les fichiers du lot.
 /// `groups` : formats par type détecté (utile pour les lots mixtes → sous-menus).
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct TargetMenu {
     pub common: Vec<&'static str>,
     pub groups: Vec<TargetGroup>,
@@ -104,15 +105,17 @@ pub fn menu_for(paths: &[&Path]) -> TargetMenu {
             Some(c) => c.into_iter().filter(|t| targets.contains(t)).collect(),
         });
 
+        let path_str = path.display().to_string();
         match groups.iter_mut().find(|g| g.kind == kind) {
             Some(group) => {
+                group.paths.push(path_str);
                 for t in targets {
                     if !group.targets.contains(&t) {
                         group.targets.push(t);
                     }
                 }
             }
-            None => groups.push(TargetGroup { kind, targets }),
+            None => groups.push(TargetGroup { kind, targets, paths: vec![path_str] }),
         }
     }
 
@@ -145,6 +148,7 @@ mod tests {
         let menu = menu_for(&[Path::new("a.png"), Path::new("b.mp3"), Path::new("c.txt")]);
         assert!(menu.common.is_empty());
         assert_eq!(menu.groups.len(), 2);
+        assert_eq!(menu.groups[1].paths, vec!["b.mp3".to_string()]);
         assert_eq!(menu.unsupported, vec!["c.txt".to_string()]);
 
         let menu = menu_for(&[Path::new("a.mp4"), Path::new("b.wav")]);

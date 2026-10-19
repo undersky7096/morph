@@ -1,19 +1,88 @@
 :root {
-  --bg: #f6f6f6;
   color-scheme: light dark;
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+
+  --bg: #f4f5f8;
+  --text: #12141c;
+  --muted: #5b6273;
+  --line: rgba(18, 20, 28, 0.14);
+
+  --kind-image: #0fb98a;
+  --kind-video: #2f6bff;
+  --kind-audio: #8b5cf6;
+  --danger: #e5484d;
+
+  --radial-surface: rgba(255, 255, 255, 0.82);
+  --radial-surface-strong: rgba(255, 255, 255, 0.94);
+  --radial-border: rgba(18, 20, 28, 0.1);
+  --radial-text: #12141c;
+  --radial-muted: #5b6273;
+  --radial-shadow: rgba(18, 20, 28, 0.18);
+  --radial-halo: rgba(255, 255, 255, 0.35);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1015;
+    --text: #eef1f7;
+    --muted: #9aa3b5;
+    --line: rgba(238, 241, 247, 0.14);
+
+    --kind-image: #5ef2c2;
+    --kind-video: #4d8bff;
+    --kind-audio: #b98bff;
+    --danger: #ff6369;
+
+    --radial-surface: rgba(20, 22, 30, 0.8);
+    --radial-surface-strong: rgba(14, 15, 21, 0.92);
+    --radial-border: rgba(255, 255, 255, 0.1);
+    --radial-text: #eef1f7;
+    --radial-muted: #9aa3b5;
+    --radial-shadow: rgba(0, 0, 0, 0.45);
+    --radial-halo: rgba(10, 11, 16, 0.35);
+  }
 }
 
 body {
   margin: 0;
   background: var(--bg);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0f0f10;
-  }
+  color: var(--text);
+  font-family: var(--font);
 }
 
 .app {
   min-height: 100vh;
+  box-sizing: border-box;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.app h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.app p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.dropzone {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--line);
+  border-radius: 18px;
+  color: var(--muted);
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.dropzone.is-over {
+  border-color: var(--kind-video);
+  background: color-mix(in srgb, var(--kind-video) 8%, transparent);
+  color: var(--text);
 }

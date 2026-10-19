@@ -12,6 +12,7 @@ Site de distribution prévu : sous-domaine de underskydev.com → morph.undersky
 ## État d'avancement
 - **M0 fait** (Windows) : squelette Tauri v2 + React 19 + TS, installeur NSIS fonctionnel, logo temporaire `assets/logo-temp.svg` (à remplacer par le vrai PNG 1024 via `npx tauri icon`). Reste : build Linux via GitHub Actions (repo GitHub à créer).
 - **M1 fait** : moteur de conversion dans `src-tauri/src/convert/` (formats, raster, ffmpeg), commandes Tauri `get_targets` / `convert_files` (événement `convert-progress`), CLI `morph-cli`. ffmpeg = build BtbN GPL stable en sidecar (`npm run fetch:ffmpeg`), installeur ≈ 47 Mo à cause de lui.
+- **M2 fait** : menu radial des formats dans une fenêtre `radial` dédiée (transparente, sans bordure, au-dessus de tout, centrée sous le curseur, cachée/réaffichée). Pétales animés (scale + fondu, motion), sous-menus (lots mixtes : un sous-menu par type ; vidéo : formats audio dans un sous-pétale « Audio »), fermeture au clic ailleurs / Échap, conversion avec progression dans le moyeu. Déclencheurs de dev : glisser-déposer dans la fenêtre principale, ou `morph.exe fichier1 fichier2…` (réutilisable pour « Ouvrir avec Morph » sous Linux).
 - Vision fonctionnelle et UX entièrement définie (voir ci-dessous).
 - Identité visuelle en cours : logo "M" avec deux variantes réalisées en
   artifact Design (canvas.json + artboards .dc.html) :

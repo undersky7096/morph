@@ -4,11 +4,27 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 
 use crate::convert::{self, formats};
+use crate::radial;
 
 #[tauri::command]
 pub fn get_targets(paths: Vec<String>) -> formats::TargetMenu {
     let paths: Vec<&Path> = paths.iter().map(Path::new).collect();
     formats::menu_for(&paths)
+}
+
+#[tauri::command]
+pub fn open_radial(app: AppHandle, paths: Vec<String>) -> Result<(), String> {
+    radial::show(&app, paths).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn take_radial_payload(app: AppHandle) -> Option<radial::RadialPayload> {
+    radial::take_pending(&app)
+}
+
+#[tauri::command]
+pub fn close_radial(app: AppHandle) -> Result<(), String> {
+    radial::hide(&app).map_err(|e| e.to_string())
 }
 
 #[derive(Clone, Serialize)]
