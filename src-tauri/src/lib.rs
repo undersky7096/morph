@@ -1,12 +1,17 @@
 mod commands;
 pub mod convert;
 mod radial;
+#[cfg(windows)]
+mod shift_drag;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .manage(radial::Pending::default())
         .setup(|app| {
+            #[cfg(windows)]
+            shift_drag::start(app.handle().clone());
+
             // `morph fichier1 fichier2…` ouvre directement le menu des formats
             // (utilisé par « Ouvrir avec Morph » sous Linux, et pratique pour tester).
             let files: Vec<String> = std::env::args()

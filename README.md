@@ -31,4 +31,5 @@ cargo test                                                 # tests unitaires
 
 - M0 : squelette — build Windows (installeur NSIS) OK ; build Linux (AppImage) via GitHub Actions à venir. Logo temporaire (`assets/logo-temp.svg`).
 - M1 : moteur de conversion — images (crate `image` : png, jpg, webp, bmp, gif, tiff, ico, tga) et audio/vidéo (ffmpeg sidecar : mp4, webm, mkv, mov, avi, gif, mp3, wav, ogg, flac, m4a, opus), progression, noms sans écrasement.
+- M3 : déclencheur Shift + glisser depuis l'explorateur/le bureau (Windows), halo de survol, dépôt toujours en copie.
 - M2 : menu radial des formats (fenêtre transparente sous le curseur). Test : glisser des fichiers dans la fenêtre Morph, ou `morph.exe fichier1 fichier2`. Voir les milestones dans [projet.md](projet.md).

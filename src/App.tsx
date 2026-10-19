@@ -24,7 +24,10 @@ function App() {
   return (
     <main className="app">
       <h1>Morph</h1>
-      <p>Mode dev : glisse un ou plusieurs fichiers ici pour ouvrir le menu radial des formats.</p>
+      <p>
+        Depuis l’explorateur ou le bureau, glisse des fichiers en maintenant <kbd>Shift</kbd> et lâche-les
+        n’importe où : le menu des formats s’ouvre. (Dépôt direct ici aussi possible.)
+      </p>
       <div className={`dropzone ${over ? "is-over" : ""}`}>Dépose tes fichiers ici</div>
     </main>
   );
