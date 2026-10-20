@@ -149,17 +149,6 @@
   grid-template-columns: repeat(2, 1fr);
 }
 
-.check {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.check input {
-  accent-color: var(--kind-video);
-}
-
 .target {
   display: flex;
   align-items: center;

@@ -1,39 +1,46 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 import { basename } from "../formats";
-import { ChevronIcon, CloseIcon, MinimizeIcon } from "../icons";
+import { CloseIcon, MinimizeIcon } from "../icons";
 import Compress from "./compress/Compress";
 import Crop from "./crop/Crop";
-import { TOOLS, type ToolId, toolsFor } from "./registry";
+import { TOOLS, type ToolId } from "./registry";
 import "./tools.css";
+
+// Konva est lourd : chargé seulement quand l'éditeur s'ouvre (le menu radial reste léger).
+const ImageEditor = lazy(() => import("./edit/ImageEditor"));
 
 interface Payload {
   tool: ToolId;
   paths: string[];
 }
 
-interface Session {
-  /** Change à chaque ouverture d'outil : remonte l'outil à neuf. */
+interface Session extends Payload {
+  /** Change à chaque ouverture : remonte l'outil à neuf. */
   id: number;
-  tool: ToolId;
-  /** Fichiers en cours : les originaux, puis les résultats du dernier outil appliqué. */
-  paths: string[];
-  /** Derniers fichiers enregistrés par un outil dans cette fenêtre. */
-  saved: string[];
+  /** Fichier en cours, pour les outils qui traitent un lot fichier par fichier. */
+  index: number;
+  /** Fichiers enregistrés jusqu'ici. */
+  outputs: string[];
 }
 
 let nextId = 0;
 
-/** Popup d'édition : un outil à la fois, enchaînables via « Outil suivant ». */
+/**
+ * Popup d'un outil. Après l'enregistrement, on passe au fichier suivant du lot ;
+ * une fois tout traité, la fenêtre se ferme et l'anneau d'actions réapparaît
+ * sur les résultats.
+ */
 export default function ToolWindow() {
   const [session, setSession] = useState<Session | null>(null);
+  const win = getCurrentWebviewWindow();
 
   useEffect(() => {
-    const start = (p: Payload) => setSession({ ...p, id: ++nextId, saved: [] });
+    const start = (p: Payload) => setSession({ ...p, id: ++nextId, index: 0, outputs: [] });
     invoke<Payload | null>("take_tool_payload").then((p) => p && start(p));
-    const unlisten = getCurrentWebviewWindow().listen<Payload>("tool-open", ({ payload }) => {
+    const unlisten = win.listen<Payload>("tool-open", ({ payload }) => {
       invoke("take_tool_payload");
       start(payload);
     });
@@ -42,38 +49,50 @@ export default function ToolWindow() {
     };
   }, []);
 
-  useEffect(() => {
-    if (session) document.title = `${TOOLS[session.tool].label} : ${describe(session.paths)} · Morph`;
-  }, [session]);
-
-  const win = getCurrentWebviewWindow();
   const tool = session ? TOOLS[session.tool] : null;
-  const onSaved = (outputs: string[]) =>
-    setSession((s) => s && { ...s, paths: outputs.length ? outputs : s.paths, saved: outputs });
+  const perFile = !!tool && !tool.wholeBatch;
+  const current = session && (perFile ? [session.paths[session.index]] : session.paths);
+  const counter = session && perFile && session.paths.length > 1 ? `${session.index + 1}/${session.paths.length}` : null;
 
-  const nextTool = session && (
-    <NextTool
-      current={session.tool}
-      paths={session.paths}
-      onPick={(id) => setSession((s) => s && { ...s, id: ++nextId, tool: id })}
-    />
+  useEffect(() => {
+    if (tool && current) document.title = `${tool.label} : ${describe(current)} · Morph`;
+  }, [tool, current?.join("\n")]);
+
+  /** Retour aux pétales sur les résultats, puis fermeture de la fenêtre. */
+  async function finish(outputs: string[]) {
+    if (outputs.length) await invoke("open_actions", { paths: outputs });
+    await win.close();
+  }
+
+  /** Fichier en cours traité (`output`) ou passé (`null`) : fichier suivant, ou fin du lot. */
+  function advance(output: string | null) {
+    if (!session) return;
+    const outputs = output ? [...session.outputs, output] : session.outputs;
+    if (session.index + 1 < session.paths.length) {
+      setSession({ ...session, index: session.index + 1, outputs });
+    } else {
+      finish(outputs);
+    }
+  }
+
+  const skip = counter && (
+    <button onClick={() => advance(null)} title="Garder ce fichier tel quel et passer au suivant">
+      Passer
+    </button>
   );
+  const key = session && `${session.id}-${session.index}`;
 
   return (
     <div className="tool">
       <header className="titlebar" data-tauri-drag-region>
-        {tool && (
+        {tool && current && (
           <span className="titlebar-title" data-tauri-drag-region>
             <tool.icon />
             <strong data-tauri-drag-region>{tool.label}</strong>
             <span className="titlebar-file" data-tauri-drag-region>
-              {describe(session!.paths)}
+              {describe(current)}
             </span>
-          </span>
-        )}
-        {session && session.saved.length > 0 && (
-          <span className="titlebar-saved" title={session.saved.join("\n")}>
-            ✓ Enregistré : {describe(session.saved)}
+            {counter && <span className="titlebar-counter">{counter}</span>}
           </span>
         )}
         <div className="titlebar-buttons">
@@ -88,66 +107,17 @@ export default function ToolWindow() {
 
       <main className="tool-body">
         {session?.tool === "crop" && (
-          <Crop
-            key={session.paths[0]}
-            path={session.paths[0]}
-            nextTool={nextTool}
-            onSaved={(output) => onSaved([output])}
-          />
+          <Crop key={key} path={current![0]} footerExtra={skip} onSaved={advance} />
         )}
-        {session?.tool === "compress" && (
-          <Compress key={session.id} paths={session.paths} nextTool={nextTool} onSaved={onSaved} />
+        {session?.tool === "edit" && (
+          <Suspense fallback={<p className="tool-hint tool-loading">Chargement de l'éditeur…</p>}>
+            <ImageEditor key={key} path={current![0]} footerExtra={skip} onSaved={advance} />
+          </Suspense>
         )}
+        {session?.tool === "compress" && <Compress key={key} paths={session.paths} onDone={finish} />}
       </main>
     </div>
   );
 }
 
 const describe = (paths: string[]) => (paths.length === 1 ? basename(paths[0]) : `${paths.length} fichiers`);
-
-/** Bouton « Outil suivant » : passe à un autre outil sur les fichiers en cours. */
-function NextTool(props: { current: ToolId; paths: string[]; onPick: (id: ToolId) => void }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const options = toolsFor(props.paths).filter((id) => id !== props.current);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: PointerEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
-    };
-    window.addEventListener("pointerdown", onDown);
-    return () => window.removeEventListener("pointerdown", onDown);
-  }, [open]);
-
-  if (options.length === 0) return null;
-  return (
-    <div className="next-tool" ref={ref}>
-      <button onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-        Outil suivant <ChevronIcon />
-      </button>
-      {open && (
-        <div className="next-tool-menu" role="menu">
-          {options.map((id) => {
-            const tool = TOOLS[id];
-            return (
-              <button
-                key={id}
-                role="menuitem"
-                disabled={!!tool.comingIn}
-                onClick={() => {
-                  setOpen(false);
-                  props.onPick(id);
-                }}
-              >
-                <tool.icon />
-                <span>{tool.label}</span>
-                {tool.comingIn && <em>bientôt</em>}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}

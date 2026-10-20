@@ -30,6 +30,7 @@ pub fn run() {
             commands::get_targets,
             commands::convert_files,
             commands::open_radial,
+            commands::open_actions,
             commands::take_radial_payload,
             commands::close_radial,
             commands::open_tool,
@@ -39,6 +40,7 @@ pub fn run() {
             commands::compress_files,
             commands::compress_preview,
             commands::file_sizes,
+            commands::save_edited,
             commands::log_frontend_error,
         ])
         .run(tauri::generate_context!())

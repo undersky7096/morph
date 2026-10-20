@@ -19,6 +19,12 @@ pub fn open_radial(app: AppHandle, paths: Vec<String>) -> Result<(), String> {
     radial::show(&app, paths).map_err(|e| e.to_string())
 }
 
+// Async : appelée depuis la fenêtre d'outil, qui se ferme juste après.
+#[tauri::command]
+pub async fn open_actions(app: AppHandle, paths: Vec<String>) -> Result<(), String> {
+    radial::show_actions(&app, paths).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 pub fn take_radial_payload(app: AppHandle) -> Option<radial::RadialPayload> {
     radial::take_pending(&app)
@@ -101,6 +107,45 @@ pub async fn crop_image(path: String, rect: edit::Rect) -> Result<String, Conver
         .map(|out| out.display().to_string())
 }
 
+/// Enregistre le rendu de l'éditeur image (PNG brut dans le corps de la requête,
+/// chemin d'origine dans l'en-tête `x-path`) au format d'origine, suffixe « Edited ».
+#[tauri::command]
+pub async fn save_edited(request: tauri::ipc::Request<'_>) -> Result<String, ConvertError> {
+    let tauri::ipc::InvokeBody::Raw(png) = request.body() else {
+        return Err(ConvertError::Unsupported("corps de requête attendu : PNG brut".into()));
+    };
+    let path = request
+        .headers()
+        .get("x-path")
+        .and_then(|v| v.to_str().ok())
+        .map(|v| percent_decode(v))
+        .ok_or_else(|| ConvertError::Unsupported("en-tête x-path manquant".into()))?;
+    let png = png.clone();
+    tauri::async_runtime::spawn_blocking(move || edit::save_edited(Path::new(&path), &png))
+        .await
+        .map_err(|e| ConvertError::Io(std::io::Error::other(e)))?
+        .map(|out| out.display().to_string())
+}
+
+/// Les en-têtes HTTP sont en ASCII : le chemin y est encodé par `encodeURIComponent`.
+fn percent_decode(s: &str) -> String {
+    let bytes = s.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' && i + 2 < bytes.len() {
+            if let Ok(b) = u8::from_str_radix(&s[i + 1..i + 3], 16) {
+                out.push(b);
+                i += 3;
+                continue;
+            }
+        }
+        out.push(bytes[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
+}
+
 #[derive(Serialize)]
 pub struct CompressResult {
     input: String,
@@ -149,4 +194,13 @@ pub fn file_sizes(paths: Vec<String>) -> Vec<u64> {
 #[tauri::command]
 pub fn log_frontend_error(window: tauri::WebviewWindow, message: String) {
     eprintln!("[ui:{}] {message}", window.label());
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn decodes_percent_encoded_paths() {
+        assert_eq!(super::percent_decode("C%3A%5CPhotos%5Cd%C3%A9j%C3%A0%20vu.png"), r"C:\Photos\déjà vu.png");
+        assert_eq!(super::percent_decode("50%"), "50%");
+    }
 }

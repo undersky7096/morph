@@ -14,9 +14,11 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
+    "konva": "10.7.0",
     "motion": "^14.4.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-konva": "19.3.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",

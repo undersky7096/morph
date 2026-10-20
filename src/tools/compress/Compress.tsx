@@ -35,19 +35,18 @@ const LEVELS: { label: string; value: Level; hint: string }[] = [
 /** Limite d'envoi de fichiers sur Discord (compte gratuit). */
 const DISCORD_MB = 20;
 
+/** Durée d'affichage du bilan avant le retour aux pétales. */
+const SUMMARY_MS = 1500;
+
 interface Props {
   paths: string[];
-  /** Appelé avec les fichiers compressés une fois enregistrés. */
-  onSaved: (outputs: string[]) => void;
-  /** Bouton « Outil suivant », fourni par la fenêtre. */
-  nextTool: ReactNode;
+  /** Appelé après le bilan avec les fichiers produits (les originaux si rien n'a été allégé). */
+  onDone: (outputs: string[]) => void;
 }
 
 const percentLess = (before: number, after: number) => `−${Math.round((1 - after / before) * 100)} %`;
 
-export default function Compress({ paths: initialPaths, onSaved, nextTool }: Props) {
-  // Les fichiers d'origine : la fenêtre passe aux résultats après l'enregistrement.
-  const [paths] = useState(initialPaths);
+export default function Compress({ paths, onDone }: Props) {
   const [level, setLevel] = useState<Level>("medium");
   const [reduceColors, setReduceColors] = useState(false);
   const [mode, setMode] = useState<Mode>("quality");
@@ -90,10 +89,11 @@ export default function Compress({ paths: initialPaths, onSaved, nextTool }: Pro
       const res = await invoke<CompressResult[]>("compress_files", { paths, options });
       setResults(res);
       const outputs = res.flatMap((r) => (r.outcome?.status === "saved" ? [r.outcome.output] : []));
-      if (outputs.length) onSaved(outputs);
+      setProgress(null);
+      // Une erreur garde la fenêtre ouverte pour la lire ; sinon bilan, puis pétales.
+      if (res.every((r) => !r.error)) setTimeout(() => onDone(outputs.length ? outputs : paths), SUMMARY_MS);
     } catch (e) {
       setError(String(e));
-    } finally {
       setProgress(null);
     }
   }
@@ -201,7 +201,6 @@ export default function Compress({ paths: initialPaths, onSaved, nextTool }: Pro
           sizes={sizes}
           previewSize={previewPath ? preview.compressed?.size : undefined}
         />
-        {nextTool}
         <button className="primary" onClick={run} disabled={!!progress || !targetValid}>
           {progress ? "Compression…" : "Compresser"}
         </button>

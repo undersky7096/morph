@@ -25,10 +25,21 @@ pub struct RadialPayload {
     id: u64,
     paths: Vec<String>,
     menu: TargetMenu,
+    /// Ouvrir directement l'anneau d'actions (retour d'un outil après enregistrement).
+    actions: bool,
 }
 
 /// Ouvre le menu des formats pour `paths`, centré sur la position actuelle du curseur.
 pub fn show(app: &AppHandle, paths: Vec<String>) -> tauri::Result<()> {
+    show_with(app, paths, false)
+}
+
+/// Ouvre l'anneau d'actions (Recadrer, Compresser, Éditer) pour des fichiers déjà traités.
+pub fn show_actions(app: &AppHandle, paths: Vec<String>) -> tauri::Result<()> {
+    show_with(app, paths, true)
+}
+
+fn show_with(app: &AppHandle, paths: Vec<String>, actions: bool) -> tauri::Result<()> {
     let window = app.get_webview_window(LABEL).ok_or(tauri::Error::WindowNotFound)?;
     let cursor = app.cursor_position()?;
     let size = window.outer_size()?;
@@ -49,7 +60,7 @@ pub fn show(app: &AppHandle, paths: Vec<String>) -> tauri::Result<()> {
 
     let refs: Vec<&Path> = paths.iter().map(Path::new).collect();
     let menu = formats::menu_for(&refs);
-    let payload = RadialPayload { id: NEXT_ID.fetch_add(1, Ordering::Relaxed), paths, menu };
+    let payload = RadialPayload { id: NEXT_ID.fetch_add(1, Ordering::Relaxed), paths, menu, actions };
     *app.state::<Pending>().0.lock().unwrap() = Some(payload.clone());
     app.emit_to(LABEL, "radial-open", payload)?;
 

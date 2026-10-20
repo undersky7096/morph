@@ -20,11 +20,11 @@ interface Props {
   path: string;
   /** Appelé avec le chemin du fichier recadré une fois enregistré. */
   onSaved: (output: string) => void;
-  /** Bouton « Outil suivant », fourni par la fenêtre. */
-  nextTool: ReactNode;
+  /** Boutons supplémentaires du pied de fenêtre (ex : « Passer » dans un lot). */
+  footerExtra?: ReactNode;
 }
 
-export default function Crop({ path, onSaved, nextTool }: Props) {
+export default function Crop({ path, onSaved, footerExtra }: Props) {
   const [src, setSrc] = useState<string | null>(null);
   const [img, setImg] = useState<Size | null>(null);
   const [rect, setRect] = useState<Rect | null>(null);
@@ -194,7 +194,7 @@ export default function Crop({ path, onSaved, nextTool }: Props) {
 
       <footer className="tool-footer">
         <span className={`tool-status ${error ? "is-error" : ""}`}>{error ?? (px ? `${px.width} × ${px.height} px` : "")}</span>
-        {nextTool}
+        {footerExtra}
         <button className="primary" onClick={apply} disabled={!rect || busy}>
           {busy ? "Enregistrement…" : "Appliquer"}
         </button>

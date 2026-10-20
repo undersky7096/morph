@@ -40,6 +40,7 @@ GPL-3.0-or-later (voir [LICENSE](LICENSE)). ffmpeg est livré à part, en sideca
 
 Version actuelle : **0.5.0** (`0.<milestone>.0` ; changer avec `npm run bump -- x.y.z`).
 
+- M6a : éditeur image (réglages, filtres, rotation/miroir/redressement, vignettage, grain, inversion ; texte, pinceau, gomme, surligneur, formes ; annuler/rétablir). Après chaque enregistrement : retour aux pétales, ou fichier suivant d'un lot.
 - M5 : outil Compresser — PNG optimisé sans perte (oxipng) + option « réduire les couleurs » (libimagequant), JPEG/WebP/GIF par niveau, audio/vidéo par niveau ou par taille cible (2 passes, préréglage Discord 20 Mo), aperçu du poids, lots. Résultat `nom Compressed.ext`, rien d'enregistré si pas plus léger.
 - M4 : menu d'actions (après conversion, ou pétale « Éditer ») + outil Recadrer dans une popup, bouton « Outil suivant ».
 

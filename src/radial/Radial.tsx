@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
-import { TOOLS } from "../tools/registry";
+import { comingIn, TOOLS } from "../tools/registry";
 import type { ConvertProgress, ConvertResult, RadialPayload } from "../types";
 import { actionItems, buildItems, type Item } from "./items";
 import "./Radial.css";
@@ -11,8 +11,8 @@ import "./Radial.css";
 const RADIUS = 118;
 const HUB_RING = 2 * Math.PI * 34;
 
-/** Niveau du menu. `done` : anneau d'actions affiché après une conversion réussie. */
-type Level = { label: string; items: Item[]; done?: boolean };
+/** Niveau du menu. `done` : légende du ✓ quand l'anneau d'actions suit un traitement réussi. */
+type Level = { label: string; items: Item[]; done?: string };
 type Phase =
   | { name: "menu" }
   | { name: "running"; progress: number }
@@ -42,7 +42,11 @@ export default function Radial() {
       if (payload.id <= lastId) return;
       lastId = payload.id;
       setFileCount(payload.paths.length);
-      setStack([{ label: "", items: buildItems(payload.menu) }]);
+      setStack([
+        payload.actions
+          ? { label: "", items: actionItems(payload.paths), done: "Enregistré" }
+          : { label: "", items: buildItems(payload.menu) },
+      ]);
       setPhase({ name: "menu" });
       setSession((s) => s + 1);
       setOpen(true);
@@ -93,7 +97,7 @@ export default function Radial() {
       return;
     }
     if (item.type === "action") {
-      if (TOOLS[item.tool].comingIn) return;
+      if (comingIn(item.tool, item.paths)) return;
       await invoke("open_tool", { tool: item.tool, paths: item.paths });
       close();
       return;
@@ -111,7 +115,7 @@ export default function Radial() {
     const actions = errors.length ? [] : actionItems(outputs);
     if (actions.length) {
       // Conversion réussie : le menu enchaîne sur les actions d'édition du résultat.
-      setStack([{ label: "", items: actions, done: true }]);
+      setStack([{ label: "", items: actions, done: "Converti" }]);
       setPhase({ name: "menu" });
       return;
     }
@@ -147,7 +151,7 @@ export default function Radial() {
             {phase.name === "menu" && (
               <motion.div key={stack.length} className="radial-ring">
                 {items.map((item, i) => {
-                  const soon = item.type === "action" ? TOOLS[item.tool].comingIn : undefined;
+                  const soon = item.type === "action" ? comingIn(item.tool, item.paths) : undefined;
                   const angle = -Math.PI / 2 + (i / items.length) * 2 * Math.PI;
                   const x = Math.cos(angle) * RADIUS;
                   const y = Math.sin(angle) * RADIUS;
@@ -224,7 +228,7 @@ function HubContent(props: { phase: Phase; fileCount: number; level?: Level; emp
     return (
       <>
         <span className="hub-icon is-ok">✓</span>
-        <span className="hub-caption">Converti</span>
+        <span className="hub-caption">{level.done}</span>
       </>
     );
   }
@@ -254,8 +258,9 @@ function itemKey(item: Item) {
 function itemTitle(item: Item) {
   if (item.type === "group") return `${item.label} : ${item.items.length} choix`;
   if (item.type === "action") {
-    const tool = TOOLS[item.tool];
-    return tool.comingIn ? `${tool.label} : disponible bientôt (${tool.comingIn})` : tool.label;
+    const label = TOOLS[item.tool].label;
+    const soon = comingIn(item.tool, item.paths);
+    return soon ? `${label} : disponible bientôt (${soon})` : label;
   }
   return undefined;
 }

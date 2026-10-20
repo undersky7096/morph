@@ -186,8 +186,22 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
    incrément testable indépendamment.
 
 ## Chemin à suivre pour la suite (instructions pour Claude)
-- **Reprendre à M6 (Edit)** — M0 à M5 sont faits (v0.5.0). Questions UX
-  posées et répondues le 2026-10-20 (ci-dessous) : commencer par **6a**.
+- **M6a fait** (2026-10-20, version toujours 0.5.0 jusqu'à 6c) : éditeur image
+  `src/tools/edit/` — rendu WebGL (`renderer.ts` : flou 2 passes, netteté,
+  couleurs, filtres, vignettage, grain, quarts de tour/miroirs/redressement
+  avec agrandissement) + annotations Konva (`Canvas.tsx`, coordonnées en
+  pixels de sortie), annuler/rétablir (`history.ts`, curseurs fusionnés),
+  export PNG pleine résolution → `save_edited` (corps brut + en-tête
+  `x-path`) réencode au format d'origine en `nom Edited.ext`. Éditeur chargé
+  à la demande (Konva hors du bundle du radial).
+- **Nouvel enchaînement (décision du 2026-10-20, remplace « Outil
+  suivant »)** : après « Enregistrer », un fichier seul → la fenêtre se ferme
+  et l'anneau d'actions réapparaît sous le curseur sur le résultat
+  (`open_actions`, ✓ « Enregistré ») ; un lot → Recadrer/Éditer passent au
+  fichier suivant (compteur 2/5, bouton « Passer »), puis pétales sur tous
+  les résultats. Compresser (lot d'un coup) : bilan ~1,5 s puis pétales ; une
+  erreur garde la fenêtre ouverte.
+- **Reprendre à M6b (découpe audio, plusieurs segments)**, puis M6c.
 - **Décisions M6** (validées par l'utilisateur le 2026-10-20) :
   - Découpage en sous-étapes, un commit + validation chacune :
     **6a** éditeur image, **6b** découpe audio, **6c** éditeur vidéo.

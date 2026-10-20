@@ -18,6 +18,8 @@ export interface RadialPayload {
   id: number;
   paths: string[];
   menu: TargetMenu;
+  /** Ouvrir directement l'anneau d'actions (retour d'un outil après enregistrement). */
+  actions: boolean;
 }
 
 export interface ConvertProgress {
