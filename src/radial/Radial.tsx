@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
+import { chooseOutputDir, getSettings } from "../settings";
 import { comingIn, TOOLS } from "../tools/registry";
 import type { ConvertProgress, ConvertResult, RadialPayload } from "../types";
 import { actionItems, buildItems, type Item } from "./items";
@@ -29,6 +30,8 @@ export default function Radial() {
   const openRef = useRef(false);
   const sessionRef = useRef(0);
   const progressRef = useRef<number[]>([]);
+  /** Choix du dossier de sortie en cours : la perte de focus ne ferme pas le menu. */
+  const pickingRef = useRef(false);
 
   openRef.current = open;
   sessionRef.current = session;
@@ -45,7 +48,7 @@ export default function Radial() {
       setStack([
         payload.actions
           ? { label: "", items: actionItems(payload.paths), done: "Enregistré" }
-          : { label: "", items: buildItems(payload.menu) },
+          : { label: "", items: buildItems(payload.menu, getSettings()) },
       ]);
       setPhase({ name: "menu" });
       setSession((s) => s + 1);
@@ -62,7 +65,7 @@ export default function Radial() {
       opened,
       // Menu non modal : il se ferme dès que la fenêtre perd le focus (clic ailleurs).
       win.onFocusChanged(({ payload: focused }) => {
-        if (!focused) setOpen(false);
+        if (!focused && !pickingRef.current) setOpen(false);
       }),
       win.listen<ConvertProgress>("convert-progress", ({ payload }) => {
         const values = progressRef.current;
@@ -102,12 +105,21 @@ export default function Radial() {
       close();
       return;
     }
+    // Réglage « demander à chaque fois » : le menu reste ouvert pendant le choix du dossier.
+    pickingRef.current = getSettings().saveMode === "ask";
+    const outDir = await chooseOutputDir();
+    if (pickingRef.current) {
+      pickingRef.current = false;
+      getCurrentWebviewWindow().setFocus();
+    }
+    if (outDir === null) return;
     const mySession = sessionRef.current;
     progressRef.current = item.paths.map(() => 0);
     setPhase({ name: "running", progress: 0 });
     const results = await invoke<ConvertResult[]>("convert_files", {
       paths: item.paths,
       target: item.format,
+      outDir,
     });
     if (sessionRef.current !== mySession) return;
     const errors = results.filter((r) => r.error).map((r) => `${r.input}\n${r.error}`);

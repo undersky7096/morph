@@ -124,13 +124,13 @@
 }
 
 .slider-value.is-changed {
-  color: var(--kind-video);
+  color: var(--accent);
 }
 
 .slider input[type="range"] {
   width: 100%;
   margin: 0;
-  accent-color: var(--kind-video);
+  accent-color: var(--accent);
 }
 
 /* Filtres */
@@ -167,8 +167,8 @@
 }
 
 .preset.is-active {
-  border-color: var(--kind-video);
-  background: color-mix(in srgb, var(--kind-video) 12%, transparent);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 /* Annotation */
@@ -189,8 +189,8 @@
 }
 
 .annotate-tools button.is-active {
-  border-color: var(--kind-video);
-  background: color-mix(in srgb, var(--kind-video) 16%, transparent);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
 .swatches {
@@ -210,7 +210,7 @@
 }
 
 .swatch.is-active {
-  outline: 2px solid var(--kind-video);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 

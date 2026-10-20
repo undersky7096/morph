@@ -130,12 +130,12 @@ html[data-window="tool"] body {
 }
 
 .chip:hover {
-  border-color: color-mix(in srgb, var(--kind-video) 60%, var(--line));
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--line));
 }
 
 .chip.is-active {
-  border-color: var(--kind-video);
-  background: color-mix(in srgb, var(--kind-video) 16%, transparent);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
 .tool input[type="number"] {
@@ -150,7 +150,7 @@ html[data-window="tool"] body {
 
 .tool input:focus-visible,
 .tool button:focus-visible {
-  outline: 2px solid var(--kind-video);
+  outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 
@@ -162,7 +162,7 @@ html[data-window="tool"] body {
 }
 
 .check input {
-  accent-color: var(--kind-video);
+  accent-color: var(--accent);
 }
 
 .link {
@@ -170,7 +170,7 @@ html[data-window="tool"] body {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--kind-video) !important;
+  color: var(--accent) !important;
   cursor: pointer;
 }
 
@@ -211,7 +211,7 @@ html[data-window="tool"] body {
 
 .tool-footer > button.primary {
   border-color: transparent;
-  background: linear-gradient(135deg, var(--kind-image), var(--kind-video));
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
   color: #06121a;
   font-weight: 600;
 }

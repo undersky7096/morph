@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
+import { chooseOutputDir } from "../../settings";
 import { Slider } from "./controls";
 import { useHistory } from "./history";
 import type { Segment } from "./segments";
@@ -90,12 +91,14 @@ export default function AudioEditor({ path, onSaved, footerExtra }: Props) {
 
   async function save() {
     if (!track || !segments.length || busy !== null) return;
+    const outDir = await chooseOutputDir();
+    if (outDir === null) return;
     player.pause();
     setBusy(0);
     setError(null);
     const unlisten = await listen<number>("trim-progress", ({ payload }) => setBusy(payload));
     try {
-      const output = await invoke<string>("trim_audio", { path, segments, volume: volume / 100 });
+      const output = await invoke<string>("trim_audio", { path, segments, volume: volume / 100, outDir });
       onSaved(output);
     } catch (e) {
       setError(String(e));

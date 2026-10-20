@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "re
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
+import { chooseOutputDir } from "../../settings";
 import { FlipHIcon, FlipVIcon, RotateLeftIcon, RotateRightIcon } from "../../icons";
 import { dragRect, fitRatio, type Handle, type Rect } from "../crop/geometry";
 import { loadTrack, type Track } from "./AudioEditor";
@@ -329,6 +330,8 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
 
   async function save() {
     if (!info || !rotated || !state.segments.length || busy !== null) return;
+    const outDir = await chooseOutputDir();
+    if (outDir === null) return;
     video.pause();
     setBusy(0);
     setError(null);
@@ -357,7 +360,7 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
     };
     const unlisten = await listen<number>("edit-progress", ({ payload }) => setBusy(payload));
     try {
-      const output = await invoke<string>("edit_video", { path, edit });
+      const output = await invoke<string>("edit_video", { path, edit, outDir });
       onSaved(output);
     } catch (e) {
       setError(String(e));

@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
+import { chooseOutputDir } from "../../settings";
 import { dragRect, fitRatio, type Handle, type Rect, resizeTo, type Size, toPixels } from "./geometry";
 import "./Crop.css";
 
@@ -100,10 +101,12 @@ export default function Crop({ path, onSaved, footerExtra }: Props) {
 
   async function apply() {
     if (!rect || !img || busy) return;
+    const outDir = await chooseOutputDir();
+    if (outDir === null) return;
     setBusy(true);
     setError(null);
     try {
-      const output = await invoke<string>("crop_image", { path, rect: toPixels(rect, img) });
+      const output = await invoke<string>("crop_image", { path, rect: toPixels(rect, img), outDir });
       onSaved(output);
     } catch (e) {
       setError(String(e));

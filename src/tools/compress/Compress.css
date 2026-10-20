@@ -140,7 +140,7 @@
   left: 0;
   bottom: 0;
   height: 2px;
-  background: linear-gradient(90deg, var(--kind-image), var(--kind-video));
+  background: linear-gradient(90deg, var(--accent-2), var(--accent));
   transition: width 0.2s;
 }
 

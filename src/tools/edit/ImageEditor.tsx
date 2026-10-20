@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
+import { chooseOutputDir } from "../../settings";
 import {
   ArrowIcon,
   BrushIcon,
@@ -199,13 +200,15 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
 
   async function save() {
     if (busy || !canvasRef.current) return;
+    const outDir = await chooseOutputDir();
+    if (outDir === null) return;
     setBusy(true);
     setError(null);
     try {
       const blob = await canvasRef.current.exportPng();
       const bytes = new Uint8Array(await blob.arrayBuffer());
       const output = await invoke<string>("save_edited", bytes, {
-        headers: { "x-path": encodeURIComponent(path) },
+        headers: { "x-path": encodeURIComponent(path), ...(outDir ? { "x-out-dir": encodeURIComponent(outDir) } : {}) },
       });
       onSaved(output);
     } catch (e) {

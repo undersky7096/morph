@@ -6,7 +6,7 @@ use tauri::{AppHandle, Emitter, Manager};
 
 use crate::convert::{self, ConvertError, formats};
 use crate::edit::{self, compress, trim, video};
-use crate::{radial, tools};
+use crate::{radial, settings, tools};
 
 #[tauri::command]
 pub fn get_targets(paths: Vec<String>) -> formats::TargetMenu {
@@ -50,9 +50,11 @@ pub struct ConvertResult {
 }
 
 /// Convertit un lot vers un même format. Progression émise via l'événement `convert-progress`.
+/// `out_dir` : dossier choisi par l'utilisateur (réglage « demander à chaque fois »).
 #[tauri::command]
-pub async fn convert_files(app: AppHandle, paths: Vec<String>, target: String) -> Vec<ConvertResult> {
-    tauri::async_runtime::spawn_blocking(move || {
+pub async fn convert_files(app: AppHandle, paths: Vec<String>, target: String, out_dir: Option<String>) -> Vec<ConvertResult> {
+    let dir = settings::output_dir(&app, out_dir.as_deref());
+    tauri::async_runtime::spawn_blocking(move || convert::with_output_dir(dir, || {
         paths
             .into_iter()
             .enumerate()
@@ -67,7 +69,7 @@ pub async fn convert_files(app: AppHandle, paths: Vec<String>, target: String) -
                 }
             })
             .collect()
-    })
+    }))
     .await
     .unwrap_or_default()
 }
@@ -110,17 +112,23 @@ async fn read_file(path: PathBuf) -> std::io::Result<Vec<u8>> {
 }
 
 #[tauri::command]
-pub async fn crop_image(path: String, rect: edit::Rect) -> Result<String, ConvertError> {
-    tauri::async_runtime::spawn_blocking(move || edit::crop(Path::new(&path), rect))
+pub async fn crop_image(
+    app: AppHandle,
+    path: String,
+    rect: edit::Rect,
+    out_dir: Option<String>,
+) -> Result<String, ConvertError> {
+    let dir = settings::output_dir(&app, out_dir.as_deref());
+    blocking(move || convert::with_output_dir(dir, || edit::crop(Path::new(&path), rect)))
         .await
-        .map_err(|e| ConvertError::Io(std::io::Error::other(e)))?
         .map(|out| out.display().to_string())
 }
 
 /// Enregistre le rendu de l'éditeur image (PNG brut dans le corps de la requête,
-/// chemin d'origine dans l'en-tête `x-path`) au format d'origine, suffixe « Edited ».
+/// chemin d'origine dans l'en-tête `x-path`, dossier choisi éventuel dans `x-out-dir`) au
+/// format d'origine, suffixe « Edited ».
 #[tauri::command]
-pub async fn save_edited(request: tauri::ipc::Request<'_>) -> Result<String, ConvertError> {
+pub async fn save_edited(app: AppHandle, request: tauri::ipc::Request<'_>) -> Result<String, ConvertError> {
     let tauri::ipc::InvokeBody::Raw(png) = request.body() else {
         return Err(ConvertError::Unsupported("corps de requête attendu : PNG brut".into()));
     };
@@ -128,12 +136,13 @@ pub async fn save_edited(request: tauri::ipc::Request<'_>) -> Result<String, Con
         .headers()
         .get("x-path")
         .and_then(|v| v.to_str().ok())
-        .map(|v| percent_decode(v))
+        .map(percent_decode)
         .ok_or_else(|| ConvertError::Unsupported("en-tête x-path manquant".into()))?;
+    let chosen = request.headers().get("x-out-dir").and_then(|v| v.to_str().ok()).map(percent_decode);
+    let dir = settings::output_dir(&app, chosen.as_deref());
     let png = png.clone();
-    tauri::async_runtime::spawn_blocking(move || edit::save_edited(Path::new(&path), &png))
+    blocking(move || convert::with_output_dir(dir, || edit::save_edited(Path::new(&path), &png)))
         .await
-        .map_err(|e| ConvertError::Io(std::io::Error::other(e)))?
         .map(|out| out.display().to_string())
 }
 
@@ -178,10 +187,14 @@ pub async fn trim_audio(
     path: String,
     segments: Vec<trim::Segment>,
     volume: Option<f64>,
+    out_dir: Option<String>,
 ) -> Result<String, ConvertError> {
+    let dir = settings::output_dir(&app, out_dir.as_deref());
     blocking(move || {
-        trim::trim(Path::new(&path), &segments, volume.unwrap_or(1.0), &mut |p| {
-            let _ = app.emit("trim-progress", p);
+        convert::with_output_dir(dir, || {
+            trim::trim(Path::new(&path), &segments, volume.unwrap_or(1.0), &mut |p| {
+                let _ = app.emit("trim-progress", p);
+            })
         })
     })
     .await
@@ -227,10 +240,18 @@ pub async fn video_preview(app: AppHandle, path: String) -> Result<String, Conve
 
 /// Enregistre une vidéo éditée. Progression via l'événement `edit-progress`.
 #[tauri::command]
-pub async fn edit_video(app: AppHandle, path: String, edit: video::VideoEdit) -> Result<String, ConvertError> {
+pub async fn edit_video(
+    app: AppHandle,
+    path: String,
+    edit: video::VideoEdit,
+    out_dir: Option<String>,
+) -> Result<String, ConvertError> {
+    let dir = settings::output_dir(&app, out_dir.as_deref());
     blocking(move || {
-        video::edit(Path::new(&path), &edit, &mut |p| {
-            let _ = app.emit("edit-progress", p);
+        convert::with_output_dir(dir, || {
+            video::edit(Path::new(&path), &edit, &mut |p| {
+                let _ = app.emit("edit-progress", p);
+            })
         })
     })
     .await
@@ -254,8 +275,14 @@ pub struct CompressResult {
 
 /// Compresse un lot. Progression émise via l'événement `compress-progress`.
 #[tauri::command]
-pub async fn compress_files(app: AppHandle, paths: Vec<String>, options: compress::Options) -> Vec<CompressResult> {
-    tauri::async_runtime::spawn_blocking(move || {
+pub async fn compress_files(
+    app: AppHandle,
+    paths: Vec<String>,
+    options: compress::Options,
+    out_dir: Option<String>,
+) -> Vec<CompressResult> {
+    let dir = settings::output_dir(&app, out_dir.as_deref());
+    tauri::async_runtime::spawn_blocking(move || convert::with_output_dir(dir, || {
         paths
             .into_iter()
             .enumerate()
@@ -269,7 +296,7 @@ pub async fn compress_files(app: AppHandle, paths: Vec<String>, options: compres
                 }
             })
             .collect()
-    })
+    }))
     .await
     .unwrap_or_default()
 }
@@ -287,6 +314,23 @@ pub async fn compress_preview(path: String, options: compress::Options) -> Resul
 #[tauri::command]
 pub fn file_sizes(paths: Vec<String>) -> Vec<u64> {
     paths.iter().map(|p| std::fs::metadata(p).map(|m| m.len()).unwrap_or(0)).collect()
+}
+
+#[tauri::command]
+pub fn get_settings(app: AppHandle) -> settings::Settings {
+    settings::get(&app)
+}
+
+/// Enregistre et applique les réglages ; renvoie la version retenue (valeurs bornées).
+#[tauri::command]
+pub fn set_settings(app: AppHandle, settings: settings::Settings) -> Result<settings::Settings, String> {
+    settings::set(&app, settings)
+}
+
+/// Quitte Morph (menu de l'icône, bouton des Réglages).
+#[tauri::command]
+pub fn quit(app: AppHandle) {
+    app.exit(0);
 }
 
 /// Erreurs non gérées de l'interface, recopiées dans la console de l'application.

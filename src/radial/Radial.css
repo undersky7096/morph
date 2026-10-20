@@ -28,7 +28,7 @@ html[data-window="radial"] body {
 }
 
 .petal {
-  --accent: var(--kind-image);
+  --petal: var(--kind-image);
   position: absolute;
   left: 50%;
   top: 50%;
@@ -39,7 +39,7 @@ html[data-window="radial"] body {
   border: 1px solid var(--radial-border);
   background: var(--radial-surface);
   box-shadow:
-    inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 45%, transparent),
+    inset 0 0 0 1.5px color-mix(in srgb, var(--petal) 45%, transparent),
     0 6px 18px var(--radial-shadow);
   color: var(--radial-text);
   font: 600 12px/1 var(--font);
@@ -50,19 +50,19 @@ html[data-window="radial"] body {
 }
 
 .petal[data-kind="video"] {
-  --accent: var(--kind-video);
+  --petal: var(--kind-video);
 }
 .petal[data-kind="audio"] {
-  --accent: var(--kind-audio);
+  --petal: var(--kind-audio);
 }
 
 .petal:hover,
 .petal:focus-visible {
   outline: none;
-  background: color-mix(in srgb, var(--accent) 24%, var(--radial-surface));
+  background: color-mix(in srgb, var(--petal) 24%, var(--radial-surface));
   box-shadow:
-    inset 0 0 0 1.5px var(--accent),
-    0 0 22px color-mix(in srgb, var(--accent) 50%, transparent);
+    inset 0 0 0 1.5px var(--petal),
+    0 0 22px color-mix(in srgb, var(--petal) 50%, transparent);
 }
 
 .petal-action {
@@ -81,7 +81,7 @@ html[data-window="radial"] body {
 
 .petal[aria-disabled]:hover {
   background: var(--radial-surface);
-  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--petal) 45%, transparent);
 }
 
 .petal-group {
@@ -157,7 +157,7 @@ html[data-window="radial"] body {
 }
 
 .hub-progress .bar {
-  stroke: var(--kind-video);
+  stroke: var(--accent);
   stroke-linecap: round;
   transition: stroke-dashoffset 0.2s ease-out;
 }

@@ -226,10 +226,33 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
   PNG exact, netteté par `convolution`, flou `gblur`, grain `noise` ; même
   conteneur en sortie (x264 CRF 18, VP9, mpeg4, wmv2, mpeg2) → `nom Edited.ext`.
   `morph --edit|--crop|--compress fichiers` ouvre directement un outil.
-- Connu : `morph fichier` (sans option) affiche un menu radial vide quand Morph
-  est lancé par un autre programme (focus refusé par Windows au démarrage) ; le
-  vrai déclencheur Shift+glisser n'est pas concerné. À revoir en M7/M8.
-- **Reprendre à M7 (réglages + tray)**.
+- Après M6c (validé) : curseur de volume 0–200 % dans l'éditeur audio ; aperçu
+  au-delà de 100 % via un gain Web Audio (audio et vidéo) ; export avec
+  limiteur au-delà de 100 %.
+- **Décisions M7** (validées par l'utilisateur le 2026-10-20) :
+  - La fenêtre principale **devient les Réglages** : Morph démarre dans la
+    zone de notification ; clic sur l'icône = Réglages ; fermer la fenêtre
+    laisse Morph tourner ; « Quitter » dans le menu de l'icône.
+  - Thème : Système / Clair / Sombre **+ couleur d'accent + teinte de fond**
+    personnalisables.
+  - Lots mixtes : sous-menus par type (défaut) **ou** « formats communs
+    seulement » (option).
+  - Enregistrement : **à côté de l'original** (défaut) / **dossier fixe** /
+    **demander à chaque fois**.
+- **M7 fait** (2026-10-20) — **v0.7.0**. `src-tauri/src/settings.rs` (JSON
+  dans le dossier de config, événement `settings-changed`), `tray.rs` (clic =
+  Réglages, menu Réglages/Quitter), plugins single-instance (une seconde
+  instance relaie ses arguments : fichiers → menu, `--edit`… → outil, rien →
+  Réglages), autostart (`morph --hidden` dans la clé Run), dialog. La fenêtre
+  `main` (cachée au démarrage, masquée à la fermeture) est la fenêtre des
+  Réglages (`src/App.tsx`) : Apparence (thème, accent, fond, opacité des
+  menus), Menu des formats (favoris ordonnés, lots mixtes), Enregistrement (à
+  côté / dossier fixe / demander : `chooseOutputDir` puis `outDir` transmis
+  aux commandes, appliqué par `convert::with_output_dir`), Système (démarrage,
+  Quitter). Thème : `src/settings.ts` pose `data-theme` et les variables
+  `--accent`, `--accent-2`, `--bg`, `--surface-base`, `--radial-opacity` dans
+  chaque fenêtre. Corrige aussi le menu radial vide de `morph fichier`.
+- **Reprendre à M8 (progression & erreurs)**.
 - **Décisions M6** (validées par l'utilisateur le 2026-10-20) :
   - Découpage en sous-étapes, un commit + validation chacune :
     **6a** éditeur image, **6b** découpe audio, **6c** éditeur vidéo.

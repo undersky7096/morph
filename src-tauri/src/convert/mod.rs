@@ -86,8 +86,28 @@ pub fn suffixed_output_as(input: &Path, suffix: &str, ext: &str) -> PathBuf {
     unique_in_dir(input, &format!("{stem} {suffix}"), ext)
 }
 
+thread_local! {
+    /// Dossier de sortie de l'opération en cours sur ce thread (réglage « dossier fixe »
+    /// ou « demander ») ; aucun : à côté de l'original.
+    static OUTPUT_DIR: std::cell::RefCell<Option<PathBuf>> = const { std::cell::RefCell::new(None) };
+}
+
+/// Exécute `f` en écrivant ses résultats dans `dir` (créé au besoin) plutôt qu'à côté
+/// des originaux. Les traitements tournent sur un seul thread : la valeur suit l'opération.
+pub fn with_output_dir<T>(dir: Option<PathBuf>, f: impl FnOnce() -> T) -> T {
+    if let Some(d) = &dir {
+        let _ = std::fs::create_dir_all(d);
+    }
+    let previous = OUTPUT_DIR.with(|cell| cell.replace(dir));
+    let result = f();
+    OUTPUT_DIR.with(|cell| cell.replace(previous));
+    result
+}
+
 fn unique_in_dir(input: &Path, stem: &str, ext: &str) -> PathBuf {
-    let dir = input.parent().unwrap_or(Path::new("."));
+    let dir = OUTPUT_DIR
+        .with(|cell| cell.borrow().clone())
+        .unwrap_or_else(|| input.parent().unwrap_or(Path::new(".")).to_path_buf());
     let mut candidate = dir.join(format!("{stem}.{ext}"));
     let mut n = 2;
     while candidate.exists() {
@@ -111,6 +131,10 @@ mod tests {
         std::fs::write(dir.join("photo.jpg"), b"").unwrap();
         assert_eq!(unique_output(&input, "jpg"), dir.join("photo (2).jpg"));
         assert_eq!(suffixed_output(&input, "Cropped"), dir.join("photo Cropped.png"));
+        let elsewhere = dir.join("sorties");
+        let out = with_output_dir(Some(elsewhere.clone()), || unique_output(&input, "jpg"));
+        assert_eq!(out, elsewhere.join("photo.jpg"));
+        assert!(elsewhere.is_dir());
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }

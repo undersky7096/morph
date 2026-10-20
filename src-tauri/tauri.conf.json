@@ -13,12 +13,13 @@
     "windows": [
       {
         "label": "main",
-        "title": "Morph",
-        "width": 800,
-        "height": 600,
-        "minWidth": 640,
-        "minHeight": 480,
-        "center": true
+        "title": "Réglages · Morph",
+        "width": 880,
+        "height": 640,
+        "minWidth": 720,
+        "minHeight": 520,
+        "center": true,
+        "visible": false
       },
       {
         "label": "radial",

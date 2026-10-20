@@ -2,37 +2,75 @@ mod commands;
 pub mod convert;
 pub mod edit;
 mod radial;
+mod settings;
 mod tools;
+mod tray;
 #[cfg(windows)]
 mod shift_drag;
+
+use tauri::{AppHandle, WindowEvent};
+
+/// Lancement par l'ouverture de session : Morph reste discret dans la zone de notification.
+const HIDDEN_ARG: &str = "--hidden";
+
+/// Arguments de la ligne de commande (premier lancement, ou relayés par une seconde instance) :
+/// - `morph fichier1 fichier2…` ouvre le menu des formats (« Ouvrir avec Morph » sous Linux) ;
+/// - `morph --edit|--crop|--compress fichiers…` ouvre directement l'outil ;
+/// - `morph` seul ouvre les Réglages ; `morph --hidden` (démarrage de session) ne montre rien.
+fn handle_args(app: &AppHandle, args: &[String]) -> tauri::Result<()> {
+    let tool = args.iter().find_map(|a| match a.as_str() {
+        "--edit" => Some("edit"),
+        "--crop" => Some("crop"),
+        "--compress" => Some("compress"),
+        _ => None,
+    });
+    let files: Vec<String> = args.iter().filter(|a| std::path::Path::new(a).is_file()).cloned().collect();
+    if !files.is_empty() {
+        match tool {
+            Some(tool) => tools::open(app, tool.to_string(), files),
+            None => radial::show(app, files),
+        }
+    } else if !args.iter().any(|a| a == HIDDEN_ARG) {
+        tray::show_settings(app)
+    } else {
+        Ok(())
+    }
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // En premier : une seconde instance transmet ses arguments à la première, puis se ferme
+        // (un seul hook Shift+glisser, une seule icône).
+        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            let args: Vec<String> = argv.into_iter().skip(1).collect();
+            if let Err(e) = handle_args(app, &args) {
+                eprintln!("[morph] arguments relayés : {e}");
+            }
+        }))
+        .plugin(tauri_plugin_autostart::Builder::new().args([HIDDEN_ARG]).build())
+        .plugin(tauri_plugin_dialog::init())
         .manage(radial::Pending::default())
         .manage(tools::Pending::default())
+        .manage(settings::State::default())
         .setup(|app| {
+            settings::load(app.handle());
+            tray::create(app.handle())?;
             #[cfg(windows)]
             shift_drag::start(app.handle().clone());
 
-            // `morph fichier1 fichier2…` ouvre directement le menu des formats
-            // (utilisé par « Ouvrir avec Morph » sous Linux, et pratique pour tester) ;
-            // `morph --edit|--crop|--compress fichiers…` ouvre directement l'outil.
             let args: Vec<String> = std::env::args().skip(1).collect();
-            let tool = args.iter().find_map(|a| match a.as_str() {
-                "--edit" => Some("edit"),
-                "--crop" => Some("crop"),
-                "--compress" => Some("compress"),
-                _ => None,
-            });
-            let files: Vec<String> = args.into_iter().filter(|a| std::path::Path::new(a).is_file()).collect();
-            if !files.is_empty() {
-                match tool {
-                    Some(tool) => tools::open(app.handle(), tool.to_string(), files)?,
-                    None => radial::show(app.handle(), files)?,
-                }
-            }
+            handle_args(app.handle(), &args)?;
             Ok(())
+        })
+        // Fermer les Réglages ne quitte pas Morph : la fenêtre est seulement masquée.
+        .on_window_event(|window, event| {
+            if let WindowEvent::CloseRequested { api, .. } = event
+                && window.label() == tray::SETTINGS
+            {
+                api.prevent_close();
+                let _ = window.hide();
+            }
         })
         .invoke_handler(tauri::generate_handler![
             commands::get_targets,
@@ -57,6 +95,9 @@ pub fn run() {
             commands::video_preview,
             commands::video_info,
             commands::edit_video,
+            commands::get_settings,
+            commands::set_settings,
+            commands::quit,
             commands::log_frontend_error,
         ])
         .run(tauri::generate_context!())

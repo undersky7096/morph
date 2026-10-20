@@ -24,7 +24,7 @@ html[data-window="halo"] body {
   background: radial-gradient(
     circle,
     color-mix(in srgb, var(--kind-image) 38%, transparent) 0%,
-    color-mix(in srgb, var(--kind-video) 22%, transparent) 45%,
+    color-mix(in srgb, var(--accent) 22%, transparent) 45%,
     transparent 70%
   );
   animation: halo-pulse 1.4s ease-in-out infinite;
@@ -37,13 +37,13 @@ html[data-window="halo"] body {
   border: 2px solid transparent;
   background:
     linear-gradient(var(--radial-surface-strong), var(--radial-surface-strong)) padding-box,
-    linear-gradient(135deg, var(--kind-image), var(--kind-video)) border-box;
+    linear-gradient(135deg, var(--accent-2), var(--accent)) border-box;
   box-shadow: 0 8px 24px var(--radial-shadow);
 }
 
 .halo-mark {
   font: 800 24px/1 var(--font);
-  background: linear-gradient(135deg, var(--kind-image), var(--kind-video));
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

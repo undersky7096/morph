@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "dialog",
+  "description": "Choix d'un dossier (réglage « dossier fixe » ou « demander à chaque fois »)",
+  "windows": ["main", "radial", "tool"],
+  "permissions": ["dialog:allow-open"]
+}

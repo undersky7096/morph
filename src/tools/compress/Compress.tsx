@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
+import { chooseOutputDir } from "../../settings";
 import { basename, formatBytes, hasBitrate, isPng, kindOfPath } from "../../formats";
 import type { ConvertProgress } from "../../types";
 import "./Compress.css";
@@ -81,12 +82,14 @@ export default function Compress({ paths, onDone }: Props) {
 
   async function run() {
     if (progress || !targetValid) return;
+    const outDir = await chooseOutputDir();
+    if (outDir === null) return;
     setError(null);
     setResults([]);
     setProgress(paths.map(() => 0));
     try {
       const options: Options = { level, reduceColors, targetMb };
-      const res = await invoke<CompressResult[]>("compress_files", { paths, options });
+      const res = await invoke<CompressResult[]>("compress_files", { paths, options, outDir });
       setResults(res);
       const outputs = res.flatMap((r) => (r.outcome?.status === "saved" ? [r.outcome.output] : []));
       setProgress(null);
