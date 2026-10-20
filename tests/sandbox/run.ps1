@@ -6,7 +6,9 @@ param(
     [string]$Installer = (Get-ChildItem "$PSScriptRoot\..\..\src-tauri\target\release\bundle\nsis\Morph_*_x64-setup.exe" |
         Sort-Object LastWriteTime | Select-Object -Last 1).FullName,
     [string]$Work = (Join-Path $env:TEMP 'morph-sandbox'),
-    [int]$TimeoutMinutes = 15
+    [int]$TimeoutMinutes = 15,
+    # Installe WebView2 dans le Sandbox (absent de Windows Sandbox) pour tester l'interface.
+    [switch]$InstallWebView2
 )
 $ErrorActionPreference = 'Stop'
 if (-not $Installer -or -not (Test-Path $Installer)) { throw "Installeur introuvable : $Installer" }
@@ -15,6 +17,7 @@ Remove-Item $Work -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force (Join-Path $Work 'results') | Out-Null
 Copy-Item $Installer $Work
 Copy-Item "$PSScriptRoot\inside.ps1", "$PSScriptRoot\photo.jpg", "$PSScriptRoot\son.wav" $Work
+if ($InstallWebView2) { New-Item -ItemType File (Join-Path $Work 'install-webview2') | Out-Null }
 
 $inside = 'C:\Users\WDAGUtilityAccount\Desktop\morph'
 @"
