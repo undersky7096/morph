@@ -27,9 +27,3 @@ export interface ConvertProgress {
   input: string;
   progress: number;
 }
-
-export interface ConvertResult {
-  input: string;
-  output: string | null;
-  error: string | null;
-}

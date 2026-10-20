@@ -229,7 +229,7 @@ pub fn trim(
     }
     args.extend(codec_args(&ext, &codec, kbps, s16)?);
 
-    let output = convert::suffixed_output(input, "Edited");
+    let output = convert::suffixed_output(input, "Edited")?;
     on_progress(0.0);
     ffmpeg::run_for(input, &args, &output, Some(kept), None, on_progress)?;
     Ok(output)

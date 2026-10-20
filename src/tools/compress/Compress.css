@@ -130,7 +130,17 @@
   color: var(--muted);
 }
 
+.compress-after .is-warn {
+  color: #f5a524;
+}
+
 .compress-after .is-error {
+  display: inline-block;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
   color: var(--danger);
   cursor: help;
 }

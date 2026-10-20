@@ -9,6 +9,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 export type ThemeMode = "system" | "light" | "dark";
 export type MixedBatch = "groups" | "common";
 export type SaveMode = "beside" | "folder" | "ask";
+export type Duplicates = "keep" | "replace" | "ask";
 
 export interface Settings {
   theme: ThemeMode;
@@ -19,6 +20,7 @@ export interface Settings {
   mixedBatch: MixedBatch;
   saveMode: SaveMode;
   saveFolder: string | null;
+  duplicates: Duplicates;
   autostart: boolean;
 }
 
@@ -31,6 +33,7 @@ export const DEFAULT_SETTINGS: Settings = {
   mixedBatch: "groups",
   saveMode: "beside",
   saveFolder: null,
+  duplicates: "keep",
   autostart: false,
 };
 

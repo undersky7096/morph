@@ -481,7 +481,7 @@ pub fn edit(input: &Path, e: &VideoEdit, on_progress: &mut dyn FnMut(f32)) -> Re
         }
         args.extend(codec_args(&ext, audio));
 
-        let output = convert::suffixed_output(input, "Edited");
+        let output = convert::suffixed_output(input, "Edited")?;
         let out_secs = segs.iter().map(|s| s.end - s.start).sum::<f64>() / e.speed;
         on_progress(0.0);
         ffmpeg::run_for(input, &args, &output, Some(out_secs), Some(&dir), on_progress)?;

@@ -2,7 +2,8 @@ import { type ReactNode, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
-import { chooseOutputDir } from "../../settings";
+import { describe } from "../../errors";
+import { type Duplicates, SaveExtras, useSaveFlow } from "../save";
 import { Slider } from "./controls";
 import { useHistory } from "./history";
 import type { Segment } from "./segments";
@@ -47,6 +48,7 @@ export default function AudioEditor({ path, onSaved, footerExtra }: Props) {
   const [track, setTrack] = useState<Track | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const flow = useSaveFlow();
   const [player] = useState(() => new Audio());
   const updateSegments = (fn: (s: Segment[]) => Segment[], key?: string) =>
     update((s) => ({ ...s, segments: fn(s.segments) }), key);
@@ -68,9 +70,9 @@ export default function AudioEditor({ path, onSaved, footerExtra }: Props) {
     player.onerror = () => {
       if (fellBack) return setError("Lecture impossible pour ce fichier (la découpe reste possible).");
       fellBack = true;
-      load(true).catch((e) => setError(String(e)));
+      load(true).catch((e) => setError(describe(e).message));
     };
-    load(fellBack).catch((e) => setError(String(e)));
+    load(fellBack).catch((e) => setError(describe(e).message));
 
     loadTrack(path)
       .then((t) => {
@@ -78,7 +80,7 @@ export default function AudioEditor({ path, onSaved, footerExtra }: Props) {
         setTrack(t);
         history.reset({ segments: [{ start: 0, end: t.duration }], volume: 100 });
       })
-      .catch((e) => setError(String(e)));
+      .catch((e) => setError(describe(e).message));
 
     return () => {
       cancelled = true;
@@ -89,20 +91,22 @@ export default function AudioEditor({ path, onSaved, footerExtra }: Props) {
     };
   }, [path]);
 
-  async function save() {
+  async function save(duplicates?: Duplicates) {
     if (!track || !segments.length || busy !== null) return;
-    const outDir = await chooseOutputDir();
-    if (outDir === null) return;
+    const run = await flow.begin(duplicates);
+    if (!run) return;
     player.pause();
     setBusy(0);
     setError(null);
     const unlisten = await listen<number>("trim-progress", ({ payload }) => setBusy(payload));
     try {
-      const output = await invoke<string>("trim_audio", { path, segments, volume: volume / 100, outDir });
+      const output = await invoke<string>("trim_audio", { path, segments, volume: volume / 100, run });
       onSaved(output);
     } catch (e) {
-      setError(String(e));
+      const err = flow.fail(e, save);
+      if (err) setError(err.message);
     } finally {
+      flow.end();
       unlisten();
       setBusy(null);
     }
@@ -187,8 +191,9 @@ export default function AudioEditor({ path, onSaved, footerExtra }: Props) {
 
       <footer className="tool-footer">
         <span className={`tool-status ${error ? "is-error" : ""}`}>{status}</span>
+        <SaveExtras flow={flow} />
         {footerExtra}
-        <button className="primary" onClick={save} disabled={!track || !segments.length || busy !== null}>
+        <button className="primary" onClick={() => save()} disabled={!track || !segments.length || busy !== null}>
           {busy !== null ? "Enregistrement…" : "Enregistrer"}
         </button>
       </footer>

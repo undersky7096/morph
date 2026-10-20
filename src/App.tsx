@@ -6,7 +6,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { motion } from "motion/react";
 
 import { kindOf } from "./formats";
-import { saveSettings, type SaveMode, type Settings, type ThemeMode, useSettings } from "./settings";
+import { type Duplicates, saveSettings, type SaveMode, type Settings, type ThemeMode, useSettings } from "./settings";
 import "./Settings.css";
 
 type Section = "appearance" | "menu" | "save" | "system";
@@ -32,6 +32,12 @@ const OUTPUTS: [string, string[]][] = [
   ["Images", ["png", "jpg", "webp", "gif", "bmp", "tiff", "ico", "tga"]],
   ["Audio", ["mp3", "wav", "ogg", "flac", "m4a", "opus"]],
   ["Vidéo", ["mp4", "webm", "mkv", "mov", "avi"]],
+];
+
+const DUPLICATES: [Duplicates, string, string][] = [
+  ["keep", "Garder les deux", "Le nouveau fichier reçoit un numéro : « Photo (2).webp »."],
+  ["replace", "Remplacer", "L'ancien fichier est remplacé (il est conservé si l'opération échoue)."],
+  ["ask", "Demander à chaque fois", "Remplacer, garder les deux ou ignorer, fichier par fichier ou pour tous."],
 ];
 
 const SAVE_MODES: [SaveMode, string, string][] = [
@@ -100,7 +106,12 @@ function App() {
       <main className="settings-body" key={section}>
         {section === "appearance" && <Appearance settings={settings} save={save} />}
         {section === "menu" && <MenuSection settings={settings} save={save} />}
-        {section === "save" && <SaveSection settings={settings} save={save} />}
+        {section === "save" && (
+          <>
+            <SaveSection settings={settings} save={save} />
+            <DuplicatesSection settings={settings} save={save} />
+          </>
+        )}
         {section === "system" && <SystemSection settings={settings} save={save} version={version} />}
         {error && <p className="settings-error">{error}</p>}
       </main>
@@ -294,7 +305,18 @@ function SaveSection({ settings, save }: SectionProps) {
           </Option>
         ))}
       </div>
-      <p className="settings-hint">Un fichier existant n'est jamais écrasé : « (2) », « (3) »… sont ajoutés au nom.</p>
+    </Group>
+  );
+}
+
+function DuplicatesSection({ settings, save }: SectionProps) {
+  return (
+    <Group title="Si le fichier existe déjà" hint="Ex. : « Photo.webp » est déjà dans le dossier.">
+      <div className="settings-options">
+        {DUPLICATES.map(([id, title, hint]) => (
+          <Option key={id} checked={settings.duplicates === id} onChange={() => save({ duplicates: id })} title={title} hint={hint} />
+        ))}
+      </div>
     </Group>
   );
 }

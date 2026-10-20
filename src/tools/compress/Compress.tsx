@@ -2,9 +2,10 @@ import { type ReactNode, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
-import { chooseOutputDir } from "../../settings";
+import { type AppError, describe } from "../../errors";
 import { basename, formatBytes, hasBitrate, isPng, kindOfPath } from "../../formats";
 import type { ConvertProgress } from "../../types";
+import { type Duplicates, SaveExtras, useSaveFlow } from "../save";
 import "./Compress.css";
 
 type Level = "light" | "medium" | "strong";
@@ -24,7 +25,7 @@ type Outcome =
 interface CompressResult {
   input: string;
   outcome: Outcome | null;
-  error: string | null;
+  error: AppError | null;
 }
 
 const LEVELS: { label: string; value: Level; hint: string }[] = [
@@ -57,6 +58,7 @@ export default function Compress({ paths, onDone }: Props) {
   const [progress, setProgress] = useState<number[] | null>(null);
   const [results, setResults] = useState<CompressResult[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const flow = useSaveFlow();
 
   const single = paths.length === 1 ? paths[0] : null;
   const previewPath = single && kindOfPath(single) === "image" ? single : null;
@@ -80,24 +82,33 @@ export default function Compress({ paths, onDone }: Props) {
 
   const preview = usePreview(previewPath, level, reduceColors, setError);
 
-  async function run() {
+  /** Compresse le lot ; `duplicates` : doublons tranchés, seuls ces fichiers sont refaits. */
+  async function run(duplicates?: Duplicates) {
     if (progress || !targetValid) return;
-    const outDir = await chooseOutputDir();
-    if (outDir === null) return;
+    const opts = await flow.begin(duplicates);
+    if (!opts) return;
+    const redo = duplicates ? results.flatMap((r, i) => (r.error?.code === "exists" ? [i] : [])) : paths.map((_, i) => i);
     setError(null);
-    setResults([]);
-    setProgress(paths.map(() => 0));
+    if (!duplicates) setResults([]);
+    setProgress(paths.map((_, i) => (redo.includes(i) ? 0 : 1)));
     try {
       const options: Options = { level, reduceColors, targetMb };
-      const res = await invoke<CompressResult[]>("compress_files", { paths, options, outDir });
-      setResults(res);
-      const outputs = res.flatMap((r) => (r.outcome?.status === "saved" ? [r.outcome.output] : []));
+      const res = await invoke<CompressResult[]>("compress_files", { paths: redo.map((i) => paths[i]), options, run: opts });
+      const merged = duplicates ? results.map((r, i) => (redo.includes(i) ? res[redo.indexOf(i)] : r)) : res;
+      setResults(merged);
       setProgress(null);
+      const conflicts = merged.filter((r) => r.error?.code === "exists").length;
+      if (conflicts) {
+        flow.ask(conflicts > 1 ? `${conflicts} fichiers existent déjà.` : merged.find((r) => r.error?.code === "exists")!.error!.message, run);
+      }
       // Une erreur garde la fenêtre ouverte pour la lire ; sinon bilan, puis pétales.
-      if (res.every((r) => !r.error)) setTimeout(() => onDone(outputs.length ? outputs : paths), SUMMARY_MS);
+      const outputs = merged.flatMap((r) => (r.outcome?.status === "saved" ? [r.outcome.output] : []));
+      if (merged.every((r) => !r.error)) setTimeout(() => onDone(outputs.length ? outputs : paths), SUMMARY_MS);
     } catch (e) {
-      setError(String(e));
+      setError(describe(e).message);
       setProgress(null);
+    } finally {
+      flow.end();
     }
   }
 
@@ -204,7 +215,8 @@ export default function Compress({ paths, onDone }: Props) {
           sizes={sizes}
           previewSize={previewPath ? preview.compressed?.size : undefined}
         />
-        <button className="primary" onClick={run} disabled={!!progress || !targetValid}>
+        <SaveExtras flow={flow} />
+        <button className="primary" onClick={() => run()} disabled={!!progress || !targetValid}>
           {progress ? "Compression…" : "Compresser"}
         </button>
       </footer>
@@ -237,7 +249,7 @@ function usePreview(
         url = URL.createObjectURL(new Blob([bytes]));
         setOriginal(url);
       })
-      .catch((e) => setError(String(e)));
+      .catch((e) => setError(describe(e).message));
     return () => {
       if (url) URL.revokeObjectURL(url);
     };
@@ -258,7 +270,7 @@ function usePreview(
           setCompressed({ url, size: bytes.byteLength });
           setError(null);
         })
-        .catch((e) => !cancelled && setError(String(e)))
+        .catch((e) => !cancelled && setError(describe(e).message))
         .finally(() => !cancelled && setBusy(false));
     }, 200);
     return () => {
@@ -305,10 +317,14 @@ function FileRow(props: { path: string; size?: number; progress?: number; result
   const { path, size, progress, result } = props;
   const outcome = result?.outcome;
   let after: ReactNode = null;
-  if (result?.error) {
+  if (result?.error?.code === "exists") {
+    after = <span className="is-warn">existe déjà</span>;
+  } else if (result?.error?.code === "cancelled") {
+    after = <span className="is-muted">annulé</span>;
+  } else if (result?.error) {
     after = (
-      <span className="is-error" title={result.error}>
-        Erreur
+      <span className="is-error" title={`${result.error.message}\n\n${result.error.detail}`}>
+        {result.error.message}
       </span>
     );
   } else if (outcome?.status === "saved") {
@@ -349,7 +365,7 @@ function Status(props: {
   } else if (progress) {
     text = `Compression… ${Math.round((progress.reduce((a, b) => a + b, 0) / progress.length) * 100)} %`;
   } else if (results.length) {
-    const failed = results.filter((r) => r.error).length;
+    const failed = results.filter((r) => r.error && r.error.code !== "exists" && r.error.code !== "cancelled").length;
     const done = results.flatMap((r) => (r.outcome ? [r.outcome] : []));
     const before = done.reduce((s, o) => s + o.before, 0);
     const after = done.reduce((s, o) => s + (o.status === "saved" ? o.after : o.before), 0);
@@ -372,7 +388,7 @@ function Status(props: {
 
   const failedOnly = !error && results.length > 0 && results.every((r) => r.error);
   return (
-    <span className={`tool-status ${error || failedOnly ? "is-error" : ""}`} title={failedOnly ? results[0].error! : undefined}>
+    <span className={`tool-status ${error || failedOnly ? "is-error" : ""}`} title={failedOnly ? results[0].error!.detail : undefined}>
       {text}
     </span>
   );

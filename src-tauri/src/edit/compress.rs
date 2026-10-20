@@ -88,7 +88,7 @@ pub fn compress(input: &Path, opts: &Options, on_progress: &mut dyn FnMut(f32)) 
         if data.len() as u64 >= before {
             return Ok(Outcome::NoGain { before });
         }
-        let output = convert::suffixed_output(input, SUFFIX);
+        let output = convert::suffixed_output(input, SUFFIX)?;
         fs::write(&output, &data)?;
         return Ok(Outcome::Saved { output, before, after: data.len() as u64 });
     }
@@ -98,7 +98,7 @@ pub fn compress(input: &Path, opts: &Options, on_progress: &mut dyn FnMut(f32)) 
         return Ok(Outcome::NoGain { before });
     }
     let out_ext = if kind == Kind::Video && !VIDEO_KEPT.contains(&ext.as_str()) { "mp4" } else { &ext };
-    let output = convert::suffixed_output_as(input, SUFFIX, out_ext);
+    let output = convert::suffixed_output_as(input, SUFFIX, out_ext)?;
     match target {
         None => ffmpeg::run(input, &media_args(kind, out_ext, opts.level, None)?, &output, on_progress)?,
         Some(bytes) => {

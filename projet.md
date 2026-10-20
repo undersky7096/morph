@@ -265,7 +265,34 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
   (une fenêtre pouvait recevoir les valeurs par défaut au démarrage).
 - À faire en M9 : l'installeur doit retirer l'entrée « Morph » de la clé Run à
   la désinstallation.
-- **Reprendre à M8 (progression & erreurs)**.
+- **Décisions M8** (validées par l'utilisateur le 2026-10-20) :
+  - Progression : le moyeu du menu d'abord ; si le traitement dépasse ~2 s
+    (ou en cas d'erreur / de doublon à trancher), le menu se ferme et une
+    **mini-fenêtre** prend le relais (fichier en cours, % par fichier, temps
+    restant).
+  - **Annulation** : tout le lot ou un seul fichier ; les fichiers terminés
+    sont gardés, le fichier partiel est supprimé.
+  - **Doublons** : nouveau réglage — garder les deux « (2) » (défaut) /
+    remplacer / demander (Remplacer, Garder les deux, Ignorer, pour tous).
+  - **Erreurs** en français clair (fichier illisible, disque plein, accès
+    refusé…) avec « Copier le détail » et « Réessayer » ; **notification
+    Windows** à la fin des traitements longs, clic = ouvrir le dossier.
+- **M8 fait** (2026-10-20) — **v0.8.0**. `src-tauri/src/jobs.rs` : les
+  conversions du menu tournent en arrière-plan (`start_conversion`, événement
+  `job-update`), annulables (tout / un fichier), réessayables ; au-delà de 2 s,
+  en cas d'erreur ou de doublon, ou si le menu est fermé, elles passent dans la
+  mini-fenêtre `progress` (`src/progress/`, en bas à droite : % par fichier,
+  temps restant, Réessayer / Copier le détail, Remplacer / Garder les deux /
+  Ignorer pour un fichier ou tous, Ouvrir le dossier, Éditer…, fermeture auto
+  5 s après un succès). Notification à la fin (`notify.rs` : toast Windows,
+  clic = dossier ; notify-rust sous Linux). `convert/output.rs` : contexte
+  d'une opération (dossier, doublons, annulation) posé par `output::scoped` ;
+  « remplacer » met l'ancien fichier de côté et le restaure en cas d'échec ;
+  ffmpeg est tué à l'annulation et le fichier partiel supprimé. Erreurs
+  structurées (`ErrorInfo` : code, message clair, détail). Outils : bouton
+  Annuler, bandeau de doublon, « Copier le détail » (`src/tools/save.tsx`).
+  Réglage « Si le fichier existe déjà » (défaut : garder les deux).
+- **Reprendre à M9 (installeurs : NSIS + onboarding, AppImage)**.
 - **Décisions M6** (validées par l'utilisateur le 2026-10-20) :
   - Découpage en sous-étapes, un commit + validation chacune :
     **6a** éditeur image, **6b** découpe audio, **6c** éditeur vidéo.

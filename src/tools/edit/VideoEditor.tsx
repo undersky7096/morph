@@ -2,7 +2,8 @@ import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "re
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
-import { chooseOutputDir } from "../../settings";
+import { describe } from "../../errors";
+import { type Duplicates, SaveExtras, useSaveFlow } from "../save";
 import { FlipHIcon, FlipVIcon, RotateLeftIcon, RotateRightIcon } from "../../icons";
 import { dragRect, fitRatio, type Handle, type Rect } from "../crop/geometry";
 import { loadTrack, type Track } from "./AudioEditor";
@@ -158,6 +159,7 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
   const [area, setArea] = useState({ w: 0, h: 0 });
   const [busy, setBusy] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const flow = useSaveFlow();
   const [hint, setHint] = useState<string | null>("Chargement de la vidéo…");
   const [video] = useState(() => {
     const v = document.createElement("video");
@@ -196,7 +198,7 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
       setHint("Préparation d'un aperçu lisible…");
       invoke<string>("video_preview", { path })
         .then((p) => !cancelled && play(p))
-        .catch((e) => setError(String(e)));
+        .catch((e) => setError(describe(e).message));
     };
     video.onloadeddata = () => {
       if (cancelled || main) return;
@@ -216,7 +218,7 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
 
     invoke<string>("allow_media", { path })
       .then((p) => !cancelled && play(p))
-      .catch((e) => setError(String(e)));
+      .catch((e) => setError(describe(e).message));
     Promise.all([invoke<VideoInfo>("video_info", { path }), loadTrack(path)])
       .then(([i, t]) => {
         if (cancelled) return;
@@ -224,7 +226,7 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
         setTrack(t);
         history.reset({ ...DEFAULT, segments: [{ start: 0, end: t.duration }] });
       })
-      .catch((e) => setError(String(e)));
+      .catch((e) => setError(describe(e).message));
 
     return () => {
       cancelled = true;
@@ -328,10 +330,10 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
     update((s) => ({ ...s, crop: rect }), "crop");
   }
 
-  async function save() {
+  async function save(duplicates?: Duplicates) {
     if (!info || !rotated || !state.segments.length || busy !== null) return;
-    const outDir = await chooseOutputDir();
-    if (outDir === null) return;
+    const run = await flow.begin(duplicates);
+    if (!run) return;
     video.pause();
     setBusy(0);
     setError(null);
@@ -360,11 +362,13 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
     };
     const unlisten = await listen<number>("edit-progress", ({ payload }) => setBusy(payload));
     try {
-      const output = await invoke<string>("edit_video", { path, edit, outDir });
+      const output = await invoke<string>("edit_video", { path, edit, run });
       onSaved(output);
     } catch (e) {
-      setError(String(e));
+      const err = flow.fail(e, save);
+      if (err) setError(err.message);
     } finally {
+      flow.end();
       unlisten();
       setBusy(null);
     }
@@ -700,8 +704,9 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
 
       <footer className="tool-footer">
         <span className={`tool-status ${error ? "is-error" : ""}`}>{status}</span>
+        <SaveExtras flow={flow} />
         {footerExtra}
-        <button className="primary" onClick={save} disabled={!ready || !state.segments.length || busy !== null}>
+        <button className="primary" onClick={() => save()} disabled={!ready || !state.segments.length || busy !== null}>
           {busy !== null ? "Enregistrement…" : "Enregistrer"}
         </button>
       </footer>

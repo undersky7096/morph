@@ -1,0 +1,275 @@
+html[data-window="progress"] body {
+  overflow: hidden;
+}
+
+.progress {
+  --surface: color-mix(in srgb, var(--text) 4%, var(--bg));
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  font-size: 12.5px;
+  border: 1px solid var(--line);
+  box-sizing: border-box;
+}
+
+.progress button {
+  font: inherit;
+  color: inherit;
+}
+
+.progress .titlebar {
+  height: 34px;
+}
+
+.progress .titlebar-buttons button {
+  width: 40px;
+}
+
+.progress-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding: 10px 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.progress-empty {
+  margin: auto;
+  color: var(--muted);
+}
+
+.job {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.job-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.job-title {
+  font-weight: 600;
+}
+
+.job-title small {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.job-status {
+  margin-left: auto;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.job-cancel,
+.job-actions button,
+.conflict-buttons button {
+  padding: 3px 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--bg);
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    transform 0.12s ease;
+}
+
+.job-cancel:hover,
+.job-actions button:hover,
+.conflict-buttons button:hover {
+  border-color: var(--accent);
+}
+
+.job-cancel:active,
+.job-actions button:active,
+.conflict-buttons button:active {
+  transform: scale(0.95);
+}
+
+/* Barre de progression : l'échelle est animée (léger, pris en charge par le GPU). */
+.bar {
+  position: relative;
+  display: block;
+  height: 6px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  overflow: hidden;
+}
+
+.bar > span {
+  position: absolute;
+  inset: 0;
+  transform-origin: left;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent-2), var(--accent));
+  transition: transform 0.25s ease-out;
+}
+
+.bar.is-done > span {
+  background: var(--kind-image);
+}
+
+.bar.is-warn > span {
+  background: #f5a524;
+}
+
+.bar.is-small {
+  height: 3px;
+  margin-top: 4px;
+}
+
+.files {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.file {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 3px 0;
+}
+
+.file-icon {
+  flex: 0 0 16px;
+  display: grid;
+  place-items: center;
+  height: 18px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.file.is-done .file-icon {
+  color: var(--kind-image);
+}
+
+.file.is-error .file-icon {
+  color: var(--danger);
+}
+
+.file.is-conflict .file-icon {
+  color: #f5a524;
+}
+
+.spinner {
+  width: 10px;
+  height: 10px;
+  border: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.file-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.file-name {
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 18px;
+}
+
+.file-name:not(:disabled) {
+  cursor: pointer;
+}
+
+.file-name:not(:disabled):hover {
+  text-decoration: underline;
+}
+
+.file.is-cancelled .file-name,
+.file.is-skipped .file-name {
+  color: var(--muted);
+}
+
+.file-error,
+.file-note {
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.file-error {
+  color: var(--danger);
+}
+
+.file-error.is-conflict {
+  color: inherit;
+}
+
+.file-links,
+.conflict-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.file-links button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent) !important;
+  cursor: pointer;
+}
+
+.file-cancel {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted) !important;
+  cursor: pointer;
+}
+
+.file-cancel:hover {
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  color: var(--danger) !important;
+}
+
+.job-conflicts {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, #f5a524 12%, transparent);
+}
+
+.job-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}

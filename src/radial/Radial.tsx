@@ -5,7 +5,8 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 import { chooseOutputDir, getSettings } from "../settings";
 import { comingIn, TOOLS } from "../tools/registry";
-import type { ConvertProgress, ConvertResult, RadialPayload } from "../types";
+import { type Job, jobProgress } from "../jobs";
+import type { RadialPayload } from "../types";
 import { actionItems, buildItems, type Item } from "./items";
 import "./Radial.css";
 
@@ -14,10 +15,7 @@ const HUB_RING = 2 * Math.PI * 34;
 
 /** Niveau du menu. `done` : légende du ✓ quand l'anneau d'actions suit un traitement réussi. */
 type Level = { label: string; items: Item[]; done?: string };
-type Phase =
-  | { name: "menu" }
-  | { name: "running"; progress: number }
-  | { name: "done"; ok: number; errors: string[] };
+type Phase = { name: "menu" } | { name: "running"; progress: number };
 
 const spring = { type: "spring", stiffness: 520, damping: 32 } as const;
 
@@ -42,7 +40,8 @@ export default function Radial() {
   const [phase, setPhase] = useState<Phase>({ name: "menu" });
   const openRef = useRef(false);
   const sessionRef = useRef(0);
-  const progressRef = useRef<number[]>([]);
+  /** Conversion suivie dans le moyeu. */
+  const jobRef = useRef<number | null>(null);
   /** Choix du dossier de sortie en cours : la perte de focus ne ferme pas le menu. */
   const pickingRef = useRef(false);
   /** La fenêtre a obtenu le focus depuis l'ouverture du menu. */
@@ -52,6 +51,13 @@ export default function Radial() {
   sessionRef.current = session;
 
   const close = useCallback(() => setOpen(false), []);
+
+  // Menu fermé pendant une conversion : elle continue dans la mini-fenêtre.
+  useEffect(() => {
+    if (open || jobRef.current === null) return;
+    invoke("detach_job", { id: jobRef.current });
+    jobRef.current = null;
+  }, [open]);
 
   useEffect(() => {
     let lastId = 0;
@@ -85,12 +91,8 @@ export default function Radial() {
         if (focused) focusedRef.current = true;
         else if (focusedRef.current && !pickingRef.current) setOpen(false);
       }),
-      win.listen<ConvertProgress>("convert-progress", ({ payload }) => {
-        const values = progressRef.current;
-        if (payload.index >= values.length) return;
-        values[payload.index] = payload.progress;
-        const total = values.reduce((a, b) => a + b, 0) / values.length;
-        setPhase((p) => (p.name === "running" ? { name: "running", progress: total } : p));
+      win.listen<Job>("job-update", ({ payload: job }) => {
+        if (job.id === jobRef.current) onJob(job);
       }),
     ];
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
@@ -131,26 +133,30 @@ export default function Radial() {
       getCurrentWebviewWindow().setFocus();
     }
     if (outDir === null) return;
-    const mySession = sessionRef.current;
-    progressRef.current = item.paths.map(() => 0);
     setPhase({ name: "running", progress: 0 });
-    const results = await invoke<ConvertResult[]>("convert_files", {
-      paths: item.paths,
-      target: item.format,
-      outDir,
-    });
-    if (sessionRef.current !== mySession) return;
-    const errors = results.filter((r) => r.error).map((r) => `${r.input}\n${r.error}`);
-    const outputs = results.flatMap((r) => (r.output ? [r.output] : []));
-    const actions = errors.length ? [] : actionItems(outputs);
-    if (actions.length) {
-      // Conversion réussie : le menu enchaîne sur les actions d'édition du résultat.
-      setStack([{ label: "", items: actions, done: "Converti" }]);
-      setPhase({ name: "menu" });
+    const job = await invoke<Job>("start_conversion", { paths: item.paths, target: item.format, run: { outDir } });
+    jobRef.current = job.id;
+  }
+
+  /** Suivi de la conversion : progression dans le moyeu, puis actions sur les résultats.
+   *  Si elle dure ou se passe mal, elle part dans la mini-fenêtre et le menu se ferme. */
+  function onJob(job: Job) {
+    if (job.detached) {
+      jobRef.current = null;
+      close();
       return;
     }
-    setPhase({ name: "done", ok: results.length - errors.length, errors });
-    setTimeout(() => sessionRef.current === mySession && close(), errors.length ? 4000 : 1300);
+    if (!job.finished) {
+      setPhase({ name: "running", progress: jobProgress(job) });
+      return;
+    }
+    jobRef.current = null;
+    const outputs = job.files.flatMap((f) => (f.output ? [f.output] : []));
+    const actions = actionItems(outputs);
+    if (!actions.length) return close();
+    // Conversion réussie : le menu enchaîne sur les actions d'édition du résultat.
+    setStack([{ label: "", items: actions, done: "Converti" }]);
+    setPhase({ name: "menu" });
   }
 
   function onHub() {
@@ -225,7 +231,6 @@ export default function Radial() {
             className={`hub hub-${phase.name}`}
             onClick={onHub}
             whileTap={{ scale: 0.95 }}
-            title={phase.name === "done" && phase.errors.length ? phase.errors.join("\n\n") : undefined}
           >
             <AnimatePresence mode="wait" initial={false}>
               <motion.span
@@ -264,17 +269,6 @@ function HubContent(props: { phase: Phase; fileCount: number; level?: Level; emp
           />
         </svg>
         <span className="hub-value">{Math.round(phase.progress * 100)}%</span>
-      </>
-    );
-  }
-  if (phase.name === "done") {
-    const failed = phase.errors.length > 0;
-    return (
-      <>
-        <span className={`hub-icon ${failed ? "is-error" : "is-ok"}`}>{failed ? "!" : "✓"}</span>
-        <span className="hub-caption">
-          {failed ? `${phase.errors.length} erreur${phase.errors.length > 1 ? "s" : ""}` : "Terminé"}
-        </span>
       </>
     );
   }

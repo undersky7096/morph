@@ -1,6 +1,9 @@
 mod commands;
 pub mod convert;
 pub mod edit;
+mod jobs;
+mod notify;
+mod progress;
 mod radial;
 mod settings;
 mod tools;
@@ -58,9 +61,12 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_autostart::Builder::new().args([HIDDEN_ARG]).build())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .manage(radial::Pending::default())
         .manage(tools::Pending::default())
         .manage(settings::State::default())
+        .manage(jobs::Jobs::default())
+        .manage(jobs::Tasks::default())
         .setup(|app| {
             settings::load(app.handle());
             tray::create(app.handle())?;
@@ -82,7 +88,16 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::get_targets,
-            commands::convert_files,
+            commands::start_conversion,
+            commands::list_jobs,
+            commands::cancel_job,
+            commands::retry_job,
+            commands::skip_conflicts,
+            commands::clear_jobs,
+            commands::detach_job,
+            commands::show_progress,
+            commands::cancel_task,
+            commands::reveal,
             commands::open_radial,
             commands::open_actions,
             commands::take_radial_payload,

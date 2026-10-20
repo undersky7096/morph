@@ -2,6 +2,7 @@
 
 pub mod ffmpeg;
 pub mod formats;
+pub mod output;
 pub(crate) mod raster;
 
 use std::path::{Path, PathBuf};
@@ -28,12 +29,93 @@ pub enum ConvertError {
     Compress(String),
     #[error("édition impossible : {0}")]
     Edit(String),
+    #[error("annulé")]
+    Cancelled,
+    #[error("le fichier existe déjà : {}", .0.display())]
+    Exists(PathBuf),
 }
 
-// Les erreurs remontent au webview sous forme de texte.
+/// Erreur telle que présentée à l'utilisateur : un code (pour l'interface), un message
+/// clair, et le détail technique (à copier pour un rapport de bug).
+#[derive(Debug, Clone, Serialize)]
+pub struct ErrorInfo {
+    pub code: &'static str,
+    pub message: String,
+    pub detail: String,
+    /// Fichier concerné (doublon).
+    pub path: Option<String>,
+}
+
+const DENIED: &str = "Accès refusé : le fichier est peut-être ouvert ailleurs, ou le dossier est protégé.";
+const DISK_FULL: &str = "Disque plein : libère de la place puis réessaie.";
+
+impl ConvertError {
+    pub fn info(&self) -> ErrorInfo {
+        let detail = self.to_string();
+        let (code, message) = match self {
+            ConvertError::NotFound(_) => ("not-found", "Fichier introuvable : il a peut-être été déplacé ou supprimé.".into()),
+            ConvertError::Unsupported(_) => ("unsupported", "Format non pris en charge.".into()),
+            ConvertError::NoRoute { from, to } => (
+                "unsupported",
+                format!("Impossible de convertir du {} en {}.", from.to_uppercase(), to.to_uppercase()),
+            ),
+            ConvertError::Io(e) => io_message(e),
+            ConvertError::Image(_) => ("unreadable", "Image illisible ou endommagée.".into()),
+            ConvertError::Ffmpeg(log) => ffmpeg_message(log),
+            ConvertError::Compress(m) | ConvertError::Edit(m) => ("failed", sentence(m)),
+            ConvertError::Cancelled => ("cancelled", "Annulé.".into()),
+            ConvertError::Exists(p) => (
+                "exists",
+                format!("« {} » existe déjà.", p.file_name().map(|n| n.to_string_lossy()).unwrap_or_default()),
+            ),
+        };
+        let path = match self {
+            ConvertError::Exists(p) => Some(p.display().to_string()),
+            _ => None,
+        };
+        ErrorInfo { code, message, detail, path }
+    }
+}
+
+/// « aucun passage à garder » → « Aucun passage à garder. »
+fn sentence(s: &str) -> String {
+    let mut c = s.chars();
+    c.next().map(|f| f.to_uppercase().collect::<String>() + c.as_str()).unwrap_or_default() + "."
+}
+
+fn io_message(e: &std::io::Error) -> (&'static str, String) {
+    use std::io::ErrorKind;
+    match e.kind() {
+        ErrorKind::PermissionDenied => ("denied", DENIED.into()),
+        ErrorKind::StorageFull => ("disk-full", DISK_FULL.into()),
+        ErrorKind::NotFound => ("not-found", "Fichier ou dossier introuvable.".into()),
+        _ => ("io", "Erreur de lecture ou d'écriture du fichier.".into()),
+    }
+}
+
+/// Cause probable d'un échec de ffmpeg, d'après la fin de son journal.
+fn ffmpeg_message(log: &str) -> (&'static str, String) {
+    let l = log.to_lowercase();
+    let any = |words: &[&str]| words.iter().any(|w| l.contains(w));
+    if any(&["no space left"]) {
+        ("disk-full", DISK_FULL.into())
+    } else if any(&["permission denied"]) {
+        ("denied", DENIED.into())
+    } else if any(&["impossible de lancer ffmpeg"]) {
+        ("ffmpeg-missing", "Le moteur de conversion (ffmpeg) est introuvable : réinstalle Morph.".into())
+    } else if any(&["does not contain any stream", "matches no streams"]) {
+        ("unsupported", "Ce fichier ne contient rien à convertir (ni image ni son).".into())
+    } else if any(&["invalid data", "moov atom not found", "could not find codec", "error while decoding"]) {
+        ("unreadable", "Fichier illisible ou endommagé.".into())
+    } else {
+        ("failed", "La conversion a échoué.".into())
+    }
+}
+
+// Les erreurs remontent au webview sous forme structurée (voir `src/errors.ts`).
 impl Serialize for ConvertError {
     fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        s.serialize_str(&self.to_string())
+        self.info().serialize(s)
     }
 }
 
@@ -57,7 +139,7 @@ pub fn convert(
         });
     }
 
-    let output = unique_output(input, &target);
+    let output = unique_output(input, &target)?;
     on_progress(0.0);
     if kind == Kind::Image && IMAGE_OUT.contains(&target.as_str()) {
         raster::convert(input, &output, &target)?;
@@ -68,53 +150,23 @@ pub fn convert(
     Ok(output)
 }
 
-/// `dossier/nom.ext`, ou `dossier/nom (2).ext`, `(3)`… si le fichier existe déjà.
-pub fn unique_output(input: &Path, ext: &str) -> PathBuf {
+/// `dossier/nom.ext` ; si le fichier existe déjà : `nom (2).ext`, remplacement ou
+/// erreur, selon le contexte de l'opération (voir [`output`]).
+pub fn unique_output(input: &Path, ext: &str) -> Result<PathBuf, ConvertError> {
     let stem = input.file_stem().and_then(|s| s.to_str()).unwrap_or("fichier");
-    unique_in_dir(input, stem, ext)
+    output::unique_in_dir(input, stem, ext)
 }
 
 /// Résultat d'un outil d'édition : `dossier/nom Suffixe.ext` (ex : `Page 001 Cropped.jpg`).
-pub fn suffixed_output(input: &Path, suffix: &str) -> PathBuf {
+pub fn suffixed_output(input: &Path, suffix: &str) -> Result<PathBuf, ConvertError> {
     let ext = input.extension().and_then(|s| s.to_str()).unwrap_or("png");
     suffixed_output_as(input, suffix, ext)
 }
 
 /// Comme [`suffixed_output`], avec une autre extension (ex : `.flv` compressé en `.mp4`).
-pub fn suffixed_output_as(input: &Path, suffix: &str, ext: &str) -> PathBuf {
+pub fn suffixed_output_as(input: &Path, suffix: &str, ext: &str) -> Result<PathBuf, ConvertError> {
     let stem = input.file_stem().and_then(|s| s.to_str()).unwrap_or("fichier");
-    unique_in_dir(input, &format!("{stem} {suffix}"), ext)
-}
-
-thread_local! {
-    /// Dossier de sortie de l'opération en cours sur ce thread (réglage « dossier fixe »
-    /// ou « demander ») ; aucun : à côté de l'original.
-    static OUTPUT_DIR: std::cell::RefCell<Option<PathBuf>> = const { std::cell::RefCell::new(None) };
-}
-
-/// Exécute `f` en écrivant ses résultats dans `dir` (créé au besoin) plutôt qu'à côté
-/// des originaux. Les traitements tournent sur un seul thread : la valeur suit l'opération.
-pub fn with_output_dir<T>(dir: Option<PathBuf>, f: impl FnOnce() -> T) -> T {
-    if let Some(d) = &dir {
-        let _ = std::fs::create_dir_all(d);
-    }
-    let previous = OUTPUT_DIR.with(|cell| cell.replace(dir));
-    let result = f();
-    OUTPUT_DIR.with(|cell| cell.replace(previous));
-    result
-}
-
-fn unique_in_dir(input: &Path, stem: &str, ext: &str) -> PathBuf {
-    let dir = OUTPUT_DIR
-        .with(|cell| cell.borrow().clone())
-        .unwrap_or_else(|| input.parent().unwrap_or(Path::new(".")).to_path_buf());
-    let mut candidate = dir.join(format!("{stem}.{ext}"));
-    let mut n = 2;
-    while candidate.exists() {
-        candidate = dir.join(format!("{stem} ({n}).{ext}"));
-        n += 1;
-    }
-    candidate
+    output::unique_in_dir(input, &format!("{stem} {suffix}"), ext)
 }
 
 #[cfg(test)]
@@ -127,12 +179,13 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let input = dir.join("photo.png");
-        assert_eq!(unique_output(&input, "jpg"), dir.join("photo.jpg"));
+        assert_eq!(unique_output(&input, "jpg").unwrap(), dir.join("photo.jpg"));
         std::fs::write(dir.join("photo.jpg"), b"").unwrap();
-        assert_eq!(unique_output(&input, "jpg"), dir.join("photo (2).jpg"));
-        assert_eq!(suffixed_output(&input, "Cropped"), dir.join("photo Cropped.png"));
+        assert_eq!(unique_output(&input, "jpg").unwrap(), dir.join("photo (2).jpg"));
+        assert_eq!(suffixed_output(&input, "Cropped").unwrap(), dir.join("photo Cropped.png"));
         let elsewhere = dir.join("sorties");
-        let out = with_output_dir(Some(elsewhere.clone()), || unique_output(&input, "jpg"));
+        let scope = output::Scope { dir: Some(elsewhere.clone()), ..output::Scope::default() };
+        let out = output::scoped(scope, || unique_output(&input, "jpg")).unwrap();
         assert_eq!(out, elsewhere.join("photo.jpg"));
         assert!(elsewhere.is_dir());
         std::fs::remove_dir_all(&dir).unwrap();

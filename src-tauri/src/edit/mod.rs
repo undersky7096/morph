@@ -28,7 +28,7 @@ pub fn crop(input: &Path, rect: Rect) -> Result<PathBuf, ConvertError> {
     let height = rect.height.clamp(1, img.height() - y);
 
     let ext = formats::ext_of(input).ok_or_else(|| ConvertError::Unsupported(input.display().to_string()))?;
-    let output = convert::suffixed_output(input, "Cropped");
+    let output = convert::suffixed_output(input, "Cropped")?;
     raster::save(&img.crop_imm(x, y, width, height), &output, &ext)?;
     Ok(output)
 }
@@ -38,7 +38,7 @@ pub fn crop(input: &Path, rect: Rect) -> Result<PathBuf, ConvertError> {
 pub fn save_edited(input: &Path, png: &[u8]) -> Result<PathBuf, ConvertError> {
     let img = image::load_from_memory_with_format(png, image::ImageFormat::Png)?;
     let ext = formats::ext_of(input).ok_or_else(|| ConvertError::Unsupported(input.display().to_string()))?;
-    let output = convert::suffixed_output(input, "Edited");
+    let output = convert::suffixed_output(input, "Edited")?;
     raster::save(&img, &output, &ext)?;
     Ok(output)
 }

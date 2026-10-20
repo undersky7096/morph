@@ -1,7 +1,8 @@
 import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
-import { chooseOutputDir } from "../../settings";
+import { describe } from "../../errors";
+import { type Duplicates, SaveExtras, useSaveFlow } from "../save";
 import { dragRect, fitRatio, type Handle, type Rect, resizeTo, type Size, toPixels } from "./geometry";
 import "./Crop.css";
 
@@ -33,6 +34,7 @@ export default function Crop({ path, onSaved, footerExtra }: Props) {
   const [scale, setScale] = useState(1);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const flow = useSaveFlow();
   const canvasRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ handle: Handle; x: number; y: number; start: Rect } | null>(null);
 
@@ -45,7 +47,7 @@ export default function Crop({ path, onSaved, footerExtra }: Props) {
         url = URL.createObjectURL(new Blob([bytes]));
         setSrc(url);
       })
-      .catch((e) => setError(String(e)));
+      .catch((e) => setError(describe(e).message));
     return () => {
       if (url) URL.revokeObjectURL(url);
     };
@@ -99,18 +101,20 @@ export default function Crop({ path, onSaved, footerExtra }: Props) {
     setRect(resizeTo(rect, dim, n, img, ratio));
   }
 
-  async function apply() {
+  async function apply(duplicates?: Duplicates) {
     if (!rect || !img || busy) return;
-    const outDir = await chooseOutputDir();
-    if (outDir === null) return;
+    const run = await flow.begin(duplicates);
+    if (!run) return;
     setBusy(true);
     setError(null);
     try {
-      const output = await invoke<string>("crop_image", { path, rect: toPixels(rect, img), outDir });
+      const output = await invoke<string>("crop_image", { path, rect: toPixels(rect, img), run });
       onSaved(output);
     } catch (e) {
-      setError(String(e));
+      const err = flow.fail(e, apply);
+      if (err) setError(err.message);
     } finally {
+      flow.end();
       setBusy(false);
     }
   }
@@ -197,8 +201,9 @@ export default function Crop({ path, onSaved, footerExtra }: Props) {
 
       <footer className="tool-footer">
         <span className={`tool-status ${error ? "is-error" : ""}`}>{error ?? (px ? `${px.width} × ${px.height} px` : "")}</span>
+        <SaveExtras flow={flow} />
         {footerExtra}
-        <button className="primary" onClick={apply} disabled={!rect || busy}>
+        <button className="primary" onClick={() => apply()} disabled={!rect || busy}>
           {busy ? "Enregistrement…" : "Appliquer"}
         </button>
       </footer>

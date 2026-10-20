@@ -1,7 +1,8 @@
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
-import { chooseOutputDir } from "../../settings";
+import { describe } from "../../errors";
+import { type Duplicates, SaveExtras, useSaveFlow } from "../save";
 import {
   ArrowIcon,
   BrushIcon,
@@ -81,6 +82,7 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
   const [focusText, setFocusText] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const flow = useSaveFlow();
   const areaRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<CanvasHandle>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
@@ -104,7 +106,7 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
         setRenderer(main);
         setThumbs(presetThumbs(img));
       })
-      .catch((e) => setError(String(e)));
+      .catch((e) => setError(describe(e).message));
     return () => {
       cancelled = true;
       main?.dispose();
@@ -198,22 +200,25 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
     };
   }, [selectedShape, style, side]);
 
-  async function save() {
+  async function save(duplicates?: Duplicates) {
     if (busy || !canvasRef.current) return;
-    const outDir = await chooseOutputDir();
-    if (outDir === null) return;
+    const run = await flow.begin(duplicates);
+    if (!run) return;
     setBusy(true);
     setError(null);
     try {
       const blob = await canvasRef.current.exportPng();
       const bytes = new Uint8Array(await blob.arrayBuffer());
       const output = await invoke<string>("save_edited", bytes, {
-        headers: { "x-path": encodeURIComponent(path), ...(outDir ? { "x-out-dir": encodeURIComponent(outDir) } : {}) },
+        headers: { "x-path": encodeURIComponent(path), "x-run": encodeURIComponent(JSON.stringify(run)) },
       });
       onSaved(output);
     } catch (e) {
-      setError(String(e));
+      const err = flow.fail(e, save);
+      if (err) setError(err.message);
       setBusy(false);
+    } finally {
+      flow.end();
     }
   }
 
@@ -499,8 +504,9 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
               ? `${size.w} × ${size.h} px${renderer?.downscaled ? " (réduite : trop grande pour l'éditeur)" : ""}`
               : "")}
         </span>
+        <SaveExtras flow={flow} />
         {footerExtra}
-        <button className="primary" onClick={save} disabled={!renderer || busy}>
+        <button className="primary" onClick={() => save()} disabled={!renderer || busy}>
           {busy ? "Enregistrement…" : "Enregistrer"}
         </button>
       </footer>

@@ -1,12 +1,49 @@
 use std::path::{Path, PathBuf};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::ipc::Response;
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::convert::{self, ConvertError, formats};
+use crate::convert::output::{self, Duplicates, Scope};
+use crate::convert::{ConvertError, ErrorInfo, formats};
 use crate::edit::{self, compress, trim, video};
-use crate::{radial, settings, tools};
+use crate::{jobs, progress, radial, settings, tools};
+
+/// Options d'une opération qui écrit un fichier, transmises par l'interface.
+#[derive(Debug, Default, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct RunOptions {
+    /// Dossier choisi par l'utilisateur (réglage « demander à chaque fois »).
+    out_dir: Option<String>,
+    /// Choix fait pour un doublon, à la place du réglage.
+    duplicates: Option<Duplicates>,
+    /// Identifiant d'annulation (voir `cancel_task`).
+    task: Option<String>,
+}
+
+fn scope(app: &AppHandle, run: &RunOptions) -> Scope {
+    let s = settings::get(app);
+    Scope {
+        dir: s.output_dir(run.out_dir.as_deref()),
+        duplicates: run.duplicates.unwrap_or(s.duplicates),
+        cancel: run.task.iter().map(|t| jobs::task_flag(app, t)).collect(),
+    }
+}
+
+/// Opération d'un outil, hors du fil de l'interface, dans le contexte de `run`.
+async fn run_tool<T: Send + 'static>(
+    app: &AppHandle,
+    run: Option<RunOptions>,
+    f: impl FnOnce() -> Result<T, ConvertError> + Send + 'static,
+) -> Result<T, ConvertError> {
+    let run = run.unwrap_or_default();
+    let scope = scope(app, &run);
+    let result = blocking(move || output::scoped(scope, f)).await;
+    if let Some(task) = &run.task {
+        jobs::end_task(app, task);
+    }
+    result
+}
 
 #[tauri::command]
 pub fn get_targets(paths: Vec<String>) -> formats::TargetMenu {
@@ -42,36 +79,64 @@ pub struct Progress {
     progress: f32,
 }
 
-#[derive(Serialize)]
-pub struct ConvertResult {
-    input: String,
-    output: Option<String>,
-    error: Option<String>,
+/// Lance une conversion en arrière-plan ; suivie par l'événement `job-update`.
+#[tauri::command]
+pub fn start_conversion(app: AppHandle, paths: Vec<String>, target: String, run: Option<RunOptions>) -> jobs::Job {
+    let s = scope(&app, &run.unwrap_or_default());
+    jobs::start(&app, paths, target, s.dir, s.duplicates)
 }
 
-/// Convertit un lot vers un même format. Progression émise via l'événement `convert-progress`.
-/// `out_dir` : dossier choisi par l'utilisateur (réglage « demander à chaque fois »).
 #[tauri::command]
-pub async fn convert_files(app: AppHandle, paths: Vec<String>, target: String, out_dir: Option<String>) -> Vec<ConvertResult> {
-    let dir = settings::output_dir(&app, out_dir.as_deref());
-    tauri::async_runtime::spawn_blocking(move || convert::with_output_dir(dir, || {
-        paths
-            .into_iter()
-            .enumerate()
-            .map(|(index, input)| {
-                let mut report = |progress: f32| {
-                    let _ = app.emit("convert-progress", Progress { index, input: input.clone(), progress });
-                };
-                let result = convert::convert(&PathBuf::from(&input), &target, &mut report);
-                match result {
-                    Ok(out) => ConvertResult { input, output: Some(out.display().to_string()), error: None },
-                    Err(e) => ConvertResult { input, output: None, error: Some(e.to_string()) },
-                }
-            })
-            .collect()
-    }))
-    .await
-    .unwrap_or_default()
+pub fn list_jobs(app: AppHandle) -> Vec<jobs::Job> {
+    jobs::list(&app)
+}
+
+/// Annule une conversion entière, ou un seul de ses fichiers.
+#[tauri::command]
+pub fn cancel_job(app: AppHandle, id: u64, index: Option<usize>) {
+    jobs::cancel(&app, id, index);
+}
+
+/// Réessaie un fichier (ou tous ceux en erreur) ; avec `duplicates`, tranche les doublons.
+#[tauri::command]
+pub fn retry_job(app: AppHandle, id: u64, index: Option<usize>, duplicates: Option<Duplicates>) {
+    jobs::retry(&app, id, index, duplicates);
+}
+
+/// Doublons ignorés : le fichier existant est laissé tel quel.
+#[tauri::command]
+pub fn skip_conflicts(app: AppHandle, id: u64, index: Option<usize>) {
+    jobs::skip(&app, id, index);
+}
+
+/// La conversion continue dans la mini-fenêtre (le menu a été fermé pendant qu'elle tournait).
+// Async : peut créer la fenêtre (voir `open_tool`).
+#[tauri::command]
+pub async fn detach_job(app: AppHandle, id: u64) {
+    jobs::detach(&app, id);
+}
+
+#[tauri::command]
+pub fn clear_jobs(app: AppHandle) {
+    jobs::clear_finished(&app);
+}
+
+// Async : crée la fenêtre si besoin (voir `open_tool`).
+#[tauri::command]
+pub async fn show_progress(app: AppHandle) -> Result<(), String> {
+    progress::show(&app).map_err(|e| e.to_string())
+}
+
+/// Annule l'opération d'un outil (identifiant passé dans ses `RunOptions`).
+#[tauri::command]
+pub fn cancel_task(app: AppHandle, task: String) {
+    jobs::cancel_task(&app, &task);
+}
+
+/// Montre un fichier dans l'explorateur.
+#[tauri::command]
+pub fn reveal(path: String) -> Result<(), String> {
+    tauri_plugin_opener::reveal_item_in_dir(path).map_err(|e| e.to_string())
 }
 
 // Async : sous Windows, créer une fenêtre depuis une commande synchrone bloque l'application.
@@ -116,16 +181,15 @@ pub async fn crop_image(
     app: AppHandle,
     path: String,
     rect: edit::Rect,
-    out_dir: Option<String>,
+    run: Option<RunOptions>,
 ) -> Result<String, ConvertError> {
-    let dir = settings::output_dir(&app, out_dir.as_deref());
-    blocking(move || convert::with_output_dir(dir, || edit::crop(Path::new(&path), rect)))
+    run_tool(&app, run, move || edit::crop(Path::new(&path), rect))
         .await
         .map(|out| out.display().to_string())
 }
 
 /// Enregistre le rendu de l'éditeur image (PNG brut dans le corps de la requête,
-/// chemin d'origine dans l'en-tête `x-path`, dossier choisi éventuel dans `x-out-dir`) au
+/// chemin d'origine dans l'en-tête `x-path`, `RunOptions` en JSON dans `x-run`) au
 /// format d'origine, suffixe « Edited ».
 #[tauri::command]
 pub async fn save_edited(app: AppHandle, request: tauri::ipc::Request<'_>) -> Result<String, ConvertError> {
@@ -138,10 +202,13 @@ pub async fn save_edited(app: AppHandle, request: tauri::ipc::Request<'_>) -> Re
         .and_then(|v| v.to_str().ok())
         .map(percent_decode)
         .ok_or_else(|| ConvertError::Unsupported("en-tête x-path manquant".into()))?;
-    let chosen = request.headers().get("x-out-dir").and_then(|v| v.to_str().ok()).map(percent_decode);
-    let dir = settings::output_dir(&app, chosen.as_deref());
+    let run = request
+        .headers()
+        .get("x-run")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| serde_json::from_str(&percent_decode(v)).ok());
     let png = png.clone();
-    blocking(move || convert::with_output_dir(dir, || edit::save_edited(Path::new(&path), &png)))
+    run_tool(&app, run, move || edit::save_edited(Path::new(&path), &png))
         .await
         .map(|out| out.display().to_string())
 }
@@ -187,14 +254,12 @@ pub async fn trim_audio(
     path: String,
     segments: Vec<trim::Segment>,
     volume: Option<f64>,
-    out_dir: Option<String>,
+    run: Option<RunOptions>,
 ) -> Result<String, ConvertError> {
-    let dir = settings::output_dir(&app, out_dir.as_deref());
-    blocking(move || {
-        convert::with_output_dir(dir, || {
-            trim::trim(Path::new(&path), &segments, volume.unwrap_or(1.0), &mut |p| {
-                let _ = app.emit("trim-progress", p);
-            })
+    let handle = app.clone();
+    run_tool(&app, run, move || {
+        trim::trim(Path::new(&path), &segments, volume.unwrap_or(1.0), &mut |p| {
+            let _ = handle.emit("trim-progress", p);
         })
     })
     .await
@@ -244,14 +309,12 @@ pub async fn edit_video(
     app: AppHandle,
     path: String,
     edit: video::VideoEdit,
-    out_dir: Option<String>,
+    run: Option<RunOptions>,
 ) -> Result<String, ConvertError> {
-    let dir = settings::output_dir(&app, out_dir.as_deref());
-    blocking(move || {
-        convert::with_output_dir(dir, || {
-            video::edit(Path::new(&path), &edit, &mut |p| {
-                let _ = app.emit("edit-progress", p);
-            })
+    let handle = app.clone();
+    run_tool(&app, run, move || {
+        video::edit(Path::new(&path), &edit, &mut |p| {
+            let _ = handle.emit("edit-progress", p);
         })
     })
     .await
@@ -270,7 +333,7 @@ async fn blocking<T: Send + 'static>(
 pub struct CompressResult {
     input: String,
     outcome: Option<compress::Outcome>,
-    error: Option<String>,
+    error: Option<ErrorInfo>,
 }
 
 /// Compresse un lot. Progression émise via l'événement `compress-progress`.
@@ -279,10 +342,13 @@ pub async fn compress_files(
     app: AppHandle,
     paths: Vec<String>,
     options: compress::Options,
-    out_dir: Option<String>,
+    run: Option<RunOptions>,
 ) -> Vec<CompressResult> {
-    let dir = settings::output_dir(&app, out_dir.as_deref());
-    tauri::async_runtime::spawn_blocking(move || convert::with_output_dir(dir, || {
+    let run = run.unwrap_or_default();
+    let scope = scope(&app, &run);
+    let handle = app.clone();
+    let results = tauri::async_runtime::spawn_blocking(move || {
+        let app = handle;
         paths
             .into_iter()
             .enumerate()
@@ -290,15 +356,21 @@ pub async fn compress_files(
                 let mut report = |progress: f32| {
                     let _ = app.emit("compress-progress", Progress { index, input: input.clone(), progress });
                 };
-                match compress::compress(Path::new(&input), &options, &mut report) {
+                // Un contexte par fichier : un fichier remplacé est restauré si le sien échoue.
+                let result = output::scoped(scope.clone(), || compress::compress(Path::new(&input), &options, &mut report));
+                match result {
                     Ok(outcome) => CompressResult { input, outcome: Some(outcome), error: None },
-                    Err(e) => CompressResult { input, outcome: None, error: Some(e.to_string()) },
+                    Err(e) => CompressResult { input, outcome: None, error: Some(e.info()) },
                 }
             })
             .collect()
-    }))
+    })
     .await
-    .unwrap_or_default()
+    .unwrap_or_default();
+    if let Some(task) = &run.task {
+        jobs::end_task(&app, task);
+    }
+    results
 }
 
 /// Image compressée sans l'enregistrer, pour l'aperçu (poids et rendu).

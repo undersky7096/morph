@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_autostart::ManagerExt;
 
+use crate::convert::output::Duplicates;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ThemeMode {
@@ -54,6 +56,8 @@ pub struct Settings {
     pub mixed_batch: MixedBatch,
     pub save_mode: SaveMode,
     pub save_folder: Option<String>,
+    /// Fichier de sortie déjà présent : garder les deux, remplacer, ou demander.
+    pub duplicates: Duplicates,
     /// Lancement à l'ouverture de session (reflète l'état réel du système).
     pub autostart: bool,
 }
@@ -69,6 +73,7 @@ impl Default for Settings {
             mixed_batch: MixedBatch::Groups,
             save_mode: SaveMode::Beside,
             save_folder: None,
+            duplicates: Duplicates::Keep,
             autostart: false,
         }
     }
@@ -165,11 +170,6 @@ pub fn set(app: &AppHandle, new: Settings) -> Result<Settings, String> {
     *app.state::<State>().0.write().unwrap() = Some(new.clone());
     let _ = app.emit("settings-changed", &new);
     Ok(new)
-}
-
-/// Dossier de sortie d'une opération, d'après les réglages et le choix éventuel de l'utilisateur.
-pub fn output_dir(app: &AppHandle, chosen: Option<&str>) -> Option<PathBuf> {
-    get(app).output_dir(chosen)
 }
 
 #[cfg(test)]

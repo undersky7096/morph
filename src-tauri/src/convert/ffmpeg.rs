@@ -95,7 +95,8 @@ pub fn probe_duration(input: &Path) -> Result<f64, ConvertError> {
 }
 
 /// Lance ffmpeg sur `input` avec les arguments d'encodage `args`, vers `output`
-/// (jamais écrasé). `on_progress` reçoit une valeur entre 0.0 et 1.0.
+/// (jamais écrasé). `on_progress` reçoit une valeur entre 0.0 et 1.0. S'arrête si
+/// l'opération est annulée (voir [`super::output`]) ; le fichier partiel est supprimé.
 pub fn run(
     input: &Path,
     args: &[impl AsRef<std::ffi::OsStr>],
@@ -155,7 +156,13 @@ pub fn run_for(
 
     // stdout : flux `-progress` (lignes clé=valeur).
     let stdout = child.stdout.take().expect("stdout piped");
+    let mut killed = false;
     for line in BufReader::new(stdout).lines().map_while(Result::ok) {
+        // Annulation : vérifiée à chaque ligne de progression (environ deux fois par seconde).
+        if !killed && super::output::cancelled() {
+            let _ = child.kill();
+            killed = true;
+        }
         if let Some(value) = line.strip_prefix("out_time_us=") {
             let total = duration_us.load(Ordering::Relaxed);
             if let (Ok(done), true) = (value.parse::<u64>(), total > 0) {
@@ -168,13 +175,13 @@ pub fn run_for(
 
     let status = child.wait()?;
     let log = stderr_thread.join().unwrap_or_default();
-    if status.success() {
+    if status.success() && !killed {
         Ok(())
     } else {
         if output != null_output() {
             let _ = std::fs::remove_file(output);
         }
-        Err(ConvertError::Ffmpeg(log))
+        Err(if killed { ConvertError::Cancelled } else { ConvertError::Ffmpeg(log) })
     }
 }
 
@@ -192,6 +199,41 @@ fn parse_duration(line: &str) -> Option<u64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Nécessite ffmpeg (sidecar ou PATH) ; ignoré sinon.
+    #[test]
+    fn cancel_stops_encoding_and_removes_partial_file() {
+        use std::sync::atomic::AtomicBool;
+        use crate::convert::output::{Scope, scoped};
+        if command().arg("-version").output().is_err() {
+            return;
+        }
+        let dir = std::env::temp_dir().join("morph-test-cancel");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let input = dir.join("long.mp4");
+        let ok = command()
+            .args(["-loglevel", "error", "-f", "lavfi", "-i", "testsrc2=size=640x360:rate=30:duration=30", "-c:v", "libx264", "-preset", "ultrafast"])
+            .arg(&input)
+            .status()
+            .unwrap()
+            .success();
+        assert!(ok);
+
+        let flag = Arc::new(AtomicBool::new(false));
+        let stop = flag.clone();
+        thread::spawn(move || {
+            thread::sleep(std::time::Duration::from_millis(600));
+            stop.store(true, Ordering::Relaxed);
+        });
+        let output = dir.join("long.webm");
+        let result = scoped(Scope { cancel: vec![flag], ..Scope::default() }, || {
+            convert(&input, &output, "webm", &mut |_| {})
+        });
+        assert!(matches!(result, Err(ConvertError::Cancelled)), "{result:?}");
+        assert!(!output.exists());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 
     #[test]
     fn parses_duration() {

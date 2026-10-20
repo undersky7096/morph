@@ -298,3 +298,37 @@ html[data-window="tool"] body {
 .tool-hint {
   animation: tool-fade 0.3s ease-out;
 }
+
+/* Enregistrement : doublon à trancher, note d'annulation. */
+.save-conflict {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  animation: tool-fade 0.2s ease-out;
+}
+
+.save-conflict > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #f5a524;
+}
+
+.save-conflict button {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.save-conflict button:hover {
+  border-color: var(--accent);
+}
+
+.save-notice {
+  color: var(--muted);
+  animation: tool-fade 0.2s ease-out;
+}

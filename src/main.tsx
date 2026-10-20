@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import App from "./App";
 import Halo from "./halo/Halo";
+import Progress from "./progress/Progress";
 import Radial from "./radial/Radial";
 import { initSettings } from "./settings";
 import ToolWindow from "./tools/ToolWindow";
@@ -24,7 +25,7 @@ ${error.stack ?? ""}` : String(error);
 window.addEventListener("error", (e) => report(e.error ?? e.message));
 window.addEventListener("unhandledrejection", (e) => report(e.reason));
 
-const views: Record<string, () => React.JSX.Element> = { radial: Radial, halo: Halo, tool: ToolWindow };
+const views: Record<string, () => React.JSX.Element> = { radial: Radial, halo: Halo, tool: ToolWindow, progress: Progress };
 const View = views[label] ?? App;
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement, {
