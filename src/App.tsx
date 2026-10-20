@@ -154,10 +154,7 @@ function Appearance({ settings, save }: SectionProps) {
   const custom = settings.accent !== null || settings.background !== null;
   return (
     <>
-      <Group
-        title="Thème"
-        hint={custom ? "Couleurs personnalisées actives : choisir un thème les remplace." : undefined}
-      >
+      <Group title="Thème">
         <div className="settings-segmented">
           {THEMES.map(([id, label]) => {
             const active = !custom && settings.theme === id;

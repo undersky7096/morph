@@ -112,20 +112,21 @@ kbd {
 /* Contenu */
 .settings-body {
   overflow-y: auto;
+  /* Place de la barre de défilement réservée : changer de section ne décale rien. */
+  scrollbar-gutter: stable;
   padding: 26px 32px 40px;
-  animation: settings-in 0.22s ease-out;
 }
 
-/* Entrée d'une section : les groupes apparaissent l'un après l'autre. */
+/* Entrée d'une section : les groupes apparaissent l'un après l'autre, en fondu seul
+   (un décalage animé dans une zone qui défile ferait apparaître la barre de défilement). */
 @keyframes settings-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
   }
 }
 
 .settings-group {
-  animation: settings-in 0.28s ease-out both;
+  animation: settings-in 0.24s ease-out both;
 }
 
 .settings-group:nth-child(2) {

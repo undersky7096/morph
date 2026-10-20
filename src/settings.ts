@@ -55,17 +55,24 @@ function effectiveTheme(s: Settings): "light" | "dark" {
   return s.theme;
 }
 
-let fadeTimer = 0;
+/** Dernière apparence appliquée (thème effectif, accent, fond). */
+let look = "";
 
 /** Variables CSS du thème, sur la racine du document de la fenêtre. `fade` : changement
- *  en cours d'utilisation, fait en fondu (classe `theme-fade`, retirée aussitôt après). */
+ *  en cours d'utilisation ; si l'apparence change, la fenêtre passe de l'ancienne à la
+ *  nouvelle en fondu (View Transitions : un seul fondu de l'image entière, sans
+ *  transition élément par élément). */
 function apply(s: Settings, fade = false) {
+  const next = `${effectiveTheme(s)}|${s.accent}|${s.background}`;
+  const changed = next !== look;
+  look = next;
+  const doc = document as Document & { startViewTransition?: (update: () => void) => unknown };
+  if (fade && changed && doc.startViewTransition && !document.hidden) doc.startViewTransition(() => setVars(s));
+  else setVars(s);
+}
+
+function setVars(s: Settings) {
   const root = document.documentElement;
-  if (fade) {
-    root.classList.add("theme-fade");
-    clearTimeout(fadeTimer);
-    fadeTimer = window.setTimeout(() => root.classList.remove("theme-fade"), 450);
-  }
   root.dataset.theme = effectiveTheme(s);
   const set = (name: string, value: string | null) =>
     value === null ? root.style.removeProperty(name) : root.style.setProperty(name, value);

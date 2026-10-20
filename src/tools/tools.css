@@ -87,6 +87,7 @@ html[data-window="tool"] body {
 
 /* Panneau latéral et contrôles communs */
 .tool-panel {
+  scrollbar-gutter: stable;
   display: flex;
   flex-direction: column;
   gap: 22px;
@@ -222,10 +223,11 @@ html[data-window="tool"] body {
 }
 
 /* Animations légères (opacité et transformations seulement, prises en charge par le GPU). */
+/* Fondu seul dans le panneau : un décalage animé dans une zone qui défile ferait
+   apparaître puis disparaître la barre de défilement. */
 @keyframes tool-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
   }
 }
 
