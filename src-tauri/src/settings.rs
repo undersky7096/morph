@@ -198,6 +198,7 @@ pub fn set(app: &AppHandle, new: Settings) -> Result<Settings, String> {
     }
     *app.state::<State>().0.write().unwrap() = Some(new.clone());
     let _ = app.emit("settings-changed", &new);
+    crate::icon::refresh(app);
     Ok(new)
 }
 

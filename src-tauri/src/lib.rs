@@ -1,6 +1,7 @@
 mod commands;
 pub mod convert;
 pub mod edit;
+mod icon;
 mod jobs;
 mod linux;
 mod notify;
@@ -12,7 +13,7 @@ mod tray;
 #[cfg(windows)]
 mod shift_drag;
 
-use tauri::{AppHandle, WindowEvent};
+use tauri::{AppHandle, Manager, WindowEvent};
 
 /// Lancement par l'ouverture de session : Morph reste discret dans la zone de notification.
 const HIDDEN_ARG: &str = "--hidden";
@@ -72,6 +73,7 @@ pub fn run() {
         .setup(|app| {
             settings::load(app.handle());
             tray::create(app.handle())?;
+            icon::refresh(app.handle());
             #[cfg(windows)]
             shift_drag::start(app.handle().clone());
 
@@ -79,13 +81,10 @@ pub fn run() {
             handle_args(app.handle(), &args)?;
             Ok(())
         })
-        // Fermer les Réglages ne quitte pas Morph : la fenêtre est seulement masquée.
         .on_window_event(|window, event| {
-            if let WindowEvent::CloseRequested { api, .. } = event
-                && window.label() == tray::SETTINGS
-            {
-                api.prevent_close();
-                let _ = window.hide();
+            // Thème du système changé : l'icône suit (réglage « Système »).
+            if let WindowEvent::ThemeChanged(_) = event {
+                icon::refresh(window.app_handle());
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -100,6 +99,8 @@ pub fn run() {
             commands::show_progress,
             commands::cancel_task,
             commands::reveal,
+            commands::reveal_settings,
+            commands::open_link,
             commands::open_radial,
             commands::open_actions,
             commands::open_tools,

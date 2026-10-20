@@ -26,6 +26,11 @@
   --radial-muted: #5b6273;
   --radial-shadow: rgba(18, 20, 28, 0.18);
   --radial-halo: rgba(255, 255, 255, 0.35);
+
+  /* Logo (comme l'icône de l'application) : carré blanc et M noir, inversés en sombre ;
+     un fond personnalisé colore le carré (voir settings.ts). */
+  --logo-tile: #ffffff;
+  --logo-ink: #181818;
 }
 
 /* Thème sombre : posé par `data-theme` (le mode « Système » suit Windows, voir settings.ts). */
@@ -47,6 +52,29 @@
   --radial-muted: #9aa3b5;
   --radial-shadow: rgba(0, 0, 0, 0.45);
   --radial-halo: rgba(10, 11, 16, 0.35);
+
+  --logo-tile: #111111;
+  --logo-ink: #ffffff;
+}
+
+.logo {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 23%;
+  background: var(--logo-tile);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.logo-mark {
+  width: 60%;
+  height: 60%;
+  background: var(--logo-ink);
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
 }
 
 /* Changement de thème ou de couleurs : fondu de toute la fenêtre (voir settings.ts). */

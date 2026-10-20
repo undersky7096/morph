@@ -21,6 +21,7 @@ pub fn show(app: &AppHandle) -> tauri::Result<()> {
         .focused(false)
         .visible(false)
         .build()?;
+    crate::icon::apply_to(&window);
     // En bas à droite de l'écran principal, au-dessus de la barre des tâches.
     if let Some(monitor) = window.primary_monitor()? {
         let area = monitor.work_area();

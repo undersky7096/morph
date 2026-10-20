@@ -320,7 +320,37 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
   déplace tout le menu (`startDragging`, seuil 5 px). Le menu ne se ferme plus que
   si la perte de focus dure plus de 150 ms : déplacer la fenêtre la fait perdre et
   regagner aussitôt.
-- **Reprendre à M10 (polish : tests sur machines propres, finitions)**.
+- **Décisions M10** (validées par l'utilisateur le 2026-10-20) :
+  - Découpage : **10a** logo + icône dynamique, page « À propos », revue d'ensemble
+    de l'interface, performance ; **10b** retirer le fond ; **10c** mises à jour
+    automatiques, tests sur machine propre, release brouillon **v1.0.0**.
+  - Logo définitif : `branding/morph-logo.png` (M #181818 sur fond transparent).
+    Icône = M sur un carré arrondi : par défaut carré blanc + M noir (exe, installeur,
+    raccourcis) ; en fonctionnement, l'icône (zone de notification, fenêtres) suit
+    l'apparence : sombre → carré noir + M blanc ; fond personnalisé → carré de la
+    couleur de fond, M blanc si elle est sombre, noir si elle est claire.
+  - « À propos » : version, contact@underskydev.com, morph.underskydev.com, GitHub,
+    licences des composants.
+  - Retirer le fond : modèle IS-Net (libre, ~170 Mo) exécuté en local, téléchargé et
+    vérifié à la première utilisation ; pétale « Détourer » dans l'anneau des outils
+    + bouton dans l'éditeur d'image.
+  - Mises à jour : plugin updater de Tauri via GitHub Releases, signées ; clé privée
+    hors du dépôt, ajoutée en secret GitHub par Claude avec `gh secret set` (après
+    accord au moment de le faire).
+  - Tests machine propre : Windows Sandbox (activé par l'utilisateur) + AppImage
+    dans WSL.
+- **10a fait** (2026-10-20) — v0.10.0. Logo : `scripts/icons.py` génère depuis
+  `branding/morph-logo.png` l'icône fixe (M noir sur carré blanc, `npx tauri icon`),
+  les images de l'installeur et `icons/mark.png` ; `src-tauri/src/icon.rs` redessine
+  l'icône (zone de notification, fenêtres) à chaque changement d'apparence ou de
+  thème du système ; composant `Logo` dans l'interface (variables `--logo-tile` /
+  `--logo-ink`). Page « À propos » (version, site, contact, licence, composants
+  libres ; liens ouverts par `open_link`, liste blanche). Performance : fenêtre des
+  Réglages créée à l'ouverture et détruite à la fermeture (−1 page web au repos :
+  ~219 → ~183 Mo pour WebView2), code chargé par fenêtre (`main.tsx`, imports
+  dynamiques). Le dépôt GitHub est privé : lien GitHub absent de « À propos », et
+  à régler avant les mises à jour automatiques (10c).
+- **Reprendre à 10b (retirer le fond)** après validation de 10a.
 - **Décisions M6** (validées par l'utilisateur le 2026-10-20) :
   - Découpage en sous-étapes, un commit + validation chacune :
     **6a** éditeur image, **6b** découpe audio, **6c** éditeur vidéo.

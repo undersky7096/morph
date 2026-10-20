@@ -2,12 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import App from "./App";
-import Halo from "./halo/Halo";
-import Progress from "./progress/Progress";
-import Radial from "./radial/Radial";
 import { initSettings } from "./settings";
-import ToolWindow from "./tools/ToolWindow";
 import "./App.css";
 
 // Une seule page pour toutes les fenêtres : on choisit l'interface selon le label.
@@ -25,13 +20,23 @@ ${error.stack ?? ""}` : String(error);
 window.addEventListener("error", (e) => report(e.error ?? e.message));
 window.addEventListener("unhandledrejection", (e) => report(e.reason));
 
-const views: Record<string, () => React.JSX.Element> = { radial: Radial, halo: Halo, tool: ToolWindow, progress: Progress };
-const View = views[label] ?? App;
+// Chaque fenêtre ne charge que son interface (le halo et le menu, toujours chargés,
+// restent légers).
+type View = { default: React.ComponentType };
+const views: Record<string, () => Promise<View>> = {
+  radial: () => import("./radial/Radial"),
+  halo: () => import("./halo/Halo"),
+  tool: () => import("./tools/ToolWindow"),
+  progress: () => import("./progress/Progress"),
+  main: () => import("./App"),
+};
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement, {
-  onUncaughtError: (error, info) => report(`${String(error)}${info.componentStack ?? ""}`),
-}).render(
-  <React.StrictMode>
-    <View />
-  </React.StrictMode>,
+(views[label] ?? views.main)().then(({ default: View }) =>
+  ReactDOM.createRoot(document.getElementById("root") as HTMLElement, {
+    onUncaughtError: (error, info) => report(`${String(error)}${info.componentStack ?? ""}`),
+  }).render(
+    <React.StrictMode>
+      <View />
+    </React.StrictMode>,
+  ),
 );

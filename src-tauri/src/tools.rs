@@ -27,7 +27,7 @@ pub fn open(app: &AppHandle, tool: String, paths: Vec<String>) -> tauri::Result<
         window.show()?;
         window.set_focus()?;
     } else {
-        WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App("index.html".into()))
+        let window = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App("index.html".into()))
             .title("Morph")
             .inner_size(980.0, 700.0)
             .min_inner_size(640.0, 480.0)
@@ -35,6 +35,7 @@ pub fn open(app: &AppHandle, tool: String, paths: Vec<String>) -> tauri::Result<
             .center()
             .focused(true)
             .build()?;
+        crate::icon::apply_to(&window);
     }
     Ok(())
 }

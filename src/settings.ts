@@ -88,6 +88,7 @@ function setVars(s: Settings) {
   set("--accent-2", s.accent && `color-mix(in srgb, ${s.accent} 55%, white)`);
   set("--bg", s.background);
   set("--surface-base", s.background);
+  set("--logo-tile", s.background);
   set("--radial-opacity", `${s.radialOpacity}%`);
 }
 

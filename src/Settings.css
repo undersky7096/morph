@@ -44,14 +44,8 @@
 }
 
 .settings-logo {
-  display: grid;
-  place-items: center;
   width: 30px;
   height: 30px;
-  border-radius: 9px;
-  background: linear-gradient(135deg, var(--accent-2), var(--accent));
-  color: #06121a;
-  font-weight: 800;
 }
 
 .settings-nav > button {
@@ -490,4 +484,53 @@ kbd {
 
 .settings-drop {
   animation: settings-in 0.15s ease-out;
+}
+
+/* À propos */
+
+.about-hero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.about-logo {
+  width: 64px;
+  height: 64px;
+}
+
+.about-hero h2 {
+  font-size: 20px;
+}
+
+.about-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.about-components {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.about-components li {
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  gap: 12px;
+  align-items: baseline;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.about-components li > button {
+  justify-self: start;
+  font-weight: 600;
+}
+
+.about-components small {
+  color: var(--muted);
 }

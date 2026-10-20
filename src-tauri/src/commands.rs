@@ -139,6 +139,35 @@ pub fn cancel_task(app: AppHandle, task: String) {
     jobs::cancel_task(&app, &task);
 }
 
+/// Interface des Réglages prête : la fenêtre s'affiche.
+#[tauri::command]
+pub fn reveal_settings(app: AppHandle) -> Result<(), String> {
+    crate::tray::reveal_settings(&app).map_err(|e| e.to_string())
+}
+
+/// Liens de la page « À propos » : seules ces adresses peuvent être ouvertes.
+const LINKS: &[&str] = &[
+    "https://morph.underskydev.com",
+    "mailto:contact@underskydev.com",
+    "https://ffmpeg.org",
+    "https://tauri.app",
+    "https://react.dev",
+    "https://motion.dev",
+    "https://konvajs.org",
+    "https://github.com/image-rs/image",
+    "https://github.com/shssoichiro/oxipng",
+    "https://pngquant.org/lib/",
+];
+
+/// Ouvre un lien de la page « À propos » dans le navigateur (ou la messagerie).
+#[tauri::command]
+pub fn open_link(url: String) -> Result<(), String> {
+    if !LINKS.contains(&url.as_str()) {
+        return Err(format!("lien non autorisé : {url}"));
+    }
+    tauri_plugin_opener::open_url(url, None::<&str>).map_err(|e| e.to_string())
+}
+
 /// Montre un fichier dans l'explorateur.
 #[tauri::command]
 pub fn reveal(path: String) -> Result<(), String> {

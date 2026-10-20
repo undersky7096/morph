@@ -17,15 +17,32 @@ import {
   useSettingsLoaded,
 } from "./settings";
 import { ACCENTS, BACKGROUNDS, ColorChoice, FavoritesPicker, PILL, ThemePicker } from "./settingsParts";
+import Logo from "./Logo";
 import "./Settings.css";
 
-type Section = "appearance" | "menu" | "save" | "system";
+type Section = "appearance" | "menu" | "save" | "system" | "about";
 
 const SECTIONS: [Section, string][] = [
   ["appearance", "Apparence"],
   ["menu", "Menu des formats"],
   ["save", "Enregistrement"],
   ["system", "Système"],
+  ["about", "À propos"],
+];
+
+const SITE = "https://morph.underskydev.com";
+const CONTACT = "contact@underskydev.com";
+
+/** Composants libres embarqués : [nom, rôle, licence, site]. */
+const COMPONENTS: [string, string, string, string][] = [
+  ["FFmpeg", "Conversion et édition audio / vidéo", "GPL-3.0", "https://ffmpeg.org"],
+  ["Tauri", "Socle de l'application", "MIT / Apache-2.0", "https://tauri.app"],
+  ["React", "Interface", "MIT", "https://react.dev"],
+  ["Motion", "Animations", "MIT", "https://motion.dev"],
+  ["Konva", "Éditeur d'image", "MIT", "https://konvajs.org"],
+  ["image-rs", "Lecture et écriture des images", "MIT / Apache-2.0", "https://github.com/image-rs/image"],
+  ["oxipng", "Compression PNG sans perte", "MIT", "https://github.com/shssoichiro/oxipng"],
+  ["libimagequant", "Compression PNG par palette", "GPL-3.0", "https://pngquant.org/lib/"],
 ];
 
 const DUPLICATES: [Duplicates, string, string][] = [
@@ -58,6 +75,11 @@ function App() {
     getVersion().then(setVersion);
   }, []);
 
+  // Fenêtre créée cachée : on l'affiche une fois les réglages chargés (pas de flash blanc).
+  useEffect(() => {
+    if (loaded) invoke("reveal_settings");
+  }, [loaded]);
+
   useEffect(() => {
     const unlisten = getCurrentWebview().onDragDropEvent(({ payload }) => {
       if (payload.type === "enter" || payload.type === "over") setOver(true);
@@ -85,7 +107,7 @@ function App() {
     <div className={`settings ${over ? "is-over" : ""}`}>
       <nav className="settings-nav">
         <div className="settings-brand">
-          <span className="settings-logo">M</span>
+          <Logo className="settings-logo" />
           <span>
             Morph <small>v{version}</small>
           </span>
@@ -111,7 +133,8 @@ function App() {
             <DuplicatesSection settings={settings} save={save} />
           </>
         )}
-        {section === "system" && <SystemSection settings={settings} save={save} version={version} />}
+        {section === "system" && <SystemSection settings={settings} save={save} />}
+        {section === "about" && <AboutSection version={version} />}
         {error && <p className="settings-error">{error}</p>}
       </main>
       {over && <div className="settings-drop">Lâche pour ouvrir le menu des formats</div>}
@@ -255,7 +278,7 @@ function DuplicatesSection({ settings, save }: SectionProps) {
   );
 }
 
-function SystemSection({ settings, save, version }: SectionProps & { version: string }) {
+function SystemSection({ settings, save }: SectionProps) {
   const platform = usePlatform();
   return (
     <>
@@ -273,7 +296,7 @@ function SystemSection({ settings, save, version }: SectionProps & { version: st
           </span>
         </label>
       </Group>
-      <Group title="Morph" hint={`Version ${version} · licence GPL-3.0-or-later`}>
+      <Group title="Morph">
         <div>
           <button className="settings-button" onClick={() => save({ onboarded: false })}>
             Revoir l'écran d'accueil
@@ -283,6 +306,45 @@ function SystemSection({ settings, save, version }: SectionProps & { version: st
           </button>
         </div>
         <p className="settings-hint">Fermer cette fenêtre laisse Morph actif ; l'icône de la zone de notification la rouvre.</p>
+      </Group>
+    </>
+  );
+}
+
+function AboutSection({ version }: { version: string }) {
+  const open = (url: string) => invoke("open_link", { url });
+  return (
+    <>
+      <section className="settings-group about-hero">
+        <Logo className="about-logo" />
+        <div>
+          <h2>Morph</h2>
+          <p className="settings-hint">Version {version} · convertir et retoucher en un geste</p>
+          <div className="about-links">
+            <button className="settings-button" onClick={() => open(SITE)}>
+              Site de présentation ↗
+            </button>
+            <button className="settings-button" onClick={() => open(`mailto:${CONTACT}`)}>
+              Contact : {CONTACT}
+            </button>
+          </div>
+        </div>
+      </section>
+      <Group title="Licence" hint="Morph est un logiciel libre, distribué sous licence GPL-3.0-or-later.">
+        <p className="settings-hint">© 2026 UnderSkyDev.</p>
+      </Group>
+      <Group title="Composants libres" hint="Morph s'appuie sur ces projets, merci à leurs auteurs.">
+        <ul className="about-components">
+          {COMPONENTS.map(([name, role, license, url]) => (
+            <li key={name}>
+              <button className="settings-link" onClick={() => open(url)}>
+                {name}
+              </button>
+              <span>{role}</span>
+              <small>{license}</small>
+            </li>
+          ))}
+        </ul>
       </Group>
     </>
   );

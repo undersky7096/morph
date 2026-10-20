@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 
 import { usePlatform, type Settings } from "../settings";
 import { ACCENTS, ColorChoice, FavoritesPicker, ThemePicker } from "../settingsParts";
+import Logo from "../Logo";
 import LinuxIntegration from "./LinuxIntegration";
 import "./Onboarding.css";
 
@@ -32,7 +33,7 @@ export default function Onboarding({ settings, save, reviewing }: Props) {
   async function finish() {
     save({ onboarded: true });
     // Morph vit ensuite dans la zone de notification.
-    if (!reviewing) await getCurrentWindow().hide();
+    if (!reviewing) await getCurrentWindow().close();
   }
 
   const last = step === STEPS.length - 1;
@@ -67,7 +68,7 @@ export default function Onboarding({ settings, save, reviewing }: Props) {
           >
             {step === 0 && (
               <>
-                <div className="onboarding-logo">M</div>
+                <Logo className="onboarding-logo" />
                 <h1>Bienvenue dans Morph</h1>
                 <p className="onboarding-lead">
                   Convertis et retouche tes images, sons et vidéos en un geste, sans ouvrir d'application.

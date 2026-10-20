@@ -101,17 +101,12 @@
 }
 
 .onboarding-logo {
-  display: grid;
-  place-items: center;
   width: 64px;
   height: 64px;
   margin-bottom: 18px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, var(--accent-2), var(--accent));
-  box-shadow: 0 10px 30px color-mix(in srgb, var(--accent) 35%, transparent);
-  color: #06121a;
-  font-size: 30px;
-  font-weight: 800;
+  box-shadow:
+    inset 0 0 0 1px var(--line),
+    0 10px 30px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .onboarding-block {
