@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, type Variants } from "motion/react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
@@ -21,17 +21,32 @@ type Phase =
 
 const spring = { type: "spring", stiffness: 520, damping: 32 } as const;
 
+/** Entrée / sortie d'un anneau de pétales ; `dir` : +1 vers un sous-menu, −1 retour. */
+const RING: Variants = {
+  enter: (dir: number) => ({ rotate: -18 * dir, opacity: 0 }),
+  center: { rotate: 0, opacity: 1, transition: { type: "spring", stiffness: 260, damping: 26 } },
+  leave: (dir: number) => ({ rotate: 14 * dir, opacity: 0, transition: { duration: 0.12, ease: "easeIn" } }),
+};
+
 export default function Radial() {
   const [open, setOpen] = useState(false);
   const [session, setSession] = useState(0);
   const [fileCount, setFileCount] = useState(0);
-  const [stack, setStack] = useState<Level[]>([]);
+  const [stack, setStackState] = useState<Level[]>([]);
+  /** Anneau affiché (change à chaque niveau) et sens du passage : +1 vers un sous-menu, −1 retour. */
+  const [ring, setRing] = useState({ id: 0, dir: 1 });
+  const setStack = (next: Level[] | ((s: Level[]) => Level[]), dir = 1) => {
+    setStackState(next);
+    setRing((r) => ({ id: r.id + 1, dir }));
+  };
   const [phase, setPhase] = useState<Phase>({ name: "menu" });
   const openRef = useRef(false);
   const sessionRef = useRef(0);
   const progressRef = useRef<number[]>([]);
   /** Choix du dossier de sortie en cours : la perte de focus ne ferme pas le menu. */
   const pickingRef = useRef(false);
+  /** La fenêtre a obtenu le focus depuis l'ouverture du menu. */
+  const focusedRef = useRef(false);
 
   openRef.current = open;
   sessionRef.current = session;
@@ -52,6 +67,7 @@ export default function Radial() {
       ]);
       setPhase({ name: "menu" });
       setSession((s) => s + 1);
+      focusedRef.current = false;
       setOpen(true);
     };
 
@@ -63,9 +79,11 @@ export default function Radial() {
 
     const unlisten = [
       opened,
-      // Menu non modal : il se ferme dès que la fenêtre perd le focus (clic ailleurs).
+      // Menu non modal : il se ferme dès que la fenêtre perd le focus (clic ailleurs) —
+      // seulement s'il l'a eu : si Windows le refuse à l'ouverture, le menu reste affiché.
       win.onFocusChanged(({ payload: focused }) => {
-        if (!focused && !pickingRef.current) setOpen(false);
+        if (focused) focusedRef.current = true;
+        else if (focusedRef.current && !pickingRef.current) setOpen(false);
       }),
       win.listen<ConvertProgress>("convert-progress", ({ payload }) => {
         const values = progressRef.current;
@@ -136,7 +154,7 @@ export default function Radial() {
   }
 
   function onHub() {
-    if (phase.name === "menu" && stack.length > 1) setStack((s) => s.slice(0, -1));
+    if (phase.name === "menu" && stack.length > 1) setStack((s) => s.slice(0, -1), -1);
     else close();
   }
 
@@ -156,12 +174,25 @@ export default function Radial() {
           exit={{ opacity: 0, scale: 0.85 }}
           transition={{ duration: 0.18, ease: "easeOut" }}
           onClick={(e) => e.target === e.currentTarget && close()}
+          // Menu ouvert sans focus (refusé par Windows) : le premier clic le lui donne,
+          // pour qu'un clic ailleurs le referme ensuite.
+          onPointerDown={() => !focusedRef.current && getCurrentWebviewWindow().setFocus()}
         >
           <div className="radial-disc" />
 
-          <AnimatePresence mode="wait">
+          {/* Changement de niveau : l'anneau tourne légèrement dans le sens du passage
+              pendant que les pétales rentrent puis ressortent du moyeu. */}
+          <AnimatePresence mode="wait" custom={ring.dir}>
             {phase.name === "menu" && (
-              <motion.div key={stack.length} className="radial-ring">
+              <motion.div
+                key={ring.id}
+                className="radial-ring"
+                custom={ring.dir}
+                variants={RING}
+                initial="enter"
+                animate="center"
+                exit="leave"
+              >
                 {items.map((item, i) => {
                   const soon = item.type === "action" ? comingIn(item.tool, item.paths) : undefined;
                   const angle = -Math.PI / 2 + (i / items.length) * 2 * Math.PI;
@@ -176,7 +207,7 @@ export default function Radial() {
                       title={itemTitle(item)}
                       initial={{ x: 0, y: 0, scale: 0.3, opacity: 0 }}
                       animate={{ x, y, scale: 1, opacity: 1, transition: { ...spring, delay: i * 0.02 } }}
-                      exit={{ x: 0, y: 0, scale: 0.3, opacity: 0, transition: { duration: 0.12 } }}
+                      exit={{ x: x * 0.35, y: y * 0.35, scale: 0.5, opacity: 0, transition: { duration: 0.11, ease: "easeIn" } }}
                       whileHover={soon ? undefined : { scale: 1.14 }}
                       whileTap={soon ? undefined : { scale: 0.94 }}
                       transition={spring}
@@ -196,7 +227,18 @@ export default function Radial() {
             whileTap={{ scale: 0.95 }}
             title={phase.name === "done" && phase.errors.length ? phase.errors.join("\n\n") : undefined}
           >
-            <HubContent phase={phase} fileCount={fileCount} level={level} empty={items.length === 0} />
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span
+                key={hubKey(phase, level)}
+                className="hub-content"
+                initial={{ opacity: 0, scale: 0.7 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.7 }}
+                transition={{ duration: 0.12 }}
+              >
+                <HubContent phase={phase} fileCount={fileCount} level={level} empty={items.length === 0} />
+              </motion.span>
+            </AnimatePresence>
           </motion.button>
         </motion.div>
       )}
@@ -261,6 +303,12 @@ function HubContent(props: { phase: Phase; fileCount: number; level?: Level; emp
   );
 }
 
+/** Contenu du moyeu à fondre d'un état à l'autre (la progression, elle, se met à jour sur place). */
+function hubKey(phase: Phase, level?: Level) {
+  if (phase.name !== "menu") return phase.name;
+  return level?.done ? `done-${level.done}` : `menu-${level?.label ?? ""}`;
+}
+
 function itemKey(item: Item) {
   if (item.type === "format") return item.format;
   if (item.type === "action") return item.tool;
@@ -282,7 +330,7 @@ function PetalContent({ item }: { item: Item }) {
   if (item.type === "group" && !item.icon) return <>{item.label} ›</>;
   const Icon = TOOLS[item.type === "group" ? item.icon! : item.tool].icon;
   return (
-    <span className="petal-action">
+    <span className="petal-tool">
       <Icon />
       <span>{item.type === "group" ? `${item.label} ›` : TOOLS[item.tool].label}</span>
     </span>

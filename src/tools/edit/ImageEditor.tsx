@@ -21,7 +21,7 @@ import {
   UndoIcon,
 } from "../../icons";
 import Canvas, { type CanvasHandle } from "./Canvas";
-import { presetThumbs, Slider } from "./controls";
+import { EditorTabs, presetThumbs, Slider } from "./controls";
 import { useHistory } from "./history";
 import {
   ADJUST_DEFAULT,
@@ -302,19 +302,15 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
       </div>
 
       <aside className="tool-panel editor-panel">
-        <div className="editor-tabs" role="tablist">
-          {(
-            [
-              ["adjust", "Réglages"],
-              ["filters", "Filtres"],
-              ["annotate", "Annoter"],
-            ] as const
-          ).map(([id, label]) => (
-            <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? "is-active" : ""} onClick={() => setTab(id)}>
-              {label}
-            </button>
-          ))}
-        </div>
+        <EditorTabs
+          tabs={[
+            ["adjust", "Réglages"],
+            ["filters", "Filtres"],
+            ["annotate", "Annoter"],
+          ]}
+          value={tab}
+          onChange={setTab}
+        />
 
         {tab === "adjust" && (
           <>

@@ -252,6 +252,19 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
   Quitter). Thème : `src/settings.ts` pose `data-theme` et les variables
   `--accent`, `--accent-2`, `--bg`, `--surface-base`, `--radial-opacity` dans
   chaque fenêtre. Corrige aussi le menu radial vide de `morph fichier`.
+- Retours sur M7 (2026-10-20, appliqués) : lancement à l'ouverture de session
+  **activé par défaut** (au premier lancement, sans fichier de réglages) ;
+  choisir Système/Clair/Sombre **efface l'accent et le fond personnalisés** ;
+  transitions fluides (anneau du menu qui tourne selon le sens de navigation,
+  moyeu en fondu, indicateurs glissants dans les Réglages et les onglets des
+  éditeurs, fondu de thème, apparition des sections) en CSS/motion légers,
+  désactivées si « réduire les animations » ; pétales d'outils centrés. Le menu
+  ne se ferme plus sur une perte de focus qu'il n'a jamais eu (Windows refuse
+  parfois le premier plan), et une seconde instance cède le premier plan à la
+  première (`AllowSetForegroundWindow`). Réglages lus à la première demande
+  (une fenêtre pouvait recevoir les valeurs par défaut au démarrage).
+- À faire en M9 : l'installeur doit retirer l'entrée « Morph » de la clé Run à
+  la désinstallation.
 - **Reprendre à M8 (progression & erreurs)**.
 - **Décisions M6** (validées par l'utilisateur le 2026-10-20) :
   - Découpage en sous-étapes, un commit + validation chacune :

@@ -1,7 +1,31 @@
 // Contrôles partagés par les éditeurs image et vidéo (sans Konva, chargé à part).
 
+import { motion } from "motion/react";
+
 import { combined, EDIT_DEFAULT, GEOMETRY_DEFAULT, PRESETS } from "./model";
 import { Renderer } from "./renderer";
+
+/** Onglets du panneau latéral ; l'onglet actif est repéré par un fond qui glisse. */
+export function EditorTabs<T extends string>(props: {
+  tabs: readonly (readonly [T, string])[];
+  value: T;
+  onChange: (tab: T) => void;
+  className?: string;
+}) {
+  const { tabs, value, onChange, className = "" } = props;
+  return (
+    <div className={`editor-tabs ${className}`} role="tablist">
+      {tabs.map(([id, label]) => (
+        <button key={id} role="tab" aria-selected={value === id} className={value === id ? "is-active" : ""} onClick={() => onChange(id)}>
+          {value === id && (
+            <motion.span layoutId="editor-tab" className="editor-tab-pill" transition={{ type: "spring", stiffness: 500, damping: 38 }} />
+          )}
+          <span>{label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function Slider(props: {
   label: string;

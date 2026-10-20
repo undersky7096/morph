@@ -25,6 +25,7 @@ html[data-window="radial"] body {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  will-change: transform, opacity;
 }
 
 .petal {
@@ -65,13 +66,35 @@ html[data-window="radial"] body {
     0 0 22px color-mix(in srgb, var(--petal) 50%, transparent);
 }
 
-.petal-action {
+.petal {
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+/* Icône + libellé d'un outil, centrés dans le pétale. */
+.petal-tool {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 3px;
   font-size: 9.5px;
   letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.petal-tool svg {
+  width: 18px;
+  height: 18px;
+}
+
+.hub-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
 }
 
 .petal[aria-disabled] {

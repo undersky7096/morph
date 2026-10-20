@@ -55,6 +55,7 @@
 }
 
 .settings-nav > button {
+  position: relative;
   padding: 8px 10px;
   border: 0;
   border-radius: 8px;
@@ -68,8 +69,29 @@
 }
 
 .settings-nav > button.is-active {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
   font-weight: 600;
+}
+
+.settings-nav > button > span,
+.settings-segmented button > span {
+  position: relative;
+}
+
+/* Indicateurs de sélection, déplacés en glissant d'un choix à l'autre (motion). */
+.settings-nav-pill,
+.settings-segmented-pill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.settings-nav-pill {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.settings-segmented-pill {
+  background: var(--bg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
 }
 
 .settings-tip {
@@ -91,6 +113,31 @@ kbd {
 .settings-body {
   overflow-y: auto;
   padding: 26px 32px 40px;
+  animation: settings-in 0.22s ease-out;
+}
+
+/* Entrée d'une section : les groupes apparaissent l'un après l'autre. */
+@keyframes settings-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.settings-group {
+  animation: settings-in 0.28s ease-out both;
+}
+
+.settings-group:nth-child(2) {
+  animation-delay: 0.04s;
+}
+
+.settings-group:nth-child(3) {
+  animation-delay: 0.08s;
+}
+
+.settings-group:nth-child(4) {
+  animation-delay: 0.12s;
 }
 
 .settings-group + .settings-group {
@@ -125,6 +172,7 @@ kbd {
 }
 
 .settings-segmented button {
+  position: relative;
   padding: 6px 16px;
   border: 0;
   border-radius: 7px;
@@ -133,8 +181,6 @@ kbd {
 }
 
 .settings-segmented button.is-active {
-  background: var(--bg);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
   font-weight: 600;
 }
 
@@ -399,4 +445,48 @@ kbd {
   font-size: 15px;
   font-weight: 600;
   pointer-events: none;
+}
+
+/* Retours visuels doux au survol et au clic. */
+.settings-nav > button,
+.settings-chip,
+.settings-format,
+.settings-option,
+.settings-toggle,
+.settings-button,
+.settings-folder button {
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.12s ease;
+}
+
+.settings-swatch {
+  transition:
+    box-shadow 0.18s ease,
+    transform 0.15s ease;
+}
+
+.settings-swatch:hover {
+  transform: scale(1.12);
+}
+
+.settings-chip:active,
+.settings-format:active,
+.settings-button:active,
+.settings-swatch:active {
+  transform: scale(0.94);
+}
+
+.settings-format:hover {
+  border-color: color-mix(in srgb, var(--kind) 60%, var(--line));
+}
+
+.settings-petal {
+  transition: background-color 0.25s ease;
+}
+
+.settings-drop {
+  animation: settings-in 0.15s ease-out;
 }

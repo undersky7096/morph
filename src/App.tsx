@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { open } from "@tauri-apps/plugin-dialog";
+import { motion } from "motion/react";
 
 import { kindOf } from "./formats";
 import { saveSettings, type SaveMode, type Settings, type ThemeMode, useSettings } from "./settings";
@@ -38,6 +39,9 @@ const SAVE_MODES: [SaveMode, string, string][] = [
   ["folder", "Dans un dossier fixe", "Tous les résultats vont dans le dossier choisi."],
   ["ask", "Demander à chaque fois", "Le dossier est choisi au moment d'enregistrer."],
 ];
+
+/** Glissement de l'indicateur de sélection (navigation, choix du thème). */
+const PILL = { type: "spring", stiffness: 500, damping: 38 } as const;
 
 /** Fenêtre des Réglages (ouverte depuis l'icône de la zone de notification). Chaque
  *  changement s'applique aussitôt à toutes les fenêtres. Déposer des fichiers ici ouvre
@@ -83,7 +87,8 @@ function App() {
         </div>
         {SECTIONS.map(([id, label]) => (
           <button key={id} className={section === id ? "is-active" : ""} onClick={() => setSection(id)}>
-            {label}
+            {section === id && <motion.span layoutId="nav-active" className="settings-nav-pill" transition={PILL} />}
+            <span>{label}</span>
           </button>
         ))}
         <p className="settings-tip">
@@ -92,7 +97,7 @@ function App() {
         </p>
       </nav>
 
-      <main className="settings-body">
+      <main className="settings-body" key={section}>
         {section === "appearance" && <Appearance settings={settings} save={save} />}
         {section === "menu" && <MenuSection settings={settings} save={save} />}
         {section === "save" && <SaveSection settings={settings} save={save} />}
@@ -146,15 +151,28 @@ function ColorChoice(props: { value: string | null; colors: string[]; onChange: 
 }
 
 function Appearance({ settings, save }: SectionProps) {
+  const custom = settings.accent !== null || settings.background !== null;
   return (
     <>
-      <Group title="Thème" hint={settings.background ? "Avec un fond personnalisé, le texte s'adapte à sa luminosité." : undefined}>
+      <Group
+        title="Thème"
+        hint={custom ? "Couleurs personnalisées actives : choisir un thème les remplace." : undefined}
+      >
         <div className="settings-segmented">
-          {THEMES.map(([id, label]) => (
-            <button key={id} className={settings.theme === id ? "is-active" : ""} onClick={() => save({ theme: id })}>
-              {label}
-            </button>
-          ))}
+          {THEMES.map(([id, label]) => {
+            const active = !custom && settings.theme === id;
+            return (
+              <button
+                key={id}
+                className={active ? "is-active" : ""}
+                // Un thème prédéfini reprend la main sur les couleurs personnalisées.
+                onClick={() => save({ theme: id, accent: null, background: null })}
+              >
+                {active && <motion.span layoutId="theme-active" className="settings-segmented-pill" transition={PILL} />}
+                <span>{label}</span>
+              </button>
+            );
+          })}
         </div>
       </Group>
       <Group title="Couleur d'accent" hint="Boutons, sélections, progression et halo.">

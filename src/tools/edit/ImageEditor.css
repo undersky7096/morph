@@ -83,6 +83,7 @@
 }
 
 .editor-tabs button {
+  position: relative;
   padding: 6px 0;
   border: 0;
   border-radius: 7px;
@@ -90,10 +91,21 @@
   cursor: pointer;
 }
 
+.editor-tabs button > span {
+  position: relative;
+}
+
 .editor-tabs button.is-active {
+  font-weight: 600;
+}
+
+/* Fond de l'onglet actif, qui glisse d'un onglet à l'autre. */
+.editor-tab-pill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
   background: var(--bg);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-  font-weight: 600;
 }
 
 .editor-panel section {
@@ -141,6 +153,10 @@
 }
 
 .preset {
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    transform 0.15s ease;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -164,6 +180,19 @@
 
 .preset:hover {
   border-color: var(--line);
+  transform: translateY(-2px);
+}
+
+.preset:active {
+  transform: scale(0.96);
+}
+
+.preset img {
+  transition: filter 0.2s ease;
+}
+
+.preset:hover img {
+  filter: brightness(1.08);
 }
 
 .preset.is-active {

@@ -101,8 +101,10 @@ impl Settings {
     }
 }
 
+/// Réglages en mémoire ; lus depuis le fichier à la première demande (une fenêtre peut
+/// les demander avant la fin du démarrage).
 #[derive(Default)]
-pub struct State(pub RwLock<Settings>);
+pub struct State(RwLock<Option<Settings>>);
 
 fn file(app: &AppHandle) -> Option<PathBuf> {
     app.path().app_config_dir().ok().map(|d| d.join("settings.json"))
@@ -116,15 +118,32 @@ fn read(path: &Path) -> Settings {
         .sanitized()
 }
 
-/// Charge les réglages au démarrage ; `autostart` reflète l'état réel du système.
-pub fn load(app: &AppHandle) {
+/// Lecture du fichier ; `autostart` reflète l'état réel du système.
+fn read_from_disk(app: &AppHandle) -> Settings {
     let mut s = file(app).map(|p| read(&p)).unwrap_or_default();
     s.autostart = app.autolaunch().is_enabled().unwrap_or(false);
-    *app.state::<State>().0.write().unwrap() = s;
+    s
+}
+
+/// Au démarrage. Premier lancement (aucun fichier) : Morph se lance à l'ouverture de
+/// session par défaut, puisque le Shift + glisser n'existe que s'il tourne.
+pub fn load(app: &AppHandle) {
+    let first_run = file(app).is_some_and(|p| !p.exists());
+    let s = get(app);
+    if first_run {
+        if let Err(e) = set(app, Settings { autostart: true, ..s }) {
+            eprintln!("[morph] réglages par défaut : {e}");
+        }
+    }
 }
 
 pub fn get(app: &AppHandle) -> Settings {
-    app.state::<State>().0.read().unwrap().clone()
+    let state = app.state::<State>();
+    if let Some(s) = state.0.read().unwrap().as_ref() {
+        return s.clone();
+    }
+    let mut slot = state.0.write().unwrap();
+    slot.get_or_insert_with(|| read_from_disk(app)).clone()
 }
 
 /// Enregistre, applique (lancement au démarrage) et diffuse à toutes les fenêtres.
@@ -143,7 +162,7 @@ pub fn set(app: &AppHandle, new: Settings) -> Result<Settings, String> {
         let json = serde_json::to_string_pretty(&new).map_err(|e| e.to_string())?;
         std::fs::write(&path, json).map_err(|e| e.to_string())?;
     }
-    *app.state::<State>().0.write().unwrap() = new.clone();
+    *app.state::<State>().0.write().unwrap() = Some(new.clone());
     let _ = app.emit("settings-changed", &new);
     Ok(new)
 }

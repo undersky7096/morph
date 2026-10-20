@@ -55,9 +55,17 @@ function effectiveTheme(s: Settings): "light" | "dark" {
   return s.theme;
 }
 
-/** Variables CSS du thème, sur la racine du document de la fenêtre. */
-function apply(s: Settings) {
+let fadeTimer = 0;
+
+/** Variables CSS du thème, sur la racine du document de la fenêtre. `fade` : changement
+ *  en cours d'utilisation, fait en fondu (classe `theme-fade`, retirée aussitôt après). */
+function apply(s: Settings, fade = false) {
   const root = document.documentElement;
+  if (fade) {
+    root.classList.add("theme-fade");
+    clearTimeout(fadeTimer);
+    fadeTimer = window.setTimeout(() => root.classList.remove("theme-fade"), 450);
+  }
   root.dataset.theme = effectiveTheme(s);
   const set = (name: string, value: string | null) =>
     value === null ? root.style.removeProperty(name) : root.style.setProperty(name, value);
@@ -73,14 +81,14 @@ export function initSettings() {
   invoke<Settings>("get_settings")
     .then(update)
     .catch(() => apply(current));
-  listen<Settings>("settings-changed", ({ payload }) => update(payload));
-  darkQuery.addEventListener("change", () => apply(current));
+  listen<Settings>("settings-changed", ({ payload }) => update(payload, true));
+  darkQuery.addEventListener("change", () => apply(current, true));
   apply(current);
 }
 
-function update(s: Settings) {
+function update(s: Settings, fade = false) {
   current = s;
-  apply(s);
+  apply(s, fade);
   subscribers.forEach((fn) => fn(s));
 }
 
@@ -102,7 +110,7 @@ export function useSettings(): Settings {
 /** Modifie les réglages (enregistrés, appliqués et diffusés par le cœur de Morph). */
 export async function saveSettings(patch: Partial<Settings>): Promise<Settings> {
   const next = await invoke<Settings>("set_settings", { settings: { ...current, ...patch } });
-  update(next);
+  update(next, true);
   return next;
 }
 

@@ -6,7 +6,7 @@ import { chooseOutputDir } from "../../settings";
 import { FlipHIcon, FlipVIcon, RotateLeftIcon, RotateRightIcon } from "../../icons";
 import { dragRect, fitRatio, type Handle, type Rect } from "../crop/geometry";
 import { loadTrack, type Track } from "./AudioEditor";
-import { presetThumbs, Slider } from "./controls";
+import { EditorTabs, presetThumbs, Slider } from "./controls";
 import { useHistory } from "./history";
 import {
   ADJUST_DEFAULT,
@@ -453,13 +453,7 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
       </div>
 
       <aside className="tool-panel editor-panel">
-        <div className="editor-tabs video-tabs" role="tablist">
-          {TABS.map(([id, label]) => (
-            <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? "is-active" : ""} onClick={() => setTab(id)}>
-              {label}
-            </button>
-          ))}
-        </div>
+        <EditorTabs tabs={TABS} value={tab} onChange={setTab} className="video-tabs" />
 
         {tab === "trim" && (
           <>

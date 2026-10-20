@@ -39,6 +39,14 @@ fn handle_args(app: &AppHandle, args: &[String]) -> tauri::Result<()> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Lancée par l'utilisateur (double-clic, « Ouvrir avec »), cette instance a le droit de
+    // passer au premier plan : elle le cède à l'instance déjà ouverte qui affichera le menu.
+    #[cfg(windows)]
+    unsafe {
+        use windows::Win32::UI::WindowsAndMessaging::{ASFW_ANY, AllowSetForegroundWindow};
+        let _ = AllowSetForegroundWindow(ASFW_ANY);
+    }
+
     tauri::Builder::default()
         // En premier : une seconde instance transmet ses arguments à la première, puis se ferme
         // (un seul hook Shift+glisser, une seule icône).
