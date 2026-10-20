@@ -388,10 +388,14 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
   administrateur, script `inside.ps1` automatique : installation silencieuse, premier
   lancement, conversions et détourage via `morph-cli`, désinstallation, rapport et
   captures). `morph-cli cutout`. README réécrit pour le dépôt public.
-- **Reste pour 10c** : secrets GitHub (accord de l'utilisateur), dépôt passé en public
-  par l'utilisateur, test Sandbox (quand l'utilisateur le dira), puis v1.0.0 (tag →
-  release brouillon relue et publiée par l'utilisateur) et test de mise à jour réel
-  0.12.0 → 1.0.0.
+- **10c fait** (2026-10-21) : secrets de signature ajoutés, dépôt public. Test
+  Windows Sandbox (Windows 11 sans runtime Visual C++) : installation, démarrage,
+  conversions image et audio, détourage et désinstallation OK ; l'interface n'a pas pu
+  s'afficher car WebView2 est inutilisable dans le Sandbox (dossier présent, donc
+  l'installeur ne l'installe pas ; l'installeur officiel y échoue avec 0x80040902) —
+  particularité du Sandbox, WebView2 étant présent sur Windows 10/11 à jour.
+- **v1.0.0** : tag `v1.0.0` → release brouillon (installeurs, signatures,
+  latest.json), à relire et publier ; puis vérifier que la 0.12.0 propose la mise à jour.
 - **Décisions M6** (validées par l'utilisateur le 2026-10-20) :
   - Découpage en sous-étapes, un commit + validation chacune :
     **6a** éditeur image, **6b** découpe audio, **6c** éditeur vidéo.
