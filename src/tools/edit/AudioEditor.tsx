@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
+import { Slider } from "./controls";
 import { useHistory } from "./history";
 import type { Segment } from "./segments";
 import { keptSummary, SegmentList, TrimTimeline, TrimTransport, useTrimmer } from "./Timeline";
@@ -28,18 +29,27 @@ export async function loadTrack(path: string): Promise<Track> {
   return { duration: new DataView(buf).getFloat64(0, true), peaks: new Uint8Array(buf, 8) };
 }
 
+/** Passages gardés et volume (0…200 %), dans un même historique. */
+interface AudioState {
+  segments: Segment[];
+  volume: number;
+}
+
 /** Formats que le webview ne sait pas lire : écoutés via une copie WAV préparée par ffmpeg. */
 const NOT_PLAYABLE = new Set(["wma"]);
 
 /** Découpe audio : on garde un ou plusieurs passages, les trous sont retirés à l'enregistrement. */
 export default function AudioEditor({ path, onSaved, footerExtra }: Props) {
-  const history = useHistory<Segment[]>([]);
-  const { state: segments, update } = history;
+  const history = useHistory<AudioState>({ segments: [], volume: 100 });
+  const { state, update } = history;
+  const { segments, volume } = state;
   const [track, setTrack] = useState<Track | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [player] = useState(() => new Audio());
-  const trimmer = useTrimmer(player, track?.duration ?? 0, segments, update, setError);
+  const updateSegments = (fn: (s: Segment[]) => Segment[], key?: string) =>
+    update((s) => ({ ...s, segments: fn(s.segments) }), key);
+  const trimmer = useTrimmer(player, track?.duration ?? 0, segments, updateSegments, setError, volume / 100);
 
   // Forme d'onde et fichier à écouter.
   useEffect(() => {
@@ -65,7 +75,7 @@ export default function AudioEditor({ path, onSaved, footerExtra }: Props) {
       .then((t) => {
         if (cancelled) return;
         setTrack(t);
-        history.reset([{ start: 0, end: t.duration }]);
+        history.reset({ segments: [{ start: 0, end: t.duration }], volume: 100 });
       })
       .catch((e) => setError(String(e)));
 
@@ -85,7 +95,7 @@ export default function AudioEditor({ path, onSaved, footerExtra }: Props) {
     setError(null);
     const unlisten = await listen<number>("trim-progress", ({ payload }) => setBusy(payload));
     try {
-      const output = await invoke<string>("trim_audio", { path, segments });
+      const output = await invoke<string>("trim_audio", { path, segments, volume: volume / 100 });
       onSaved(output);
     } catch (e) {
       setError(String(e));
@@ -144,6 +154,20 @@ export default function AudioEditor({ path, onSaved, footerExtra }: Props) {
         <section>
           <h2>Passages gardés</h2>
           <SegmentList trimmer={trimmer} ready={!!track} />
+        </section>
+
+        <section>
+          <h2>Volume</h2>
+          <Slider
+            label="Volume"
+            min={0}
+            max={200}
+            neutral={100}
+            unit=" %"
+            value={volume}
+            onChange={(v) => update((s) => ({ ...s, volume: v }), "volume")}
+          />
+          <p className="tool-hint">Au-delà de 100 %, un limiteur évite la saturation.</p>
         </section>
 
         <section>

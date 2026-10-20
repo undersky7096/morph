@@ -186,8 +186,26 @@ fn codec_args(ext: &str, codec: &str, kbps: Option<u32>, s16: bool) -> Result<Ve
     Ok(args)
 }
 
-/// Garde les `segments` (en secondes) de `input`, dans l'ordre, et enregistre le résultat.
-pub fn trim(input: &Path, segments: &[Segment], on_progress: &mut dyn FnMut(f32)) -> Result<PathBuf, ConvertError> {
+/// Gain (0…2) : au-delà de 1, un limiteur évite la saturation.
+pub(crate) fn volume_filter(volume: f64) -> Option<String> {
+    if (volume - 1.0).abs() < 1e-6 {
+        return None;
+    }
+    let mut f = format!("volume={:.3}", volume.clamp(0.0, 2.0));
+    if volume > 1.0 {
+        f += ",alimiter=limit=0.98:level=false";
+    }
+    Some(f)
+}
+
+/// Garde les `segments` (en secondes) de `input`, dans l'ordre, au volume `volume` (0…2),
+/// et enregistre le résultat.
+pub fn trim(
+    input: &Path,
+    segments: &[Segment],
+    volume: f64,
+    on_progress: &mut dyn FnMut(f32),
+) -> Result<PathBuf, ConvertError> {
     check_audio(input)?;
     let ext = formats::ext_of(input).ok_or_else(|| ConvertError::Unsupported(input.display().to_string()))?;
     let probe = ffmpeg::probe(input)?;
@@ -200,7 +218,11 @@ pub fn trim(input: &Path, segments: &[Segment], on_progress: &mut dyn FnMut(f32)
 
     let (codec, kbps) = source_audio(&probe);
     let s16 = probe.lines().any(|l| l.contains("Audio: ") && l.contains(", s16"));
-    let mut args: Vec<String> = vec!["-filter_complex".into(), filter_graph(&segs, duration), "-map".into(), "[out]".into()];
+    let mut graph = filter_graph(&segs, duration);
+    if let Some(gain) = volume_filter(volume) {
+        graph = graph.replace("[out]", "[cat];[cat]") + &format!("{gain}[out]");
+    }
+    let mut args: Vec<String> = vec!["-filter_complex".into(), graph, "-map".into(), "[out]".into()];
     // Pochette conservée là où le conteneur la prend en charge.
     if matches!(ext.as_str(), "mp3" | "flac" | "m4a") && probe.contains("Video: ") {
         args.extend(["-map", "0:v:0", "-c:v", "copy", "-disposition:v:0", "attached_pic"].map(String::from));
@@ -271,10 +293,13 @@ mod tests {
         assert!((peaks.len() as f64 - duration * PEAKS_PER_SEC as f64).abs() <= 1.0);
         assert!(peaks[200] > 20, "pic {}", peaks[200]); // sinus lavfi : amplitude 1/8
 
-        let out = trim(&input, &[seg(0.0, 1.0), seg(2.5, 3.5)], &mut |_| {}).unwrap();
+        let out = trim(&input, &[seg(0.0, 1.0), seg(2.5, 3.5)], 1.5, &mut |_| {}).unwrap();
         assert_eq!(out, dir.join("tone Edited.mp3"));
         let kept = ffmpeg::probe_duration(&out).unwrap();
         assert!((kept - 2.0).abs() < 0.1, "durée gardée {kept}");
+        // Volume à 150 % : le signal est plus fort.
+        let (_, louder) = super::peaks(&out).unwrap();
+        assert!(louder[50] as f64 > peaks[50] as f64 * 1.3, "{} → {}", peaks[50], louder[50]);
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }

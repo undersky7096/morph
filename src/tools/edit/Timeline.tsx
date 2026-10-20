@@ -18,6 +18,26 @@ import {
 import { formatTime, intersect, moveEdge, type Segment, segmentAt, split, subtract, totalLength } from "./segments";
 import Waveform, { Overview, panView, type Range, type View, zoomView } from "./Waveform";
 
+/** Gain de l'aperçu, par élément (une source Web Audio ne peut être créée qu'une fois). */
+const gains = new WeakMap<HTMLMediaElement, GainNode>();
+
+/**
+ * Fait passer le son du lecteur par un nœud de gain : `media.volume` plafonne à 100 %,
+ * le gain va jusqu'à 200 %. À appeler lors d'un geste de l'utilisateur (lecture), sans
+ * quoi le navigateur laisse le contexte audio suspendu.
+ */
+function gainFor(media: HTMLMediaElement): GainNode {
+  let gain = gains.get(media);
+  if (!gain) {
+    const ctx = new AudioContext();
+    gain = ctx.createGain();
+    ctx.createMediaElementSource(media).connect(gain).connect(ctx.destination);
+    gains.set(media, gain);
+  }
+  if (gain.context.state === "suspended") (gain.context as AudioContext).resume();
+  return gain;
+}
+
 export interface Trimmer {
   media: HTMLMediaElement;
   duration: number;
@@ -51,6 +71,8 @@ export function useTrimmer(
   segments: Segment[],
   update: (fn: (segs: Segment[]) => Segment[], mergeKey?: string) => void,
   onError: (message: string) => void,
+  /** Volume d'écoute, 0…2 (200 %). */
+  volume = 1,
 ): Trimmer {
   const [view, setView] = useState<View>({ start: 0, end: Math.max(duration, 1) });
   const [selection, setSelection] = useState<Range | null>(null);
@@ -61,6 +83,21 @@ export function useTrimmer(
   segsRef.current = segments;
 
   useEffect(() => setView({ start: 0, end: Math.max(duration, 1) }), [duration]);
+
+  // Contexte audio libéré à la fermeture de l'éditeur (le navigateur en limite le nombre).
+  useEffect(
+    () => () => {
+      (gains.get(media)?.context as AudioContext | undefined)?.close();
+      gains.delete(media);
+    },
+    [media],
+  );
+
+  // Le gain n'existe qu'après la première lecture ; ensuite il suit le réglage.
+  useEffect(() => {
+    const gain = gains.get(media);
+    if (gain) gain.gain.value = volume;
+  }, [volume, media]);
 
   // Lecture : le curseur suit le média et saute les passages retirés (on entend le résultat).
   useEffect(() => {
@@ -110,6 +147,12 @@ export function useTrimmer(
     if (t >= last.end - 0.02) t = segments[0].start;
     else if (segmentAt(segments, t) < 0) t = segments.find((s) => s.start > t)!.start;
     seek(t);
+    try {
+      gainFor(media).gain.value = volume;
+    } catch {
+      // Sans Web Audio, on garde le volume natif (plafonné à 100 %).
+      media.volume = Math.min(1, volume);
+    }
     try {
       await media.play();
       setPlaying(true);

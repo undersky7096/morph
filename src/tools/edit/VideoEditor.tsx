@@ -173,7 +173,7 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
   const updateSegments = (fn: (s: Segment[]) => Segment[], key?: string) =>
     update((s) => ({ ...s, segments: fn(s.segments) }), key);
   const duration = track?.duration ?? info?.duration ?? 0;
-  const trimmer = useTrimmer(video, duration, state.segments, updateSegments, setError);
+  const trimmer = useTrimmer(video, duration, state.segments, updateSegments, setError, state.volume / 100);
 
   // Chargement : infos, forme d'onde du son, lecteur (copie lisible si le conteneur ne l'est pas).
   useEffect(() => {
@@ -235,12 +235,12 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
     };
   }, [path]);
 
-  // Réglages du lecteur : vitesse (hauteur du son conservée), volume, son coupé.
+  // Réglages du lecteur : vitesse (hauteur du son conservée), son coupé ; le volume passe
+  // par le gain de la découpe (jusqu'à 200 %).
   useEffect(() => {
     video.playbackRate = state.speed;
-    video.volume = Math.min(1, state.volume / 100);
     video.muted = state.mute;
-  }, [state.speed, state.volume, state.mute]);
+  }, [state.speed, state.mute]);
 
   // Taille de la zone d'aperçu.
   useLayoutEffect(() => {
@@ -658,6 +658,7 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
                         label="Volume"
                         min={0}
                         max={200}
+                        neutral={100}
                         unit=" %"
                         value={state.volume}
                         onChange={(v) => update((s) => ({ ...s, volume: v }), "volume")}
@@ -689,7 +690,7 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
                         onChange={(v) => update((s) => ({ ...s, fadeOut: v }), "fadeOut")}
                       />
                       <p className="tool-hint">
-                        L'aperçu plafonne le volume à 100 % ; la normalisation et les fondus s'appliquent à l'enregistrement.
+                        La normalisation et les fondus s'appliquent à l'enregistrement.
                       </p>
                     </>
                   )}

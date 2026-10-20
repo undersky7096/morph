@@ -171,11 +171,16 @@ pub async fn audio_preview(path: String) -> Result<Response, ConvertError> {
     blocking(move || trim::preview_wav(Path::new(&path))).await.map(Response::new)
 }
 
-/// Garde les segments donnés d'un fichier audio. Progression via l'événement `trim-progress`.
+/// Garde les segments donnés d'un fichier audio, au volume donné (0…2). Progression via l'événement `trim-progress`.
 #[tauri::command]
-pub async fn trim_audio(app: AppHandle, path: String, segments: Vec<trim::Segment>) -> Result<String, ConvertError> {
+pub async fn trim_audio(
+    app: AppHandle,
+    path: String,
+    segments: Vec<trim::Segment>,
+    volume: Option<f64>,
+) -> Result<String, ConvertError> {
     blocking(move || {
-        trim::trim(Path::new(&path), &segments, &mut |p| {
+        trim::trim(Path::new(&path), &segments, volume.unwrap_or(1.0), &mut |p| {
             let _ = app.emit("trim-progress", p);
         })
     })

@@ -385,8 +385,8 @@ fn filter_graph(info: &VideoInfo, e: &VideoEdit, segs: &[Segment], extras: &Extr
         if !tempo.is_empty() {
             a.push(tempo);
         }
-        if (e.volume - 1.0).abs() > 1e-6 {
-            a.push(format!("volume={:.3}", e.volume.max(0.0)));
+        if let Some(gain) = trim::volume_filter(e.volume) {
+            a.push(gain);
         }
         if e.normalize {
             // loudnorm travaille (et sort) en 192 kHz : retour à la fréquence d'origine.

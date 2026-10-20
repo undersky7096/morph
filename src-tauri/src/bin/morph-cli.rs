@@ -115,7 +115,7 @@ fn trim_cmd(args: &[String]) -> ExitCode {
 
     let mut failed = false;
     for file in &args[1..] {
-        match trim::trim(Path::new(file), &segments, &mut |_| {}) {
+        match trim::trim(Path::new(file), &segments, 1.0, &mut |_| {}) {
             Ok(out) => println!("{file} → {} ✓", out.display()),
             Err(e) => {
                 failed = true;
