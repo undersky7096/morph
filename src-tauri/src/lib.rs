@@ -41,6 +41,10 @@ pub fn run() {
             commands::compress_preview,
             commands::file_sizes,
             commands::save_edited,
+            commands::read_media,
+            commands::audio_peaks,
+            commands::audio_preview,
+            commands::trim_audio,
             commands::log_frontend_error,
         ])
         .run(tauri::generate_context!())

@@ -26,6 +26,8 @@ pub enum ConvertError {
     Ffmpeg(String),
     #[error("compression impossible : {0}")]
     Compress(String),
+    #[error("édition impossible : {0}")]
+    Edit(String),
 }
 
 // Les erreurs remontent au webview sous forme de texte.

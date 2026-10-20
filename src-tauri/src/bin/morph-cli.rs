@@ -2,6 +2,7 @@
 //!   morph-cli targets <fichiers…>   liste les formats proposés
 //!   morph-cli <format> <fichiers…>  convertit chaque fichier vers <format>
 //!   morph-cli compress <light|medium|strong> [--colors] [--target <Mo>] <fichiers…>
+//!   morph-cli trim <début-fin,début-fin…> <fichiers…>  garde ces passages (en secondes)
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -9,6 +10,7 @@ use std::process::ExitCode;
 
 use morph_lib::convert::{self, formats};
 use morph_lib::edit::compress::{self, Level, Options, Outcome};
+use morph_lib::edit::trim::{self, Segment};
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -25,6 +27,9 @@ fn main() -> ExitCode {
 
     if command == "compress" {
         return compress_cmd(files);
+    }
+    if command == "trim" {
+        return trim_cmd(files);
     }
 
     let mut failed = false;
@@ -89,6 +94,33 @@ fn compress_cmd(args: &[String]) -> ExitCode {
             Err(e) => {
                 failed = true;
                 println!("\r{file} ✗\n{e}");
+            }
+        }
+    }
+    if failed { ExitCode::FAILURE } else { ExitCode::SUCCESS }
+}
+
+fn trim_cmd(args: &[String]) -> ExitCode {
+    let segments: Option<Vec<Segment>> = args[0]
+        .split(',')
+        .map(|range| {
+            let (start, end) = range.split_once('-')?;
+            Some(Segment { start: start.parse().ok()?, end: end.parse().ok()? })
+        })
+        .collect();
+    let Some(segments) = segments else {
+        eprintln!("passages invalides : {} (ex : 0-12.5,20-31)", args[0]);
+        return ExitCode::from(2);
+    };
+
+    let mut failed = false;
+    for file in &args[1..] {
+        match trim::trim(Path::new(file), &segments, &mut |_| {}) {
+            Ok(out) => println!("{file} → {} ✓", out.display()),
+            Err(e) => {
+                failed = true;
+                println!("{file} ✗
+{e}");
             }
         }
     }

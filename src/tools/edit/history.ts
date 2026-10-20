@@ -49,5 +49,8 @@ export function useHistory<T>(initial: T) {
     );
   }, []);
 
-  return { state: h.present, update, undo, redo, canUndo: h.past.length > 0, canRedo: h.future.length > 0 };
+  /** Nouvel état de départ, sans historique (fichier chargé). */
+  const reset = useCallback((state: T) => setH({ past: [], present: state, future: [], key: null, at: 0 }), []);
+
+  return { state: h.present, update, undo, redo, reset, canUndo: h.past.length > 0, canRedo: h.future.length > 0 };
 }

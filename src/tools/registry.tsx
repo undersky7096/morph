@@ -32,7 +32,7 @@ export const TOOLS: Record<ToolId, ToolInfo> = {
     icon: EditIcon,
     kinds: ["image", "audio", "video"],
     wholeBatch: false,
-    comingFor: { audio: "M6b", video: "M6c" },
+    comingFor: { video: "M6c" },
   },
 };
 

@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
-import { basename } from "../formats";
+import { basename, kindOfPath } from "../formats";
 import { CloseIcon, MinimizeIcon } from "../icons";
 import Compress from "./compress/Compress";
 import Crop from "./crop/Crop";
@@ -11,6 +11,7 @@ import "./tools.css";
 
 // Konva est lourd : chargé seulement quand l'éditeur s'ouvre (le menu radial reste léger).
 const ImageEditor = lazy(() => import("./edit/ImageEditor"));
+const AudioEditor = lazy(() => import("./edit/AudioEditor"));
 
 interface Payload {
   tool: ToolId;
@@ -111,7 +112,11 @@ export default function ToolWindow() {
         )}
         {session?.tool === "edit" && (
           <Suspense fallback={<p className="tool-hint tool-loading">Chargement de l'éditeur…</p>}>
-            <ImageEditor key={key} path={current![0]} footerExtra={skip} onSaved={advance} />
+            {kindOfPath(current![0]) === "audio" ? (
+              <AudioEditor key={key} path={current![0]} footerExtra={skip} onSaved={advance} />
+            ) : (
+              <ImageEditor key={key} path={current![0]} footerExtra={skip} onSaved={advance} />
+            )}
           </Suspense>
         )}
         {session?.tool === "compress" && <Compress key={key} paths={session.paths} onDone={finish} />}

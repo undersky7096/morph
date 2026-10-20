@@ -201,7 +201,18 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
   fichier suivant (compteur 2/5, bouton « Passer »), puis pétales sur tous
   les résultats. Compresser (lot d'un coup) : bilan ~1,5 s puis pétales ; une
   erreur garde la fenêtre ouverte.
-- **Reprendre à M6b (découpe audio, plusieurs segments)**, puis M6c.
+- **M6b fait** (2026-10-20, M6a validée par l'utilisateur) : éditeur audio
+  `src/tools/edit/AudioEditor.tsx` + `Waveform.tsx` (forme d'onde canvas,
+  règle, zoom Ctrl+molette, vue d'ensemble déplaçable) + `segments.ts`
+  (passages gardés : retirer/garder la sélection, couper au curseur, bords
+  déplaçables, annuler/rétablir). La lecture saute les passages retirés.
+  Rust `src-tauri/src/edit/trim.rs` : `audio_peaks` (1 pic / 10 ms),
+  `audio_preview` (WAV pour le WMA, illisible par le webview), `trim_audio`
+  (atrim + concat, fondus de 8 ms aux coupes, débit/profondeur de la source,
+  pochette gardée en MP3/FLAC/M4A) → `nom Edited.ext`. CLI :
+  `morph-cli trim 0-12.5,20-31 fichier`.
+- **Reprendre à M6c (éditeur vidéo)** ; réutiliser `Waveform`/`segments` pour
+  la découpe vidéo.
 - **Décisions M6** (validées par l'utilisateur le 2026-10-20) :
   - Découpage en sous-étapes, un commit + validation chacune :
     **6a** éditeur image, **6b** découpe audio, **6c** éditeur vidéo.

@@ -157,3 +157,52 @@ export const TrashIcon = () => (
     <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
   </svg>
 );
+
+// Éditeur audio : lecture, découpe, zoom.
+export const PlayIcon = () => (
+  <svg {...small} fill="currentColor" stroke="none">
+    <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5Z" />
+  </svg>
+);
+
+export const PauseIcon = () => (
+  <svg {...small} fill="currentColor" stroke="none">
+    <rect x="6" y="4" width="4" height="16" rx="1" />
+    <rect x="14" y="4" width="4" height="16" rx="1" />
+  </svg>
+);
+
+export const ScissorsIcon = () => (
+  <svg {...small}>
+    <circle cx="6" cy="6" r="3" />
+    <circle cx="6" cy="18" r="3" />
+    <path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12" />
+  </svg>
+);
+
+export const KeepIcon = () => (
+  <svg {...small}>
+    <path d="M4 4v16M20 4v16" />
+    <rect x="8" y="8" width="8" height="8" rx="1.5" />
+  </svg>
+);
+
+export const ZoomInIcon = () => (
+  <svg {...small}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="m20 20-4-4M11 8v6M8 11h6" />
+  </svg>
+);
+
+export const ZoomOutIcon = () => (
+  <svg {...small}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="m20 20-4-4M8 11h6" />
+  </svg>
+);
+
+export const FitIcon = () => (
+  <svg {...small}>
+    <path d="M3 12h18M7 8l-4 4 4 4M17 8l4 4-4 4" />
+  </svg>
+);

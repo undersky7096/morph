@@ -63,7 +63,7 @@ pub fn null_output() -> &'static Path {
     Path::new(if cfg!(windows) { "NUL" } else { "/dev/null" })
 }
 
-fn command() -> Command {
+pub(crate) fn command() -> Command {
     let mut cmd = Command::new(ffmpeg_path());
     cmd.args(["-hide_banner", "-nostdin", "-nostats"]);
     #[cfg(windows)]
@@ -75,14 +75,19 @@ fn command() -> Command {
     cmd
 }
 
-fn spawn_error(e: std::io::Error) -> ConvertError {
+pub(crate) fn spawn_error(e: std::io::Error) -> ConvertError {
     ConvertError::Ffmpeg(format!("impossible de lancer ffmpeg ({}) : {e}", ffmpeg_path().display()))
+}
+
+/// En-tête affiché par `ffmpeg -i` (durée, flux, codecs, débits).
+pub fn probe(input: &Path) -> Result<String, ConvertError> {
+    let out = command().arg("-i").arg(input).output().map_err(spawn_error)?;
+    Ok(String::from_utf8_lossy(&out.stderr).into_owned())
 }
 
 /// Durée d'un fichier audio/vidéo en secondes (lue dans l'en-tête affiché par `ffmpeg -i`).
 pub fn probe_duration(input: &Path) -> Result<f64, ConvertError> {
-    let out = command().arg("-i").arg(input).output().map_err(spawn_error)?;
-    String::from_utf8_lossy(&out.stderr)
+    probe(input)?
         .lines()
         .find_map(parse_duration)
         .map(|us| us as f64 / 1_000_000.0)
@@ -97,6 +102,18 @@ pub fn run(
     output: &Path,
     on_progress: &mut dyn FnMut(f32),
 ) -> Result<(), ConvertError> {
+    run_for(input, args, output, None, on_progress)
+}
+
+/// Comme [`run`], quand la sortie ne dure pas autant que l'entrée (découpe) :
+/// la progression se mesure alors sur `out_secs`.
+pub fn run_for(
+    input: &Path,
+    args: &[impl AsRef<std::ffi::OsStr>],
+    output: &Path,
+    out_secs: Option<f64>,
+    on_progress: &mut dyn FnMut(f32),
+) -> Result<(), ConvertError> {
     let mut cmd = command();
     cmd.args(["-n", "-i"])
         .arg(input)
@@ -109,7 +126,7 @@ pub fn run(
     let mut child = cmd.spawn().map_err(spawn_error)?;
 
     // stderr : on y lit la durée totale, et on garde les dernières lignes pour les erreurs.
-    let duration_us = Arc::new(AtomicU64::new(0));
+    let duration_us = Arc::new(AtomicU64::new(out_secs.map_or(0, |s| (s * 1_000_000.0) as u64)));
     let stderr = child.stderr.take().expect("stderr piped");
     let stderr_thread = {
         let duration_us = Arc::clone(&duration_us);

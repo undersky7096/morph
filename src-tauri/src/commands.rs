@@ -5,7 +5,7 @@ use tauri::ipc::Response;
 use tauri::{AppHandle, Emitter};
 
 use crate::convert::{self, ConvertError, formats};
-use crate::edit::{self, compress};
+use crate::edit::{self, compress, trim};
 use crate::{radial, tools};
 
 #[tauri::command]
@@ -93,6 +93,16 @@ pub async fn read_image(path: String) -> Result<Response, ConvertError> {
     Ok(Response::new(read_file(path).await?))
 }
 
+/// Contenu brut d'un fichier audio ou vidéo, lu par le lecteur des éditeurs.
+#[tauri::command]
+pub async fn read_media(path: String) -> Result<Response, ConvertError> {
+    let path = PathBuf::from(path);
+    if !matches!(formats::kind_of(&path), Some(formats::Kind::Audio | formats::Kind::Video)) {
+        return Err(ConvertError::Unsupported(path.display().to_string()));
+    }
+    Ok(Response::new(read_file(path).await?))
+}
+
 async fn read_file(path: PathBuf) -> std::io::Result<Vec<u8>> {
     tauri::async_runtime::spawn_blocking(move || std::fs::read(path))
         .await
@@ -144,6 +154,41 @@ fn percent_decode(s: &str) -> String {
         i += 1;
     }
     String::from_utf8_lossy(&out).into_owned()
+}
+
+/// Forme d'onde : durée en secondes (f64, petit-boutiste) suivie d'un pic (0-255) par 10 ms.
+#[tauri::command]
+pub async fn audio_peaks(path: String) -> Result<Response, ConvertError> {
+    let (duration, peaks) = blocking(move || trim::peaks(Path::new(&path))).await?;
+    let mut bytes = duration.to_le_bytes().to_vec();
+    bytes.extend(peaks);
+    Ok(Response::new(bytes))
+}
+
+/// Version WAV d'un fichier audio, pour l'écoute quand le webview ne lit pas son format.
+#[tauri::command]
+pub async fn audio_preview(path: String) -> Result<Response, ConvertError> {
+    blocking(move || trim::preview_wav(Path::new(&path))).await.map(Response::new)
+}
+
+/// Garde les segments donnés d'un fichier audio. Progression via l'événement `trim-progress`.
+#[tauri::command]
+pub async fn trim_audio(app: AppHandle, path: String, segments: Vec<trim::Segment>) -> Result<String, ConvertError> {
+    blocking(move || {
+        trim::trim(Path::new(&path), &segments, &mut |p| {
+            let _ = app.emit("trim-progress", p);
+        })
+    })
+    .await
+    .map(|out| out.display().to_string())
+}
+
+async fn blocking<T: Send + 'static>(
+    f: impl FnOnce() -> Result<T, ConvertError> + Send + 'static,
+) -> Result<T, ConvertError> {
+    tauri::async_runtime::spawn_blocking(f)
+        .await
+        .map_err(|e| ConvertError::Io(std::io::Error::other(e)))?
 }
 
 #[derive(Serialize)]
