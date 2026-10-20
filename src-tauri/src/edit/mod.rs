@@ -1,5 +1,6 @@
-//! Outils d'édition (menu d'actions) : recadrage pour l'instant, compression et
-//! éditeur à venir.
+//! Outils d'édition (menu d'actions) : recadrage et compression, éditeur à venir.
+
+pub mod compress;
 
 use std::path::{Path, PathBuf};
 

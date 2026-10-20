@@ -36,6 +36,9 @@ pub fn run() {
             commands::take_tool_payload,
             commands::read_image,
             commands::crop_image,
+            commands::compress_files,
+            commands::compress_preview,
+            commands::file_sizes,
             commands::log_frontend_error,
         ])
         .run(tauri::generate_context!())

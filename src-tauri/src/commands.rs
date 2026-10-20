@@ -5,7 +5,8 @@ use tauri::ipc::Response;
 use tauri::{AppHandle, Emitter};
 
 use crate::convert::{self, ConvertError, formats};
-use crate::{edit, radial, tools};
+use crate::edit::{self, compress};
+use crate::{radial, tools};
 
 #[tauri::command]
 pub fn get_targets(paths: Vec<String>) -> formats::TargetMenu {
@@ -67,8 +68,8 @@ pub async fn convert_files(app: AppHandle, paths: Vec<String>, target: String) -
 
 // Async : sous Windows, créer une fenêtre depuis une commande synchrone bloque l'application.
 #[tauri::command]
-pub async fn open_tool(app: AppHandle, tool: String, path: String) -> Result<(), String> {
-    tools::open(&app, tool, path).map_err(|e| e.to_string())
+pub async fn open_tool(app: AppHandle, tool: String, paths: Vec<String>) -> Result<(), String> {
+    tools::open(&app, tool, paths).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -98,6 +99,50 @@ pub async fn crop_image(path: String, rect: edit::Rect) -> Result<String, Conver
         .await
         .map_err(|e| ConvertError::Io(std::io::Error::other(e)))?
         .map(|out| out.display().to_string())
+}
+
+#[derive(Serialize)]
+pub struct CompressResult {
+    input: String,
+    outcome: Option<compress::Outcome>,
+    error: Option<String>,
+}
+
+/// Compresse un lot. Progression émise via l'événement `compress-progress`.
+#[tauri::command]
+pub async fn compress_files(app: AppHandle, paths: Vec<String>, options: compress::Options) -> Vec<CompressResult> {
+    tauri::async_runtime::spawn_blocking(move || {
+        paths
+            .into_iter()
+            .enumerate()
+            .map(|(index, input)| {
+                let mut report = |progress: f32| {
+                    let _ = app.emit("compress-progress", Progress { index, input: input.clone(), progress });
+                };
+                match compress::compress(Path::new(&input), &options, &mut report) {
+                    Ok(outcome) => CompressResult { input, outcome: Some(outcome), error: None },
+                    Err(e) => CompressResult { input, outcome: None, error: Some(e.to_string()) },
+                }
+            })
+            .collect()
+    })
+    .await
+    .unwrap_or_default()
+}
+
+/// Image compressée sans l'enregistrer, pour l'aperçu (poids et rendu).
+#[tauri::command]
+pub async fn compress_preview(path: String, options: compress::Options) -> Result<Response, ConvertError> {
+    tauri::async_runtime::spawn_blocking(move || compress::compress_image(Path::new(&path), &options))
+        .await
+        .map_err(|e| ConvertError::Io(std::io::Error::other(e)))?
+        .map(Response::new)
+}
+
+/// Poids des fichiers en octets (0 si illisible).
+#[tauri::command]
+pub fn file_sizes(paths: Vec<String>) -> Vec<u64> {
+    paths.iter().map(|p| std::fs::metadata(p).map(|m| m.len()).unwrap_or(0)).collect()
 }
 
 /// Erreurs non gérées de l'interface, recopiées dans la console de l'application.

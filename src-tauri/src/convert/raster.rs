@@ -1,5 +1,3 @@
-use std::fs::File;
-use std::io::BufWriter;
 use std::path::Path;
 
 use image::codecs::jpeg::JpegEncoder;
@@ -29,12 +27,7 @@ pub fn load(input: &Path) -> Result<DynamicImage, ConvertError> {
 /// Enregistre `img` au format `ext`, en gérant les contraintes propres à chaque format.
 pub fn save(img: &DynamicImage, output: &Path, ext: &str) -> Result<(), ConvertError> {
     let result = match ext {
-        "jpg" => (|| {
-            let rgb = flatten_on_white(img);
-            let mut out = BufWriter::new(File::create(output)?);
-            JpegEncoder::new_with_quality(&mut out, JPEG_QUALITY).encode_image(&rgb)?;
-            Ok(())
-        })(),
+        "jpg" => encode_jpeg(img, JPEG_QUALITY).and_then(|data| Ok(std::fs::write(output, data)?)),
         "ico" => {
             // Le format ICO est limité à 256×256.
             let img = if img.width() > ICO_MAX_SIZE || img.height() > ICO_MAX_SIZE {
@@ -52,6 +45,13 @@ pub fn save(img: &DynamicImage, output: &Path, ext: &str) -> Result<(), ConvertE
         let _ = std::fs::remove_file(output);
     }
     result
+}
+
+/// Encode en JPEG (transparence composée sur fond blanc).
+pub fn encode_jpeg(img: &DynamicImage, quality: u8) -> Result<Vec<u8>, ConvertError> {
+    let mut out = Vec::new();
+    JpegEncoder::new_with_quality(&mut out, quality).encode_image(&flatten_on_white(img))?;
+    Ok(out)
 }
 
 /// JPEG ne gère pas la transparence : on compose sur fond blanc plutôt que noir.

@@ -55,25 +55,58 @@ pub fn convert(
     target: &str,
     on_progress: &mut dyn FnMut(f32),
 ) -> Result<(), ConvertError> {
-    let mut cmd = Command::new(ffmpeg_path());
-    cmd.args(["-hide_banner", "-nostdin", "-nostats", "-n", "-i"])
-        .arg(input)
-        .args(codec_args(target)?)
-        .args(["-progress", "pipe:1"])
-        .arg(output)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+    run(input, &codec_args(target)?, output, on_progress)
+}
 
+/// Sortie à jeter (1re passe d'un encodage en deux passes), avec `-f null`.
+pub fn null_output() -> &'static Path {
+    Path::new(if cfg!(windows) { "NUL" } else { "/dev/null" })
+}
+
+fn command() -> Command {
+    let mut cmd = Command::new(ffmpeg_path());
+    cmd.args(["-hide_banner", "-nostdin", "-nostats"]);
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
         const CREATE_NO_WINDOW: u32 = 0x0800_0000;
         cmd.creation_flags(CREATE_NO_WINDOW);
     }
+    cmd
+}
 
-    let mut child = cmd.spawn().map_err(|e| {
-        ConvertError::Ffmpeg(format!("impossible de lancer ffmpeg ({}) : {e}", ffmpeg_path().display()))
-    })?;
+fn spawn_error(e: std::io::Error) -> ConvertError {
+    ConvertError::Ffmpeg(format!("impossible de lancer ffmpeg ({}) : {e}", ffmpeg_path().display()))
+}
+
+/// Durée d'un fichier audio/vidéo en secondes (lue dans l'en-tête affiché par `ffmpeg -i`).
+pub fn probe_duration(input: &Path) -> Result<f64, ConvertError> {
+    let out = command().arg("-i").arg(input).output().map_err(spawn_error)?;
+    String::from_utf8_lossy(&out.stderr)
+        .lines()
+        .find_map(parse_duration)
+        .map(|us| us as f64 / 1_000_000.0)
+        .ok_or_else(|| ConvertError::Ffmpeg(format!("durée inconnue : {}", input.display())))
+}
+
+/// Lance ffmpeg sur `input` avec les arguments d'encodage `args`, vers `output`
+/// (jamais écrasé). `on_progress` reçoit une valeur entre 0.0 et 1.0.
+pub fn run(
+    input: &Path,
+    args: &[impl AsRef<std::ffi::OsStr>],
+    output: &Path,
+    on_progress: &mut dyn FnMut(f32),
+) -> Result<(), ConvertError> {
+    let mut cmd = command();
+    cmd.args(["-n", "-i"])
+        .arg(input)
+        .args(args)
+        .args(["-progress", "pipe:1"])
+        .arg(output)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+
+    let mut child = cmd.spawn().map_err(spawn_error)?;
 
     // stderr : on y lit la durée totale, et on garde les dernières lignes pour les erreurs.
     let duration_us = Arc::new(AtomicU64::new(0));
@@ -115,7 +148,9 @@ pub fn convert(
     if status.success() {
         Ok(())
     } else {
-        let _ = std::fs::remove_file(output);
+        if output != null_output() {
+            let _ = std::fs::remove_file(output);
+        }
         Err(ConvertError::Ffmpeg(log))
     }
 }

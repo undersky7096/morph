@@ -24,6 +24,8 @@ pub enum ConvertError {
     Image(#[from] image::ImageError),
     #[error("ffmpeg a échoué :\n{0}")]
     Ffmpeg(String),
+    #[error("compression impossible : {0}")]
+    Compress(String),
 }
 
 // Les erreurs remontent au webview sous forme de texte.
@@ -72,8 +74,13 @@ pub fn unique_output(input: &Path, ext: &str) -> PathBuf {
 
 /// Résultat d'un outil d'édition : `dossier/nom Suffixe.ext` (ex : `Page 001 Cropped.jpg`).
 pub fn suffixed_output(input: &Path, suffix: &str) -> PathBuf {
-    let stem = input.file_stem().and_then(|s| s.to_str()).unwrap_or("fichier");
     let ext = input.extension().and_then(|s| s.to_str()).unwrap_or("png");
+    suffixed_output_as(input, suffix, ext)
+}
+
+/// Comme [`suffixed_output`], avec une autre extension (ex : `.flv` compressé en `.mp4`).
+pub fn suffixed_output_as(input: &Path, suffix: &str, ext: &str) -> PathBuf {
+    let stem = input.file_stem().and_then(|s| s.to_str()).unwrap_or("fichier");
     unique_in_dir(input, &format!("{stem} {suffix}"), ext)
 }
 

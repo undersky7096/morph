@@ -94,7 +94,7 @@ export default function Radial() {
     }
     if (item.type === "action") {
       if (TOOLS[item.tool].comingIn) return;
-      await invoke("open_tool", { tool: item.tool, path: item.paths[0] });
+      await invoke("open_tool", { tool: item.tool, paths: item.paths });
       close();
       return;
     }

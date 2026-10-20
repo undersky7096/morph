@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import { CompressIcon, CropIcon, EditIcon } from "../icons";
-import { kindOfPath } from "../formats";
+import { isCompressible, kindOfPath } from "../formats";
 import type { Kind } from "../types";
 
 export type ToolId = "crop" | "compress" | "edit";
@@ -12,6 +12,8 @@ export interface ToolInfo {
   kinds: Kind[];
   /** Applicable à un lot de plusieurs fichiers. */
   batch: boolean;
+  /** Filtre plus fin que le type (formats réellement pris en charge). */
+  accepts?: (path: string) => boolean;
   /** Milestone où l'outil arrive, tant qu'il n'est pas disponible. */
   comingIn?: string;
 }
@@ -23,7 +25,7 @@ export const TOOLS: Record<ToolId, ToolInfo> = {
     icon: CompressIcon,
     kinds: ["image", "audio", "video"],
     batch: true,
-    comingIn: "M5",
+    accepts: isCompressible,
   },
   edit: {
     label: "Éditer",
@@ -41,6 +43,8 @@ export function toolsFor(paths: string[]): ToolId[] {
   return (Object.keys(TOOLS) as ToolId[]).filter((id) => {
     const tool = TOOLS[id];
     if (paths.length > 1 && !tool.batch) return false;
-    return kinds.every((k) => tool.kinds.includes(k as Kind));
+    return (
+      kinds.every((k) => tool.kinds.includes(k as Kind)) && (!tool.accepts || paths.every(tool.accepts))
+    );
   });
 }

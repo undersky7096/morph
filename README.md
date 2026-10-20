@@ -24,6 +24,7 @@ npm run tauri build    # produit l'installeur (NSIS sous Windows, AppImage sous 
 cd src-tauri
 cargo run --bin morph-cli -- targets photo.png clip.mov   # formats proposés (JSON)
 cargo run --bin morph-cli -- webp photo.png               # convertit à côté de l'original
+cargo run --bin morph-cli -- compress medium --target 20 clip.mp4   # compresse (light|medium|strong, --colors pour les PNG)
 cargo test                                                 # tests unitaires
 ```
 
@@ -37,8 +38,9 @@ GPL-3.0-or-later (voir [LICENSE](LICENSE)). ffmpeg est livré à part, en sideca
 
 ## Statut
 
-Version actuelle : **0.4.0** (`0.<milestone>.0` ; changer avec `npm run bump -- x.y.z`).
+Version actuelle : **0.5.0** (`0.<milestone>.0` ; changer avec `npm run bump -- x.y.z`).
 
+- M5 : outil Compresser — PNG optimisé sans perte (oxipng) + option « réduire les couleurs » (libimagequant), JPEG/WebP/GIF par niveau, audio/vidéo par niveau ou par taille cible (2 passes, préréglage Discord 20 Mo), aperçu du poids, lots. Résultat `nom Compressed.ext`, rien d'enregistré si pas plus léger.
 - M4 : menu d'actions (après conversion, ou pétale « Éditer ») + outil Recadrer dans une popup, bouton « Outil suivant ».
 
 - M0 : squelette — build Windows (installeur NSIS) OK ; build Linux (AppImage) via GitHub Actions. Logo temporaire (`assets/logo-temp.svg`).

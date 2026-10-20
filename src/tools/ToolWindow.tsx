@@ -4,26 +4,36 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 import { basename } from "../formats";
 import { ChevronIcon, CloseIcon, MinimizeIcon } from "../icons";
+import Compress from "./compress/Compress";
 import Crop from "./crop/Crop";
 import { TOOLS, type ToolId, toolsFor } from "./registry";
 import "./tools.css";
 
-interface Session {
+interface Payload {
   tool: ToolId;
-  /** Fichier en cours : l'original, puis le résultat du dernier outil appliqué. */
-  path: string;
-  /** Dernier fichier enregistré par un outil dans cette fenêtre. */
-  saved: string | null;
+  paths: string[];
 }
+
+interface Session {
+  /** Change à chaque ouverture d'outil : remonte l'outil à neuf. */
+  id: number;
+  tool: ToolId;
+  /** Fichiers en cours : les originaux, puis les résultats du dernier outil appliqué. */
+  paths: string[];
+  /** Derniers fichiers enregistrés par un outil dans cette fenêtre. */
+  saved: string[];
+}
+
+let nextId = 0;
 
 /** Popup d'édition : un outil à la fois, enchaînables via « Outil suivant ». */
 export default function ToolWindow() {
   const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
-    const start = (p: { tool: ToolId; path: string }) => setSession({ ...p, saved: null });
-    invoke<{ tool: ToolId; path: string } | null>("take_tool_payload").then((p) => p && start(p));
-    const unlisten = getCurrentWebviewWindow().listen<{ tool: ToolId; path: string }>("tool-open", ({ payload }) => {
+    const start = (p: Payload) => setSession({ ...p, id: ++nextId, saved: [] });
+    invoke<Payload | null>("take_tool_payload").then((p) => p && start(p));
+    const unlisten = getCurrentWebviewWindow().listen<Payload>("tool-open", ({ payload }) => {
       invoke("take_tool_payload");
       start(payload);
     });
@@ -33,17 +43,19 @@ export default function ToolWindow() {
   }, []);
 
   useEffect(() => {
-    if (session) document.title = `${TOOLS[session.tool].label} : ${basename(session.path)} · Morph`;
+    if (session) document.title = `${TOOLS[session.tool].label} : ${describe(session.paths)} · Morph`;
   }, [session]);
 
   const win = getCurrentWebviewWindow();
   const tool = session ? TOOLS[session.tool] : null;
+  const onSaved = (outputs: string[]) =>
+    setSession((s) => s && { ...s, paths: outputs.length ? outputs : s.paths, saved: outputs });
 
   const nextTool = session && (
     <NextTool
       current={session.tool}
-      path={session.path}
-      onPick={(id) => setSession((s) => s && { ...s, tool: id })}
+      paths={session.paths}
+      onPick={(id) => setSession((s) => s && { ...s, id: ++nextId, tool: id })}
     />
   );
 
@@ -55,13 +67,13 @@ export default function ToolWindow() {
             <tool.icon />
             <strong data-tauri-drag-region>{tool.label}</strong>
             <span className="titlebar-file" data-tauri-drag-region>
-              {basename(session!.path)}
+              {describe(session!.paths)}
             </span>
           </span>
         )}
-        {session?.saved && (
-          <span className="titlebar-saved" title={session.saved}>
-            ✓ Enregistré : {basename(session.saved)}
+        {session && session.saved.length > 0 && (
+          <span className="titlebar-saved" title={session.saved.join("\n")}>
+            ✓ Enregistré : {describe(session.saved)}
           </span>
         )}
         <div className="titlebar-buttons">
@@ -77,22 +89,27 @@ export default function ToolWindow() {
       <main className="tool-body">
         {session?.tool === "crop" && (
           <Crop
-            key={session.path}
-            path={session.path}
+            key={session.paths[0]}
+            path={session.paths[0]}
             nextTool={nextTool}
-            onSaved={(output) => setSession((s) => s && { ...s, path: output, saved: output })}
+            onSaved={(output) => onSaved([output])}
           />
+        )}
+        {session?.tool === "compress" && (
+          <Compress key={session.id} paths={session.paths} nextTool={nextTool} onSaved={onSaved} />
         )}
       </main>
     </div>
   );
 }
 
-/** Bouton « Outil suivant » : passe à un autre outil sur le fichier en cours. */
-function NextTool(props: { current: ToolId; path: string; onPick: (id: ToolId) => void }) {
+const describe = (paths: string[]) => (paths.length === 1 ? basename(paths[0]) : `${paths.length} fichiers`);
+
+/** Bouton « Outil suivant » : passe à un autre outil sur les fichiers en cours. */
+function NextTool(props: { current: ToolId; paths: string[]; onPick: (id: ToolId) => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const options = toolsFor([props.path]).filter((id) => id !== props.current);
+  const options = toolsFor(props.paths).filter((id) => id !== props.current);
 
   useEffect(() => {
     if (!open) return;
