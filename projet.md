@@ -29,7 +29,7 @@ Site de distribution prévu : sous-domaine de underskydev.com → morph.undersky
     (1500x500). Artifact Claude.ai créé, non exporté en fichiers statiques
     pour l'instant (à faire : exporter en PNG/ICO/SVG pour l'intégration
     réelle dans l'installeur et les shortcuts).
-- Repo git local initialisé (pas encore de remote GitHub).
+- Repo GitHub privé `undersky7096/morph` ; CI GitHub Actions (`.github/workflows/build.yml`) : installeur NSIS + AppImage Linux à chaque push, release brouillon sur tag `v*`. Licence **GPL-3.0-or-later** (décidée le 2026-10-20) → `imagequant` autorisé pour M5.
 
 ## Fonctionnalités — spécification détaillée
 
@@ -191,8 +191,7 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
 - **Décisions déjà prises pour M5** (validées par l'utilisateur le 2026-10-19) :
   - **PNG** : optimisation sans perte toujours appliquée, **plus** une option
     « réduire les couleurs » (quantification façon TinyPNG, gain 60-80 %).
-    Attention licence : `imagequant` (libimagequant) est GPL → vérifier /
-    choisir une alternative compatible si distribution prévue.
+    Licence tranchée : Morph est GPL-3.0-or-later → utiliser `imagequant`.
   - **Vidéo** : les deux modes — curseur de qualité (léger / moyen / fort)
     **et** champ « taille cible en Mo » qui calcule le débit
     automatiquement. Préréglage Discord = **20 Mo** (valeur donnée par
@@ -206,8 +205,7 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
 - Méthode de travail : une étape (milestone) à la fois, s'arrêter et
   attendre le feu vert, un commit par étape, poser les questions
   avant de coder.
-- Build Linux (AppImage via GitHub Actions) en attente : l'utilisateur
-  doit d'abord créer un repo GitHub. Logo définitif en attente : PNG
+- Build Linux : fait via GitHub Actions (repo `undersky7096/morph`). Logo définitif en attente : PNG
   1024×1024 fourni par l'utilisateur → `npx tauri icon <png>`.
 - Respecter strictement les choix déjà validés ci-dessus (stack Tauri,
   ffmpeg + Konva, enchaînement d'outils via bouton "outil suivant",

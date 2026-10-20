@@ -20,7 +20,9 @@ if (existsSync(outFile) && !process.argv.includes("--force")) {
   process.exit(0);
 }
 
-const release = await (await fetch("https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest")).json();
+// En CI, le jeton évite la limite de 60 requêtes/h des appels anonymes à l'API GitHub.
+const headers = process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {};
+const release = await (await fetch("https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest", { headers })).json();
 const pattern = new RegExp(`^ffmpeg-n[\\d.]+-latest-${platform}-gpl-[\\d.]+\\.(zip|tar\\.xz)$`);
 const asset = release.assets
   .filter((a) => pattern.test(a.name))
