@@ -186,8 +186,34 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
    incrément testable indépendamment.
 
 ## Chemin à suivre pour la suite (instructions pour Claude)
-- **Reprendre à M6 (Edit)** — M0 à M5 sont faits (v0.5.0). Passer la version
-  à 0.6.0 en fin d'étape. Poser les questions UX de M6 avant de coder.
+- **Reprendre à M6 (Edit)** — M0 à M5 sont faits (v0.5.0). Questions UX
+  posées et répondues le 2026-10-20 (ci-dessous) : commencer par **6a**.
+- **Décisions M6** (validées par l'utilisateur le 2026-10-20) :
+  - Découpage en sous-étapes, un commit + validation chacune :
+    **6a** éditeur image, **6b** découpe audio, **6c** éditeur vidéo.
+    Version 0.6.0 à la fin de 6c.
+  - **Image — réglages** : luminosité, contraste, saturation, exposition,
+    température, netteté, flou ; filtres prédéfinis en vignettes (N&B,
+    sépia, vintage, froid, chaud, dramatique…) ; rotation 90°, miroir H/V,
+    redressement fin (−45° à +45°) ; vignettage et grain ; **inverser les
+    couleurs**.
+  - **Image — annotation** : texte (police, taille, couleur, gras,
+    contour/ombre ; déplaçable/redimensionnable/rotatif après coup),
+    pinceau libre (+ gomme), formes (flèche, rectangle, ellipse, trait),
+    surligneur.
+  - **Découpe (audio et vidéo)** : **plusieurs segments** — on peut retirer
+    des morceaux au milieu (garder A + C, enlever B), avec forme d'onde.
+  - **Vidéo — effets** : mêmes réglages et mêmes filtres que l'image,
+    vitesse (0,25× à 4×, son sans effet chipmunk), rotation et miroir,
+    inverser les couleurs.
+  - **Vidéo — format** : ratio (9:16, 1:1, 16:9…) avec les deux méthodes au
+    choix « Recadrer » (cadre déplaçable) / « Ajuster » (bandes floues ou de
+    couleur) **et** résolution (1080p, 720p, 480p…).
+  - **Vidéo — son** : curseur de volume (0–200 %), couper le son, normaliser
+    (EBU R128), fondus entrant/sortant.
+  - Choix par défaut (non débattus) : édition non destructive avec
+    annuler/rétablir, export pleine résolution dans le format d'origine,
+    résultat `nom Edited.ext`.
 - **Décisions prises pour M5 (réalisées)** (validées par l'utilisateur le 2026-10-19) :
   - **PNG** : optimisation sans perte toujours appliquée, **plus** une option
     « réduire les couleurs » (quantification façon TinyPNG, gain 60-80 %).
