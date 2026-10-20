@@ -9,8 +9,10 @@ pub const SETTINGS: &str = "main";
 
 pub fn show_settings(app: &AppHandle) -> tauri::Result<()> {
     if let Some(window) = app.get_webview_window(SETTINGS) {
-        window.unminimize()?;
+        // Afficher puis restaurer : au premier affichage, Windows applique le mode demandé par
+        // le programme qui a lancé Morph (l'installeur le lance réduit).
         window.show()?;
+        window.unminimize()?;
         window.set_focus()?;
     }
     Ok(())

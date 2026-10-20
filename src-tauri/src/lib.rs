@@ -2,6 +2,7 @@ mod commands;
 pub mod convert;
 pub mod edit;
 mod jobs;
+mod linux;
 mod notify;
 mod progress;
 mod radial;
@@ -33,7 +34,8 @@ fn handle_args(app: &AppHandle, args: &[String]) -> tauri::Result<()> {
             Some(tool) => tools::open(app, tool.to_string(), files),
             None => radial::show(app, files),
         }
-    } else if !args.iter().any(|a| a == HIDDEN_ARG) {
+    } else if !args.iter().any(|a| a == HIDDEN_ARG) || !settings::get(app).onboarded {
+        // Les Réglages, ou l'écran d'accueil tant qu'il n'a pas été vu.
         tray::show_settings(app)
     } else {
         Ok(())
@@ -121,6 +123,9 @@ pub fn run() {
             commands::get_settings,
             commands::set_settings,
             commands::quit,
+            commands::platform,
+            commands::system_integrated,
+            commands::set_system_integration,
             commands::log_frontend_error,
         ])
         .run(tauri::generate_context!())

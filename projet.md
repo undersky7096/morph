@@ -292,7 +292,28 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
   structurées (`ErrorInfo` : code, message clair, détail). Outils : bouton
   Annuler, bandeau de doublon, « Copier le détail » (`src/tools/save.tsx`).
   Réglage « Si le fichier existe déjà » (défaut : garder les deux).
-- **Reprendre à M9 (installeurs : NSIS + onboarding, AppImage)**.
+- **Décisions M9** (validées par l'utilisateur le 2026-10-20) : logo
+  temporaire conservé (logo définitif plus tard : `npx tauri icon logo.png` puis
+  `python scripts/installer-images.py`) ; écran d'accueil en 4 étapes ;
+  installeur sobre en français, par utilisateur ; Linux : intégration au
+  bureau proposée depuis l'accueil et les Réglages.
+- **M9 fait** (2026-10-20) — **v0.9.0**. Installeur NSIS (`bundle.windows.nsis`) :
+  français, sans droits admin, images `src-tauri/installer/{sidebar,header}.bmp`
+  générées par `scripts/installer-images.py`, raccourci Bureau en option et
+  « Lancer Morph » en fin d'installation (modèle Tauri), « Supprimer les données
+  de l'application » à la désinstallation ; hook `installer/hooks.nsh` qui
+  retire Morph du démarrage à la désinstallation (rétabli au lancement suivant
+  si les réglages l'avaient activé). Écran d'accueil `src/onboarding/` (réglage
+  `onboarded`) : Bienvenue + démo animée du geste, Thème/accent, Favoris,
+  Démarrage (+ intégration Linux) ; « Revoir l'écran d'accueil » dans Système.
+  Linux (`src-tauri/src/linux.rs`) : entrée de menu avec « Ouvrir avec » (types
+  MIME), actions Convertir / Éditer / Compresser dans Nautilus (scripts),
+  Dolphin (service menu) et Nemo ; AppImage avec GStreamer embarqué
+  (`bundleMediaFramework`). Réglages illisibles conservés en `settings.json.bak`.
+- Non vérifié : AppImage et intégration Linux sur une vraie machine Linux (CI
+  seulement) ; premier lancement après une mise à jour 0.8 → 0.9 a une fois
+  affiché l'accueil avec les réglages par défaut (non reproduit).
+- **Reprendre à M10 (polish : tests sur machines propres, finitions)**.
 - **Décisions M6** (validées par l'utilisateur le 2026-10-20) :
   - Découpage en sous-étapes, un commit + validation chacune :
     **6a** éditeur image, **6b** découpe audio, **6c** éditeur vidéo.

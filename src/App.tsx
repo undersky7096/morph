@@ -1,12 +1,22 @@
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { open } from "@tauri-apps/plugin-dialog";
 import { motion } from "motion/react";
 
-import { kindOf } from "./formats";
-import { type Duplicates, saveSettings, type SaveMode, type Settings, type ThemeMode, useSettings } from "./settings";
+import Onboarding from "./onboarding/Onboarding";
+import LinuxIntegration from "./onboarding/LinuxIntegration";
+import {
+  type Duplicates,
+  saveSettings,
+  type SaveMode,
+  type Settings,
+  usePlatform,
+  useSettings,
+  useSettingsLoaded,
+} from "./settings";
+import { ACCENTS, BACKGROUNDS, ColorChoice, FavoritesPicker, PILL, ThemePicker } from "./settingsParts";
 import "./Settings.css";
 
 type Section = "appearance" | "menu" | "save" | "system";
@@ -16,22 +26,6 @@ const SECTIONS: [Section, string][] = [
   ["menu", "Menu des formats"],
   ["save", "Enregistrement"],
   ["system", "Système"],
-];
-
-const THEMES: [ThemeMode, string][] = [
-  ["system", "Système"],
-  ["light", "Clair"],
-  ["dark", "Sombre"],
-];
-
-const ACCENTS = ["#2f6bff", "#8b5cf6", "#ec4899", "#ef4444", "#f97316", "#eab308", "#10b981", "#06b6d4"];
-const BACKGROUNDS = ["#0b0d12", "#16112a", "#0d1f24", "#1f1414", "#f7f3ea", "#eef3ff", "#fdf0f4", "#eefaf3"];
-
-/** Formats de sortie (miroir de `formats.rs`), par type, pour choisir les favoris. */
-const OUTPUTS: [string, string[]][] = [
-  ["Images", ["png", "jpg", "webp", "gif", "bmp", "tiff", "ico", "tga"]],
-  ["Audio", ["mp3", "wav", "ogg", "flac", "m4a", "opus"]],
-  ["Vidéo", ["mp4", "webm", "mkv", "mov", "avi"]],
 ];
 
 const DUPLICATES: [Duplicates, string, string][] = [
@@ -46,14 +40,15 @@ const SAVE_MODES: [SaveMode, string, string][] = [
   ["ask", "Demander à chaque fois", "Le dossier est choisi au moment d'enregistrer."],
 ];
 
-/** Glissement de l'indicateur de sélection (navigation, choix du thème). */
-const PILL = { type: "spring", stiffness: 500, damping: 38 } as const;
-
 /** Fenêtre des Réglages (ouverte depuis l'icône de la zone de notification). Chaque
  *  changement s'applique aussitôt à toutes les fenêtres. Déposer des fichiers ici ouvre
  *  le menu des formats (pratique pour essayer). */
 function App() {
   const settings = useSettings();
+  const loaded = useSettingsLoaded();
+  // Accueil rouvert depuis les Réglages : à la fin, on y revient (sinon la fenêtre se masque).
+  const seenSettings = useRef(false);
+  if (loaded && settings.onboarded) seenSettings.current = true;
   const [section, setSection] = useState<Section>("appearance");
   const [version, setVersion] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -81,6 +76,10 @@ function App() {
     setError(null);
     saveSettings(patch).catch((e) => setError(String(e)));
   };
+
+  // Premier lancement (ou « Revoir l'accueil ») : l'écran d'accueil remplace les Réglages.
+  if (!loaded) return null;
+  if (!settings.onboarded) return <Onboarding settings={settings} save={save} reviewing={seenSettings.current} />;
 
   return (
     <div className={`settings ${over ? "is-over" : ""}`}>
@@ -135,53 +134,11 @@ function Group({ title, hint, children }: { title: string; hint?: string; childr
   );
 }
 
-/** Pastilles de couleur + sélecteur libre ; « Par défaut » efface la couleur personnalisée. */
-function ColorChoice(props: { value: string | null; colors: string[]; onChange: (c: string | null) => void }) {
-  const { value, colors, onChange } = props;
-  const custom = value !== null && !colors.includes(value);
-  return (
-    <div className="settings-colors">
-      <button className={`settings-chip ${value === null ? "is-active" : ""}`} onClick={() => onChange(null)}>
-        Par défaut
-      </button>
-      {colors.map((c) => (
-        <button
-          key={c}
-          className={`settings-swatch ${value === c ? "is-active" : ""}`}
-          style={{ background: c }}
-          aria-label={c}
-          onClick={() => onChange(c)}
-        />
-      ))}
-      <label className={`settings-swatch settings-picker ${custom ? "is-active" : ""}`} title="Autre couleur" style={custom ? { background: value } : undefined}>
-        <input type="color" value={value ?? "#808080"} onChange={(e) => onChange(e.target.value)} />
-        {!custom && "+"}
-      </label>
-    </div>
-  );
-}
-
 function Appearance({ settings, save }: SectionProps) {
-  const custom = settings.accent !== null || settings.background !== null;
   return (
     <>
       <Group title="Thème">
-        <div className="settings-segmented">
-          {THEMES.map(([id, label]) => {
-            const active = !custom && settings.theme === id;
-            return (
-              <button
-                key={id}
-                className={active ? "is-active" : ""}
-                // Un thème prédéfini reprend la main sur les couleurs personnalisées.
-                onClick={() => save({ theme: id, accent: null, background: null })}
-              >
-                {active && <motion.span layoutId="theme-active" className="settings-segmented-pill" transition={PILL} />}
-                <span>{label}</span>
-              </button>
-            );
-          })}
-        </div>
+        <ThemePicker settings={settings} save={save} />
       </Group>
       <Group title="Couleur d'accent" hint="Boutons, sélections, progression et halo.">
         <ColorChoice value={settings.accent} colors={ACCENTS} onChange={(accent) => save({ accent })} />
@@ -214,33 +171,10 @@ function Appearance({ settings, save }: SectionProps) {
 }
 
 function MenuSection({ settings, save }: SectionProps) {
-  const toggle = (f: string) =>
-    save({
-      favorites: settings.favorites.includes(f) ? settings.favorites.filter((x) => x !== f) : [...settings.favorites, f],
-    });
   return (
     <>
       <Group title="Formats favoris" hint="Ils apparaissent en premier dans le menu, dans l'ordre où tu les choisis.">
-        {OUTPUTS.map(([label, formats]) => (
-          <div key={label} className="settings-formats">
-            <span>{label}</span>
-            <div>
-              {formats.map((f) => {
-                const rank = settings.favorites.indexOf(f);
-                return (
-                  <button
-                    key={f}
-                    className={`settings-format kind-${kindOf(f)} ${rank >= 0 ? "is-active" : ""}`}
-                    onClick={() => toggle(f)}
-                  >
-                    {rank >= 0 && <em>{rank + 1}</em>}
-                    {f.toUpperCase()}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+        <FavoritesPicker settings={settings} save={save} />
         {settings.favorites.length > 0 && (
           <button className="settings-link" onClick={() => save({ favorites: [] })}>
             Retirer tous les favoris
@@ -322,8 +256,14 @@ function DuplicatesSection({ settings, save }: SectionProps) {
 }
 
 function SystemSection({ settings, save, version }: SectionProps & { version: string }) {
+  const platform = usePlatform();
   return (
     <>
+      {platform === "linux" && (
+        <Group title="Intégration au bureau" hint="Menu des applications, « Ouvrir avec Morph » et clic droit des gestionnaires de fichiers.">
+          <LinuxIntegration />
+        </Group>
+      )}
       <Group title="Démarrage">
         <label className="settings-toggle">
           <input type="checkbox" checked={settings.autostart} onChange={(e) => save({ autostart: e.target.checked })} />
@@ -335,6 +275,9 @@ function SystemSection({ settings, save, version }: SectionProps & { version: st
       </Group>
       <Group title="Morph" hint={`Version ${version} · licence GPL-3.0-or-later`}>
         <div>
+          <button className="settings-button" onClick={() => save({ onboarded: false })}>
+            Revoir l'écran d'accueil
+          </button>{" "}
           <button className="settings-button" onClick={() => invoke("quit")}>
             Quitter Morph
           </button>

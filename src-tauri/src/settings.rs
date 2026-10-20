@@ -60,6 +60,8 @@ pub struct Settings {
     pub duplicates: Duplicates,
     /// Lancement à l'ouverture de session (reflète l'état réel du système).
     pub autostart: bool,
+    /// Écran d'accueil déjà vu (ou passé).
+    pub onboarded: bool,
 }
 
 impl Default for Settings {
@@ -75,6 +77,7 @@ impl Default for Settings {
             save_folder: None,
             duplicates: Duplicates::Keep,
             autostart: false,
+            onboarded: false,
         }
     }
 }
@@ -115,18 +118,44 @@ fn file(app: &AppHandle) -> Option<PathBuf> {
     app.path().app_config_dir().ok().map(|d| d.join("settings.json"))
 }
 
+/// Lecture du fichier, sans jamais perdre les réglages de l'utilisateur : une lecture
+/// ratée (fichier momentanément verrouillé) est réessayée, et un fichier illisible est
+/// gardé de côté (`settings.json.bak`) avant que de nouveaux réglages ne le remplacent.
 fn read(path: &Path) -> Settings {
-    std::fs::read_to_string(path)
-        .ok()
-        .and_then(|s| serde_json::from_str::<Settings>(&s).ok())
-        .unwrap_or_default()
-        .sanitized()
+    if !path.exists() {
+        return Settings::default();
+    }
+    let mut text = None;
+    for attempt in 0..3 {
+        match std::fs::read_to_string(path) {
+            Ok(t) => {
+                text = Some(t);
+                break;
+            }
+            Err(e) => {
+                eprintln!("[morph] lecture des réglages ({attempt}) : {e}");
+                std::thread::sleep(std::time::Duration::from_millis(150));
+            }
+        }
+    }
+    match text.as_deref().map(serde_json::from_str::<Settings>) {
+        Some(Ok(s)) => s.sanitized(),
+        other => {
+            eprintln!("[morph] réglages illisibles ({other:?}) : copie dans settings.json.bak");
+            let _ = std::fs::copy(path, path.with_extension("json.bak"));
+            Settings::default()
+        }
+    }
 }
 
 /// Lecture du fichier ; `autostart` reflète l'état réel du système.
+/// Une entrée de démarrage disparue alors que le réglage est actif (désinstallation suivie
+/// d'une réinstallation qui a gardé les réglages) est recréée.
 fn read_from_disk(app: &AppHandle) -> Settings {
     let mut s = file(app).map(|p| read(&p)).unwrap_or_default();
-    s.autostart = app.autolaunch().is_enabled().unwrap_or(false);
+    let launcher = app.autolaunch();
+    let enabled = launcher.is_enabled().unwrap_or(false);
+    s.autostart = enabled || (s.autostart && launcher.enable().is_ok());
     s
 }
 

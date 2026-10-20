@@ -399,6 +399,33 @@ pub fn set_settings(app: AppHandle, settings: settings::Settings) -> Result<sett
     settings::set(&app, settings)
 }
 
+/// Système d'exploitation (« windows », « linux »…), pour adapter l'écran d'accueil.
+#[tauri::command]
+pub fn platform() -> &'static str {
+    std::env::consts::OS
+}
+
+/// Linux : Morph est-il intégré au bureau (menu, « Ouvrir avec », clic droit) ?
+#[tauri::command]
+pub fn system_integrated() -> bool {
+    cfg!(target_os = "linux") && crate::linux::share_dir().is_some_and(|d| crate::linux::is_integrated(&d))
+}
+
+/// Linux : ajoute (ou retire) Morph du menu des applications et du clic droit.
+#[tauri::command]
+pub fn set_system_integration(enable: bool) -> Result<(), String> {
+    if !cfg!(target_os = "linux") {
+        return Err("intégration réservée à Linux".into());
+    }
+    let share = crate::linux::share_dir().ok_or("dossier personnel introuvable")?;
+    let result = if enable {
+        crate::linux::executable().and_then(|exe| crate::linux::integrate(&exe, &share))
+    } else {
+        crate::linux::remove(&share)
+    };
+    result.map_err(|e| e.to_string())
+}
+
 /// Quitte Morph (menu de l'icône, bouton des Réglages).
 #[tauri::command]
 pub fn quit(app: AppHandle) {

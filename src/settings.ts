@@ -22,6 +22,8 @@ export interface Settings {
   saveFolder: string | null;
   duplicates: Duplicates;
   autostart: boolean;
+  /** Écran d'accueil déjà vu (ou passé). */
+  onboarded: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -35,9 +37,12 @@ export const DEFAULT_SETTINGS: Settings = {
   saveFolder: null,
   duplicates: "keep",
   autostart: false,
+  onboarded: true,
 };
 
 let current: Settings = DEFAULT_SETTINGS;
+/** Les vrais réglages sont arrivés du cœur (avant : valeurs par défaut). */
+let loaded = false;
 const subscribers = new Set<(s: Settings) => void>();
 
 const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -98,6 +103,7 @@ export function initSettings() {
 
 function update(s: Settings, fade = false) {
   current = s;
+  loaded = true;
   apply(s, fade);
   subscribers.forEach((fn) => fn(s));
 }
@@ -115,6 +121,25 @@ export function useSettings(): Settings {
     };
   }, []);
   return s;
+}
+
+/** Vrai dès que les réglages enregistrés sont connus (évite d'afficher un instant les
+ *  valeurs par défaut, comme l'écran d'accueil à un utilisateur qui l'a déjà vu). */
+export function useSettingsLoaded(): boolean {
+  useSettings();
+  return loaded;
+}
+
+let platformName: Promise<string> | null = null;
+
+/** Système d'exploitation : « windows », « linux »… (null le temps de le demander). */
+export function usePlatform(): string | null {
+  const [name, setName] = useState<string | null>(null);
+  useEffect(() => {
+    platformName ??= invoke<string>("platform");
+    platformName.then(setName);
+  }, []);
+  return name;
 }
 
 /** Modifie les réglages (enregistrés, appliqués et diffusés par le cœur de Morph). */

@@ -75,6 +75,27 @@
     ],
     "externalBin": [
       "binaries/ffmpeg"
-    ]
+    ],
+    "publisher": "UnderSkyDev",
+    "copyright": "© UnderSkyDev — GPL-3.0-or-later",
+    "shortDescription": "Convertir et retoucher des fichiers d'un geste",
+    "longDescription": "Morph convertit et retouche images, sons et vidéos : Shift + glisser des fichiers n'importe où sur le bureau ouvre un menu de formats et d'outils.",
+    "category": "Utility",
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["French"],
+        "displayLanguageSelector": false,
+        "headerImage": "installer/header.bmp",
+        "sidebarImage": "installer/sidebar.bmp",
+        "installerIcon": "icons/icon.ico",
+        "installerHooks": "installer/hooks.nsh"
+      }
+    },
+    "linux": {
+      "appimage": {
+        "bundleMediaFramework": true
+      }
+    }
   }
 }
