@@ -313,6 +313,13 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
 - Non vérifié : AppImage et intégration Linux sur une vraie machine Linux (CI
   seulement) ; premier lancement après une mise à jour 0.8 → 0.9 a une fois
   affiché l'accueil avec les réglages par défaut (non reproduit).
+- **Retouches 0.9.1** (2026-10-20, demandées par l'utilisateur) : un outil fermé
+  avant la fin (bouton, Alt+F4) rouvre l'anneau des outils sur les mêmes fichiers
+  (`open_tools`, `Ring::Tools`) ; pétale « Convertir » à la fin de chaque anneau
+  d'outils, qui ramène aux formats de conversion ; appui + glisser sur le moyeu
+  déplace tout le menu (`startDragging`, seuil 5 px). Le menu ne se ferme plus que
+  si la perte de focus dure plus de 150 ms : déplacer la fenêtre la fait perdre et
+  regagner aussitôt.
 - **Reprendre à M10 (polish : tests sur machines propres, finitions)**.
 - **Décisions M6** (validées par l'utilisateur le 2026-10-20) :
   - Découpage en sous-étapes, un commit + validation chacune :

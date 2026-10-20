@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
@@ -33,21 +33,34 @@ let nextId = 0;
 /**
  * Popup d'un outil. Après l'enregistrement, on passe au fichier suivant du lot ;
  * une fois tout traité, la fenêtre se ferme et l'anneau d'actions réapparaît
- * sur les résultats.
+ * sur les résultats. Fermée avant la fin, elle ramène au choix des outils.
  */
 export default function ToolWindow() {
   const [session, setSession] = useState<Session | null>(null);
   const win = getCurrentWebviewWindow();
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
+  /** Fermeture après le dernier fichier (les pétales s'ouvrent déjà sur les résultats). */
+  const finishingRef = useRef(false);
 
   useEffect(() => {
-    const start = (p: Payload) => setSession({ ...p, id: ++nextId, index: 0, outputs: [] });
+    const start = (p: Payload) => {
+      finishingRef.current = false;
+      setSession({ ...p, id: ++nextId, index: 0, outputs: [] });
+    };
     invoke<Payload | null>("take_tool_payload").then((p) => p && start(p));
     const unlisten = win.listen<Payload>("tool-open", ({ payload }) => {
       invoke("take_tool_payload");
       start(payload);
     });
+    // Fenêtre fermée (bouton, Alt+F4…) avant la fin : retour aux pétales des outils.
+    const closing = win.onCloseRequested(async () => {
+      const current = sessionRef.current;
+      if (current && !finishingRef.current) await invoke("open_tools", { paths: current.paths });
+    });
     return () => {
       unlisten.then((fn) => fn());
+      closing.then((fn) => fn());
     };
   }, []);
 
@@ -62,6 +75,7 @@ export default function ToolWindow() {
 
   /** Retour aux pétales sur les résultats, puis fermeture de la fenêtre. */
   async function finish(outputs: string[]) {
+    finishingRef.current = true;
     if (outputs.length) await invoke("open_actions", { paths: outputs });
     await win.close();
   }

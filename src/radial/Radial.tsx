@@ -1,17 +1,22 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type PointerEvent, useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, type Variants } from "motion/react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
+import { ConvertIcon } from "../icons";
 import { chooseOutputDir, getSettings } from "../settings";
 import { comingIn, TOOLS } from "../tools/registry";
 import { type Job, jobProgress } from "../jobs";
-import type { RadialPayload } from "../types";
+import type { RadialPayload, TargetMenu } from "../types";
 import { actionItems, buildItems, type Item } from "./items";
 import "./Radial.css";
 
 const RADIUS = 118;
 const HUB_RING = 2 * Math.PI * 34;
+/** Déplacement (px) au-delà duquel un appui sur le moyeu devient un glisser du menu. */
+const DRAG_THRESHOLD = 5;
+/** Délai (ms) avant de fermer le menu quand la fenêtre perd le focus. */
+const BLUR_GRACE = 150;
 
 /** Niveau du menu. `done` : légende du ✓ quand l'anneau d'actions suit un traitement réussi. */
 type Level = { label: string; items: Item[]; done?: string };
@@ -46,6 +51,9 @@ export default function Radial() {
   const pickingRef = useRef(false);
   /** La fenêtre a obtenu le focus depuis l'ouverture du menu. */
   const focusedRef = useRef(false);
+  /** Appui en cours sur le moyeu (position de départ), et menu déplacé depuis cet appui. */
+  const pressRef = useRef<{ x: number; y: number } | null>(null);
+  const draggedRef = useRef(false);
 
   openRef.current = open;
   sessionRef.current = session;
@@ -61,15 +69,16 @@ export default function Radial() {
 
   useEffect(() => {
     let lastId = 0;
+    let blurTimer: ReturnType<typeof setTimeout> | undefined;
     const openWith = (payload: RadialPayload) => {
       // Une même demande peut arriver par l'événement et par take_radial_payload.
       if (payload.id <= lastId) return;
       lastId = payload.id;
       setFileCount(payload.paths.length);
       setStack([
-        payload.actions
-          ? { label: "", items: actionItems(payload.paths), done: "Enregistré" }
-          : { label: "", items: buildItems(payload.menu, getSettings()) },
+        payload.ring === "formats"
+          ? { label: "", items: buildItems(payload.menu, getSettings()) }
+          : { label: "", items: actionItems(payload.paths), done: payload.ring === "saved" ? "Enregistré" : undefined },
       ]);
       setPhase({ name: "menu" });
       setSession((s) => s + 1);
@@ -85,11 +94,14 @@ export default function Radial() {
 
     const unlisten = [
       opened,
-      // Menu non modal : il se ferme dès que la fenêtre perd le focus (clic ailleurs) —
+      // Menu non modal : il se ferme quand la fenêtre perd le focus (clic ailleurs) —
       // seulement s'il l'a eu : si Windows le refuse à l'ouverture, le menu reste affiché.
+      // Perte brève ignorée : déplacer la fenêtre (glisser le moyeu) la fait perdre puis
+      // regagner le focus aussitôt.
       win.onFocusChanged(({ payload: focused }) => {
+        clearTimeout(blurTimer);
         if (focused) focusedRef.current = true;
-        else if (focusedRef.current && !pickingRef.current) setOpen(false);
+        else if (focusedRef.current && !pickingRef.current) blurTimer = setTimeout(() => setOpen(false), BLUR_GRACE);
       }),
       win.listen<Job>("job-update", ({ payload: job }) => {
         if (job.id === jobRef.current) onJob(job);
@@ -98,6 +110,7 @@ export default function Radial() {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     window.addEventListener("keydown", onKey);
     return () => {
+      clearTimeout(blurTimer);
       unlisten.forEach((p) => p.then((fn) => fn()));
       window.removeEventListener("keydown", onKey);
     };
@@ -117,6 +130,15 @@ export default function Radial() {
   async function choose(item: Item) {
     if (item.type === "group") {
       setStack((s) => [...s, { label: item.label, items: item.items }]);
+      return;
+    }
+    if (item.type === "convert") {
+      // Venu du sous-menu « Éditer » : retour au premier anneau. Sinon (actions sur des
+      // résultats, outil refermé), on construit l'anneau des formats pour ces fichiers.
+      if (stack.length > 1) return setStack((s) => s.slice(0, 1), -1);
+      const menu = await invoke<TargetMenu>("get_targets", { paths: item.paths });
+      setFileCount(item.paths.length);
+      setStack([{ label: "", items: buildItems(menu, getSettings()) }], -1);
       return;
     }
     if (item.type === "action") {
@@ -162,6 +184,30 @@ export default function Radial() {
   function onHub() {
     if (phase.name === "menu" && stack.length > 1) setStack((s) => s.slice(0, -1), -1);
     else close();
+  }
+
+  // Appui puis déplacement sur le moyeu : on déplace tout le menu au lieu de cliquer.
+  function onHubPointerDown(e: PointerEvent) {
+    draggedRef.current = false;
+    pressRef.current = e.button === 0 ? { x: e.screenX, y: e.screenY } : null;
+  }
+
+  function onHubPointerMove(e: PointerEvent) {
+    const start = pressRef.current;
+    if (!start || !(e.buttons & 1)) return;
+    if (Math.hypot(e.screenX - start.x, e.screenY - start.y) < DRAG_THRESHOLD) return;
+    pressRef.current = null;
+    draggedRef.current = true;
+    getCurrentWebviewWindow().startDragging();
+  }
+
+  function onHubClick() {
+    // Fin d'un glisser : ce n'est pas un clic.
+    if (draggedRef.current) {
+      draggedRef.current = false;
+      return;
+    }
+    onHub();
   }
 
   return (
@@ -229,7 +275,11 @@ export default function Radial() {
 
           <motion.button
             className={`hub hub-${phase.name}`}
-            onClick={onHub}
+            title="Glisser pour déplacer le menu"
+            onClick={onHubClick}
+            onPointerDown={onHubPointerDown}
+            onPointerMove={onHubPointerMove}
+            onPointerUp={() => (pressRef.current = null)}
             whileTap={{ scale: 0.95 }}
           >
             <AnimatePresence mode="wait" initial={false}>
@@ -306,11 +356,13 @@ function hubKey(phase: Phase, level?: Level) {
 function itemKey(item: Item) {
   if (item.type === "format") return item.format;
   if (item.type === "action") return item.tool;
+  if (item.type === "convert") return "convert";
   return item.label;
 }
 
 function itemTitle(item: Item) {
   if (item.type === "group") return `${item.label} : ${item.items.length} choix`;
+  if (item.type === "convert") return "Revenir aux formats de conversion";
   if (item.type === "action") {
     const label = TOOLS[item.tool].label;
     const soon = comingIn(item.tool, item.paths);
@@ -321,6 +373,14 @@ function itemTitle(item: Item) {
 
 function PetalContent({ item }: { item: Item }) {
   if (item.type === "format") return <>{item.format.toUpperCase()}</>;
+  if (item.type === "convert") {
+    return (
+      <span className="petal-tool">
+        <ConvertIcon />
+        <span>Convertir</span>
+      </span>
+    );
+  }
   if (item.type === "group" && !item.icon) return <>{item.label} ›</>;
   const Icon = TOOLS[item.type === "group" ? item.icon! : item.tool].icon;
   return (

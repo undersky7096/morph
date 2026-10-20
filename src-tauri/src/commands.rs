@@ -59,7 +59,13 @@ pub fn open_radial(app: AppHandle, paths: Vec<String>) -> Result<(), String> {
 // Async : appelée depuis la fenêtre d'outil, qui se ferme juste après.
 #[tauri::command]
 pub async fn open_actions(app: AppHandle, paths: Vec<String>) -> Result<(), String> {
-    radial::show_actions(&app, paths).map_err(|e| e.to_string())
+    radial::show_with(&app, paths, radial::Ring::Saved).map_err(|e| e.to_string())
+}
+
+/// Outil fermé sans enregistrer : retour au choix des outils pour les mêmes fichiers.
+#[tauri::command]
+pub async fn open_tools(app: AppHandle, paths: Vec<String>) -> Result<(), String> {
+    radial::show_with(&app, paths, radial::Ring::Tools).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

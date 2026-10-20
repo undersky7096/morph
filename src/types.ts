@@ -18,8 +18,8 @@ export interface RadialPayload {
   id: number;
   paths: string[];
   menu: TargetMenu;
-  /** Ouvrir directement l'anneau d'actions (retour d'un outil après enregistrement). */
-  actions: boolean;
+  /** Premier anneau : formats, outils après un enregistrement, ou outils (outil fermé sans enregistrer). */
+  ring: "formats" | "saved" | "tools";
 }
 
 export interface ConvertProgress {

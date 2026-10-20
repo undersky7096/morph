@@ -102,6 +102,7 @@ pub fn run() {
             commands::reveal,
             commands::open_radial,
             commands::open_actions,
+            commands::open_tools,
             commands::take_radial_payload,
             commands::close_radial,
             commands::open_tool,

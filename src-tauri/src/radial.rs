@@ -18,6 +18,18 @@ pub struct Pending(pub Mutex<Option<RadialPayload>>);
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(1);
 
+/// Premier anneau affiché.
+#[derive(Clone, Copy, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Ring {
+    /// Formats de conversion.
+    Formats,
+    /// Outils, après un enregistrement (✓ dans le moyeu).
+    Saved,
+    /// Outils, retour d'un outil fermé sans enregistrer.
+    Tools,
+}
+
 #[derive(Clone, Serialize)]
 pub struct RadialPayload {
     /// Identifiant croissant : le webview ignore une demande déjà reçue
@@ -25,21 +37,16 @@ pub struct RadialPayload {
     id: u64,
     paths: Vec<String>,
     menu: TargetMenu,
-    /// Ouvrir directement l'anneau d'actions (retour d'un outil après enregistrement).
-    actions: bool,
+    ring: Ring,
 }
 
 /// Ouvre le menu des formats pour `paths`, centré sur la position actuelle du curseur.
 pub fn show(app: &AppHandle, paths: Vec<String>) -> tauri::Result<()> {
-    show_with(app, paths, false)
+    show_with(app, paths, Ring::Formats)
 }
 
-/// Ouvre l'anneau d'actions (Recadrer, Compresser, Éditer) pour des fichiers déjà traités.
-pub fn show_actions(app: &AppHandle, paths: Vec<String>) -> tauri::Result<()> {
-    show_with(app, paths, true)
-}
-
-fn show_with(app: &AppHandle, paths: Vec<String>, actions: bool) -> tauri::Result<()> {
+/// Ouvre directement l'anneau d'actions (Recadrer, Compresser, Éditer, Convertir).
+pub fn show_with(app: &AppHandle, paths: Vec<String>, ring: Ring) -> tauri::Result<()> {
     let window = app.get_webview_window(LABEL).ok_or(tauri::Error::WindowNotFound)?;
     let cursor = app.cursor_position()?;
     let size = window.outer_size()?;
@@ -60,7 +67,7 @@ fn show_with(app: &AppHandle, paths: Vec<String>, actions: bool) -> tauri::Resul
 
     let refs: Vec<&Path> = paths.iter().map(Path::new).collect();
     let menu = formats::menu_for(&refs);
-    let payload = RadialPayload { id: NEXT_ID.fetch_add(1, Ordering::Relaxed), paths, menu, actions };
+    let payload = RadialPayload { id: NEXT_ID.fetch_add(1, Ordering::Relaxed), paths, menu, ring };
     *app.state::<Pending>().0.lock().unwrap() = Some(payload.clone());
     app.emit_to(LABEL, "radial-open", payload)?;
 
