@@ -3,11 +3,10 @@ import { AnimatePresence, motion, type Variants } from "motion/react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
-import { ConvertIcon } from "../icons";
 import { chooseOutputDir, getSettings } from "../settings";
 import { comingIn, TOOLS } from "../tools/registry";
 import { type Job, jobProgress } from "../jobs";
-import type { RadialPayload, TargetMenu } from "../types";
+import type { RadialPayload } from "../types";
 import { actionItems, buildItems, type Item } from "./items";
 import "./Radial.css";
 
@@ -54,6 +53,8 @@ export default function Radial() {
   /** Appui en cours sur le moyeu (position de départ), et menu déplacé depuis cet appui. */
   const pressRef = useRef<{ x: number; y: number } | null>(null);
   const draggedRef = useRef(false);
+  /** Menu tel qu'il était à l'ouverture d'un outil : réaffiché si l'outil est fermé sans aboutir. */
+  const beforeToolRef = useRef<{ paths: string[]; stack: Level[]; fileCount: number } | null>(null);
 
   openRef.current = open;
   sessionRef.current = session;
@@ -74,12 +75,19 @@ export default function Radial() {
       // Une même demande peut arriver par l'événement et par take_radial_payload.
       if (payload.id <= lastId) return;
       lastId = payload.id;
-      setFileCount(payload.paths.length);
-      setStack([
-        payload.ring === "formats"
-          ? { label: "", items: buildItems(payload.menu, getSettings()) }
-          : { label: "", items: actionItems(payload.paths), done: payload.ring === "saved" ? "Enregistré" : undefined },
-      ]);
+      const before = beforeToolRef.current;
+      beforeToolRef.current = null;
+      if (payload.ring === "tools" && before && sameFiles(before.paths, payload.paths)) {
+        setFileCount(before.fileCount);
+        setStack(before.stack);
+      } else {
+        setFileCount(payload.paths.length);
+        setStack([
+          payload.ring === "formats"
+            ? { label: "", items: buildItems(payload.menu, getSettings()) }
+            : { label: "", items: actionItems(payload.paths), done: payload.ring === "saved" ? "Enregistré" : undefined },
+        ]);
+      }
       setPhase({ name: "menu" });
       setSession((s) => s + 1);
       focusedRef.current = false;
@@ -132,17 +140,9 @@ export default function Radial() {
       setStack((s) => [...s, { label: item.label, items: item.items }]);
       return;
     }
-    if (item.type === "convert") {
-      // Venu du sous-menu « Éditer » : retour au premier anneau. Sinon (actions sur des
-      // résultats, outil refermé), on construit l'anneau des formats pour ces fichiers.
-      if (stack.length > 1) return setStack((s) => s.slice(0, 1), -1);
-      const menu = await invoke<TargetMenu>("get_targets", { paths: item.paths });
-      setFileCount(item.paths.length);
-      setStack([{ label: "", items: buildItems(menu, getSettings()) }], -1);
-      return;
-    }
     if (item.type === "action") {
       if (comingIn(item.tool, item.paths)) return;
+      beforeToolRef.current = { paths: item.paths, stack, fileCount };
       await invoke("open_tool", { tool: item.tool, paths: item.paths });
       close();
       return;
@@ -353,16 +353,16 @@ function hubKey(phase: Phase, level?: Level) {
   return level?.done ? `done-${level.done}` : `menu-${level?.label ?? ""}`;
 }
 
+const sameFiles = (a: string[], b: string[]) => a.length === b.length && a.every((p, i) => p === b[i]);
+
 function itemKey(item: Item) {
   if (item.type === "format") return item.format;
   if (item.type === "action") return item.tool;
-  if (item.type === "convert") return "convert";
   return item.label;
 }
 
 function itemTitle(item: Item) {
   if (item.type === "group") return `${item.label} : ${item.items.length} choix`;
-  if (item.type === "convert") return "Revenir aux formats de conversion";
   if (item.type === "action") {
     const label = TOOLS[item.tool].label;
     const soon = comingIn(item.tool, item.paths);
@@ -373,14 +373,6 @@ function itemTitle(item: Item) {
 
 function PetalContent({ item }: { item: Item }) {
   if (item.type === "format") return <>{item.format.toUpperCase()}</>;
-  if (item.type === "convert") {
-    return (
-      <span className="petal-tool">
-        <ConvertIcon />
-        <span>Convertir</span>
-      </span>
-    );
-  }
   if (item.type === "group" && !item.icon) return <>{item.label} ›</>;
   const Icon = TOOLS[item.type === "group" ? item.icon! : item.tool].icon;
   return (

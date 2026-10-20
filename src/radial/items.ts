@@ -3,13 +3,11 @@ import type { Settings } from "../settings";
 import { type ToolId, toolsFor } from "../tools/registry";
 import type { Kind, TargetGroup, TargetMenu } from "../types";
 
-/** Pétale du menu : un format cible, un sous-menu, une action d'édition,
- *  ou le retour aux formats de conversion depuis l'anneau d'actions. */
+/** Pétale du menu : un format cible, un sous-menu, ou une action d'édition. */
 export type Item =
   | { type: "format"; format: string; kind: Kind; paths: string[] }
   | { type: "group"; label: string; kind: Kind; items: Item[]; icon?: ToolId }
-  | { type: "action"; tool: ToolId; kind: Kind; paths: string[] }
-  | { type: "convert"; kind: Kind; paths: string[] };
+  | { type: "action"; tool: ToolId; kind: Kind; paths: string[] };
 
 const GROUP_LABELS: Record<Kind, string> = { image: "Images", audio: "Audio", video: "Vidéos" };
 
@@ -39,11 +37,10 @@ function groupItems(group: TargetGroup, favorites: string[]): Item[] {
   return items;
 }
 
-/** Anneau d'actions (Crop, Compress, Edit, puis Convertir) pour des fichiers ; vide si aucun outil. */
+/** Anneau d'actions (Crop, Compress, Edit) pour des fichiers. */
 export function actionItems(paths: string[]): Item[] {
   const kind = kindOfPath(paths[0]) ?? "image";
-  const tools = toolsFor(paths).map((tool): Item => ({ type: "action", tool, kind, paths }));
-  return tools.length ? [...tools, { type: "convert", kind, paths }] : [];
+  return toolsFor(paths).map((tool) => ({ type: "action", tool, kind, paths }));
 }
 
 export function buildItems(menu: TargetMenu, settings: Settings): Item[] {

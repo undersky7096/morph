@@ -26,7 +26,8 @@ pub enum Ring {
     Formats,
     /// Outils, après un enregistrement (✓ dans le moyeu).
     Saved,
-    /// Outils, retour d'un outil fermé sans enregistrer.
+    /// Retour d'un outil fermé sans enregistrer : le menu réapparaît tel qu'il était,
+    /// là où il était.
     Tools,
 }
 
@@ -45,9 +46,26 @@ pub fn show(app: &AppHandle, paths: Vec<String>) -> tauri::Result<()> {
     show_with(app, paths, Ring::Formats)
 }
 
-/// Ouvre directement l'anneau d'actions (Recadrer, Compresser, Éditer, Convertir).
+/// Ouvre le menu sur l'anneau demandé (`Ring`).
 pub fn show_with(app: &AppHandle, paths: Vec<String>, ring: Ring) -> tauri::Result<()> {
     let window = app.get_webview_window(LABEL).ok_or(tauri::Error::WindowNotFound)?;
+    if !matches!(ring, Ring::Tools) {
+        place_under_cursor(app, &window)?;
+    }
+
+    let refs: Vec<&Path> = paths.iter().map(Path::new).collect();
+    let menu = formats::menu_for(&refs);
+    let payload = RadialPayload { id: NEXT_ID.fetch_add(1, Ordering::Relaxed), paths, menu, ring };
+    *app.state::<Pending>().0.lock().unwrap() = Some(payload.clone());
+    app.emit_to(LABEL, "radial-open", payload)?;
+
+    window.show()?;
+    window.set_focus()?;
+    Ok(())
+}
+
+/// Centre le menu sous le curseur, entièrement visible sur l'écran du curseur.
+fn place_under_cursor(app: &AppHandle, window: &tauri::WebviewWindow) -> tauri::Result<()> {
     let cursor = app.cursor_position()?;
     let size = window.outer_size()?;
     let (w, h) = (size.width as i32, size.height as i32);
@@ -63,17 +81,7 @@ pub fn show_with(app: &AppHandle, paths: Vec<String>, ring: Ring) -> tauri::Resu
         x = x.min(right).max(left);
         y = y.min(bottom).max(top);
     }
-    window.set_position(PhysicalPosition::new(x, y))?;
-
-    let refs: Vec<&Path> = paths.iter().map(Path::new).collect();
-    let menu = formats::menu_for(&refs);
-    let payload = RadialPayload { id: NEXT_ID.fetch_add(1, Ordering::Relaxed), paths, menu, ring };
-    *app.state::<Pending>().0.lock().unwrap() = Some(payload.clone());
-    app.emit_to(LABEL, "radial-open", payload)?;
-
-    window.show()?;
-    window.set_focus()?;
-    Ok(())
+    window.set_position(PhysicalPosition::new(x, y))
 }
 
 /// Récupère (et consomme) le menu en attente.
