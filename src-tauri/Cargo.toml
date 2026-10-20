@@ -1,6 +1,6 @@
 [package]
 name = "morph"
-version = "0.10.0"
+version = "0.11.0"
 description = "Morph — convertisseur et éditeur de fichiers"
 authors = ["UnderSkyDev"]
 license = "GPL-3.0-or-later"
@@ -28,6 +28,12 @@ thiserror = "2.0.21"
 oxipng = { version = "10", default-features = false, features = ["parallel"] }
 imagequant = "4"
 png = "0.18"
+# Détourage : modèle IS-Net (téléchargé à la première utilisation puis vérifié) exécuté
+# par ONNX Runtime, chargé à la demande depuis la bibliothèque officielle embarquée
+# (npm run fetch:onnxruntime) : l'exécutable n'en dépend pas pour démarrer.
+ort = { version = "=2.0.0-rc.15", default-features = false, features = ["std", "load-dynamic", "api-17"] }
+ureq = "3"
+sha2 = "0.11"
 tauri-plugin-single-instance = "2"
 tauri-plugin-autostart = "2"
 tauri-plugin-dialog = "2"

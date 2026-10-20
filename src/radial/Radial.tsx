@@ -5,7 +5,7 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 import { chooseOutputDir, getSettings } from "../settings";
 import { comingIn, TOOLS } from "../tools/registry";
-import { type Job, jobProgress } from "../jobs";
+import { CUTOUT, type Job, jobProgress } from "../jobs";
 import type { RadialPayload } from "../types";
 import { actionItems, buildItems, type Item } from "./items";
 import "./Radial.css";
@@ -140,6 +140,7 @@ export default function Radial() {
       setStack((s) => [...s, { label: item.label, items: item.items }]);
       return;
     }
+    if (item.type === "action" && TOOLS[item.tool].direct) return run(item.paths, CUTOUT);
     if (item.type === "action") {
       if (comingIn(item.tool, item.paths)) return;
       beforeToolRef.current = { paths: item.paths, stack, fileCount };
@@ -147,6 +148,11 @@ export default function Radial() {
       close();
       return;
     }
+    return run(item.paths, item.format);
+  }
+
+  /** Conversion (ou détourage) en arrière-plan, suivie dans le moyeu. */
+  async function run(paths: string[], target: string) {
     // Réglage « demander à chaque fois » : le menu reste ouvert pendant le choix du dossier.
     pickingRef.current = getSettings().saveMode === "ask";
     const outDir = await chooseOutputDir();
@@ -156,7 +162,7 @@ export default function Radial() {
     }
     if (outDir === null) return;
     setPhase({ name: "running", progress: 0 });
-    const job = await invoke<Job>("start_conversion", { paths: item.paths, target: item.format, run: { outDir } });
+    const job = await invoke<Job>("start_conversion", { paths, target, run: { outDir } });
     jobRef.current = job.id;
   }
 
@@ -177,7 +183,7 @@ export default function Radial() {
     const actions = actionItems(outputs);
     if (!actions.length) return close();
     // Conversion réussie : le menu enchaîne sur les actions d'édition du résultat.
-    setStack([{ label: "", items: actions, done: "Converti" }]);
+    setStack([{ label: "", items: actions, done: job.target === CUTOUT ? "Détouré" : "Converti" }]);
     setPhase({ name: "menu" });
   }
 
@@ -275,7 +281,6 @@ export default function Radial() {
 
           <motion.button
             className={`hub hub-${phase.name}`}
-            title="Glisser pour déplacer le menu"
             onClick={onHubClick}
             onPointerDown={onHubPointerDown}
             onPointerMove={onHubPointerMove}

@@ -43,6 +43,8 @@ const COMPONENTS: [string, string, string, string][] = [
   ["image-rs", "Lecture et écriture des images", "MIT / Apache-2.0", "https://github.com/image-rs/image"],
   ["oxipng", "Compression PNG sans perte", "MIT", "https://github.com/shssoichiro/oxipng"],
   ["libimagequant", "Compression PNG par palette", "GPL-3.0", "https://pngquant.org/lib/"],
+  ["ONNX Runtime", "Exécution du modèle de détourage", "MIT", "https://onnxruntime.ai"],
+  ["IS-Net (DIS)", "Modèle de détourage, téléchargé à la 1re utilisation", "Apache-2.0", "https://github.com/xuebinqin/DIS"],
 ];
 
 const DUPLICATES: [Duplicates, string, string][] = [
@@ -243,7 +245,7 @@ function SaveSection({ settings, save }: SectionProps) {
     if (typeof dir === "string") save({ saveMode: "folder", saveFolder: dir });
   }
   return (
-    <Group title="Où enregistrer les résultats" hint="Conversions et outils (Recadrer, Compresser, Éditer).">
+    <Group title="Où enregistrer les résultats" hint="Conversions et outils (Recadrer, Détourer, Compresser, Éditer).">
       <div className="settings-options">
         {SAVE_MODES.map(([id, title, hint]) => (
           <Option

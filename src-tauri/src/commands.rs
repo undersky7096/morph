@@ -157,6 +157,8 @@ const LINKS: &[&str] = &[
     "https://github.com/image-rs/image",
     "https://github.com/shssoichiro/oxipng",
     "https://pngquant.org/lib/",
+    "https://onnxruntime.ai",
+    "https://github.com/xuebinqin/DIS",
 ];
 
 /// Ouvre un lien de la page « À propos » dans le navigateur (ou la messagerie).
@@ -223,9 +225,30 @@ pub async fn crop_image(
         .map(|out| out.display().to_string())
 }
 
+/// Image détourée pour l'éditeur d'image (PNG). Progression via l'événement `cutout-progress`
+/// (le premier détourage télécharge le modèle).
+#[tauri::command]
+pub async fn cutout_image(app: AppHandle, path: String, run: Option<RunOptions>) -> Result<Response, ConvertError> {
+    let handle = app.clone();
+    run_tool(&app, run, move || {
+        edit::cutout::cutout_png(Path::new(&path), &mut |p| {
+            let _ = handle.emit("cutout-progress", p);
+        })
+    })
+    .await
+    .map(Response::new)
+}
+
+/// Le modèle de détourage est déjà téléchargé.
+#[tauri::command]
+pub fn cutout_ready() -> bool {
+    edit::cutout::model_ready()
+}
+
 /// Enregistre le rendu de l'éditeur image (PNG brut dans le corps de la requête,
 /// chemin d'origine dans l'en-tête `x-path`, `RunOptions` en JSON dans `x-run`) au
-/// format d'origine, suffixe « Edited ».
+/// format d'origine, suffixe « Edited ». En-tête `x-transparent` : le rendu a de la
+/// transparence (fond retiré), gardée en PNG si le format d'origine n'en a pas.
 #[tauri::command]
 pub async fn save_edited(app: AppHandle, request: tauri::ipc::Request<'_>) -> Result<String, ConvertError> {
     let tauri::ipc::InvokeBody::Raw(png) = request.body() else {
@@ -242,8 +265,9 @@ pub async fn save_edited(app: AppHandle, request: tauri::ipc::Request<'_>) -> Re
         .get("x-run")
         .and_then(|v| v.to_str().ok())
         .and_then(|v| serde_json::from_str(&percent_decode(v)).ok());
+    let transparent = request.headers().contains_key("x-transparent");
     let png = png.clone();
-    run_tool(&app, run, move || edit::save_edited(Path::new(&path), &png))
+    run_tool(&app, run, move || edit::save_edited(Path::new(&path), &png, transparent))
         .await
         .map(|out| out.display().to_string())
 }

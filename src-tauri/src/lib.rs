@@ -72,6 +72,12 @@ pub fn run() {
         .manage(jobs::Tasks::default())
         .setup(|app| {
             settings::load(app.handle());
+            if let Ok(dir) = app.path().app_local_data_dir() {
+                edit::cutout::set_models_dir(dir.join("models"));
+            }
+            if let Ok(dir) = app.path().resource_dir() {
+                edit::cutout::set_runtime(dir.join(edit::cutout::RUNTIME_LIB));
+            }
             tray::create(app.handle())?;
             icon::refresh(app.handle());
             #[cfg(windows)]
@@ -114,6 +120,8 @@ pub fn run() {
             commands::compress_preview,
             commands::file_sizes,
             commands::save_edited,
+            commands::cutout_image,
+            commands::cutout_ready,
             commands::read_media,
             commands::audio_peaks,
             commands::audio_preview,

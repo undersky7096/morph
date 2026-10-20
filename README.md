@@ -14,6 +14,7 @@ Prérequis : Node.js 22.12+ (ou 24), Rust (stable), outils de build C++ Visual S
 ```sh
 npm install
 npm run fetch:ffmpeg   # télécharge le sidecar ffmpeg (src-tauri/binaries/, non versionné)
+npm run fetch:onnxruntime  # ONNX Runtime pour le détourage (+ runtime Visual C++ sous Windows, pris dans les Build Tools)
 npm run tauri dev      # lance l'application en mode dev
 npm run tauri build    # produit l'installeur (NSIS sous Windows, AppImage sous Linux)
 ```
@@ -38,7 +39,7 @@ Le logo est `branding/morph-logo.png` ; `python scripts/icons.py` en tire toutes
 
 ## Licence
 
-GPL-3.0-or-later (voir [LICENSE](LICENSE)). ffmpeg est livré à part, en sidecar (build GPL de BtbN).
+GPL-3.0-or-later (voir [LICENSE](LICENSE)). ffmpeg est livré à part, en sidecar (build GPL de BtbN). ONNX Runtime (MIT) est embarqué ; le modèle de détourage IS-Net (Apache-2.0) est téléchargé à la première utilisation.
 
 ## Statut
 

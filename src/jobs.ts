@@ -12,10 +12,16 @@ export interface JobFile {
   error: AppError | null;
 }
 
+/** Cible spéciale : retirer le fond (voir `jobs::CUTOUT`). */
+export const CUTOUT = "cutout";
+
 export interface Job {
   id: number;
+  /** Format de sortie, ou `CUTOUT`. */
   target: string;
   files: JobFile[];
+  /** Précision affichée pendant le traitement (premier téléchargement du modèle…). */
+  note: string | null;
   startedMs: number;
   finished: boolean;
   detached: boolean;

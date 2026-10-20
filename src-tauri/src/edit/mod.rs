@@ -1,6 +1,7 @@
 //! Outils d'édition (menu d'actions) : recadrage, compression, éditeurs image, audio et vidéo.
 
 pub mod compress;
+pub mod cutout;
 pub mod trim;
 pub mod video;
 
@@ -34,11 +35,15 @@ pub fn crop(input: &Path, rect: Rect) -> Result<PathBuf, ConvertError> {
 }
 
 /// Enregistre le rendu PNG de l'éditeur image au format d'origine, à côté de l'original
-/// avec le suffixe « Edited ».
-pub fn save_edited(input: &Path, png: &[u8]) -> Result<PathBuf, ConvertError> {
+/// avec le suffixe « Edited ». `transparent` (fond retiré) : un format sans transparence
+/// (JPEG, BMP) laisse la place au PNG.
+pub fn save_edited(input: &Path, png: &[u8], transparent: bool) -> Result<PathBuf, ConvertError> {
     let img = image::load_from_memory_with_format(png, image::ImageFormat::Png)?;
-    let ext = formats::ext_of(input).ok_or_else(|| ConvertError::Unsupported(input.display().to_string()))?;
-    let output = convert::suffixed_output(input, "Edited")?;
+    let mut ext = formats::ext_of(input).ok_or_else(|| ConvertError::Unsupported(input.display().to_string()))?;
+    if transparent && matches!(ext.as_str(), "jpg" | "jpeg" | "bmp") {
+        ext = "png".into();
+    }
+    let output = convert::suffixed_output_as(input, "Edited", &ext)?;
     raster::save(&img, &output, &ext)?;
     Ok(output)
 }
@@ -77,10 +82,14 @@ mod tests {
             .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
             .unwrap();
 
-        let out = save_edited(&input, &png).unwrap();
+        let out = save_edited(&input, &png, false).unwrap();
         assert_eq!(out, dir.join("photo Edited.jpg"));
         assert_eq!(image::ImageReader::open(&out).unwrap().with_guessed_format().unwrap().format(), Some(image::ImageFormat::Jpeg));
         assert_eq!(image::image_dimensions(&out).unwrap(), (30, 20));
+
+        // Fond retiré : le JPEG n'a pas de transparence, le résultat passe en PNG.
+        let out = save_edited(&input, &png, true).unwrap();
+        assert_eq!(out, dir.join("photo Edited.png"));
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }

@@ -54,6 +54,7 @@ jobs:
 
       - run: npm ci
       - run: npm run fetch:ffmpeg
+      - run: npm run fetch:onnxruntime
 
       - name: Tests du moteur
         working-directory: src-tauri

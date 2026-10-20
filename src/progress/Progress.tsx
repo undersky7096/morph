@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 
 import { basename } from "../formats";
 import { CloseIcon, MinimizeIcon } from "../icons";
-import { countStatus, formatDuration, type Job, type JobFile, jobProgress, jobRemaining } from "../jobs";
+import { countStatus, CUTOUT, formatDuration, type Job, type JobFile, jobProgress, jobRemaining } from "../jobs";
 // Barre de titre commune avec les fenêtres d'outils.
 import "../tools/tools.css";
 import "./Progress.css";
@@ -58,12 +58,14 @@ export default function Progress() {
   }, [jobs, running, trouble, hover]);
 
   const ordered = [...jobs].reverse();
+  const active = jobs.filter((j) => !j.finished);
+  const title = !running ? "Terminé" : active.every((j) => j.target === CUTOUT) ? "Détourage en cours" : "Conversion en cours";
 
   return (
     <div className="progress" onPointerEnter={() => setHover(true)} onPointerLeave={() => setHover(false)}>
       <header className="titlebar" data-tauri-drag-region>
         <span className="titlebar-title" data-tauri-drag-region>
-          <strong data-tauri-drag-region>{running ? "Conversion en cours" : "Conversions"}</strong>
+          <strong data-tauri-drag-region>{title}</strong>
         </span>
         <div className="titlebar-buttons">
           <button aria-label="Réduire" onClick={() => win.minimize()}>
@@ -72,7 +74,7 @@ export default function Progress() {
           <button
             aria-label="Fermer"
             className="is-close"
-            title={running ? "Fermer (les conversions continuent)" : "Fermer"}
+            title={running ? "Fermer (le traitement continue)" : "Fermer"}
             onClick={closeWindow}
           >
             <CloseIcon />
@@ -96,7 +98,7 @@ export default function Progress() {
             </motion.section>
           ))}
         </AnimatePresence>
-        {!jobs.length && <p className="progress-empty">Aucune conversion en cours.</p>}
+        {!jobs.length && <p className="progress-empty">Rien en cours.</p>}
       </main>
     </div>
   );
@@ -126,7 +128,8 @@ function JobCard({ job, now }: { job: Job; now: number }) {
     <>
       <div className="job-head">
         <span className="job-title">
-          → {job.target.toUpperCase()} <small>· {total} fichier{total > 1 ? "s" : ""}</small>
+          {job.target === CUTOUT ? "Détourage" : `→ ${job.target.toUpperCase()}`}{" "}
+          <small>· {total} fichier{total > 1 ? "s" : ""}</small>
         </span>
         <span className="job-status">{status}</span>
         {!job.finished && (
@@ -138,6 +141,7 @@ function JobCard({ job, now }: { job: Job; now: number }) {
       <div className={`bar ${job.finished ? (errors || conflicts ? "is-warn" : "is-done") : ""}`}>
         <span style={{ transform: `scaleX(${progress})` }} />
       </div>
+      {job.note && !job.finished && <p className="job-note">{job.note}</p>}
 
       {conflicts > 1 && (
         <div className="job-conflicts">

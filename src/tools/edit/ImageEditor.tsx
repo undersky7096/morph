@@ -1,7 +1,8 @@
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
-import { describe } from "../../errors";
+import { describe, isCancelled, newTask } from "../../errors";
 import { type Duplicates, SaveExtras, useSaveFlow } from "../save";
 import {
   ArrowIcon,
@@ -86,6 +87,13 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
   const areaRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<CanvasHandle>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
+  /** Image d'origine, et version détourée (calculée une fois, à la demande). */
+  const originalRef = useRef<HTMLImageElement | null>(null);
+  const [cutoutImg, setCutoutImg] = useState<HTMLImageElement | null>(null);
+  /** Détourage en cours : avancement, et premier détourage (téléchargement du modèle). */
+  const [cutting, setCutting] = useState<{ progress: number; first: boolean; task: string } | null>(null);
+  /** Image chargée dans le moteur de rendu (change quand on retire / remet le fond). */
+  const [source, setSource] = useState(0);
 
   // Chargement : octets via IPC → image (orientation EXIF appliquée au dessin) → textures.
   useEffect(() => {
@@ -103,6 +111,7 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
         if (cancelled) return;
         main = new Renderer();
         main.setImage(img);
+        originalRef.current = img;
         setRenderer(main);
         setThumbs(presetThumbs(img));
       })
@@ -114,6 +123,22 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
     };
   }, [path]);
 
+  // Fond retiré ou remis (annuler / rétablir compris) : le moteur reçoit l'autre image.
+  const transparent = state.cutout && !!cutoutImg;
+  const shownRef = useRef<HTMLImageElement | null>(null);
+  useLayoutEffect(() => {
+    const img = transparent ? cutoutImg : originalRef.current;
+    if (!renderer || !img) return;
+    if (shownRef.current === null) shownRef.current = originalRef.current;
+    if (shownRef.current === img) return;
+    shownRef.current = img;
+    renderer.setImage(img);
+    setSource((n) => n + 1);
+  }, [renderer, transparent, cutoutImg]);
+
+  // Image détourée libérée en quittant l'éditeur.
+  useEffect(() => () => void (cutoutImg && URL.revokeObjectURL(cutoutImg.src)), [cutoutImg]);
+
   // Rendu WebGL à chaque changement de réglage, de filtre ou de géométrie.
   const { adjust, invert, preset, geometry } = state;
   useLayoutEffect(() => {
@@ -121,7 +146,33 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
     renderer.render({ ...combined(state), invert, geometry });
     setSize(renderer.outputSize(geometry));
     setVersion((v) => v + 1);
-  }, [renderer, adjust, invert, preset, geometry]);
+  }, [renderer, adjust, invert, preset, geometry, source]);
+
+  /** Retire le fond (modèle local ; le premier détourage le télécharge), ou le remet. */
+  async function toggleBackground() {
+    if (cutting) return;
+    if (cutoutImg) return update((s) => ({ ...s, cutout: !s.cutout }));
+    const task = newTask();
+    const first = !(await invoke<boolean>("cutout_ready"));
+    setCutting({ progress: 0, first, task });
+    setError(null);
+    const unlisten = await listen<number>("cutout-progress", ({ payload }) =>
+      setCutting((c) => c && { ...c, progress: payload }),
+    );
+    try {
+      const bytes = await invoke<ArrayBuffer>("cutout_image", { path, run: { task } });
+      const img = new Image();
+      img.src = URL.createObjectURL(new Blob([bytes], { type: "image/png" }));
+      await img.decode();
+      setCutoutImg(img);
+      update((s) => ({ ...s, cutout: true }));
+    } catch (e) {
+      if (!isCancelled(e)) setError(describe(e).message);
+    } finally {
+      unlisten();
+      setCutting(null);
+    }
+  }
 
   // Échelle d'affichage : l'image tient dans la zone disponible.
   useLayoutEffect(() => {
@@ -210,7 +261,11 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
       const blob = await canvasRef.current.exportPng();
       const bytes = new Uint8Array(await blob.arrayBuffer());
       const output = await invoke<string>("save_edited", bytes, {
-        headers: { "x-path": encodeURIComponent(path), "x-run": encodeURIComponent(JSON.stringify(run)) },
+        headers: {
+          "x-path": encodeURIComponent(path),
+          "x-run": encodeURIComponent(JSON.stringify(run)),
+          ...(transparent ? { "x-transparent": "1" } : {}),
+        },
       });
       onSaved(output);
     } catch (e) {
@@ -285,7 +340,7 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
           </button>
         </div>
 
-        <div className="editor-stage">
+        <div className={`editor-stage ${transparent ? "is-transparent" : ""}`}>
           {renderer && size && (
             <Canvas
               ref={canvasRef}
@@ -319,6 +374,28 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
 
         {tab === "adjust" && (
           <>
+            <section>
+              <h2>Fond</h2>
+              {cutting ? (
+                <div className="cutout-progress">
+                  <div className="bar">
+                    <span style={{ transform: `scaleX(${cutting.progress})` }} />
+                  </div>
+                  <span>
+                    {cutting.first && cutting.progress < 0.85
+                      ? `Téléchargement du modèle (170 Mo, une seule fois)… ${Math.round(cutting.progress * 100)} %`
+                      : "Détourage…"}
+                  </span>
+                  <button className="link" onClick={() => invoke("cancel_task", { task: cutting.task })}>
+                    Annuler
+                  </button>
+                </div>
+              ) : (
+                <button className="editor-button" onClick={toggleBackground} disabled={!renderer}>
+                  {transparent ? "Remettre le fond" : "Retirer le fond"}
+                </button>
+              )}
+            </section>
             <section>
               {SLIDERS.map(({ key, label, min }) => (
                 <Slider

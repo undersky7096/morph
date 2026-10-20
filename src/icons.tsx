@@ -32,6 +32,15 @@ export const EditIcon = () => (
   </svg>
 );
 
+/** Silhouette détourée dans un cadre en pointillés. */
+export const CutoutIcon = () => (
+  <svg {...base}>
+    <path d="M3 7V3h4M10 3h4M17 3h4v4M21 10v4M21 17v4h-4M14 21h-4M7 21H3v-4M3 14v-4" />
+    <circle cx="12" cy="9.5" r="3" />
+    <path d="M6.5 18.5a5.5 5.5 0 0 1 11 0" />
+  </svg>
+);
+
 export const CloseIcon = () => (
   <svg {...base} width={16} height={16}>
     <path d="M6 6l12 12M18 6 6 18" />

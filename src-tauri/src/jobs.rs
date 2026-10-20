@@ -1,5 +1,6 @@
 //! Conversions en arrière-plan (lancées depuis le menu radial) : progression par fichier,
-//! annulation (tout ou un fichier), réessai, doublons à trancher.
+//! annulation (tout ou un fichier), réessai, doublons à trancher. Le détourage (cible
+//! [`CUTOUT`]) passe par le même chemin.
 //!
 //! Chaque changement est diffusé par l'événement `job-update` (instantané complet). Le
 //! menu suit sa conversion dans le moyeu ; si elle dure (ou se passe mal), elle est
@@ -16,7 +17,11 @@ use tauri::{AppHandle, Emitter, Manager};
 
 use crate::convert::output::{self, Duplicates, Scope};
 use crate::convert::{self, ErrorInfo};
+use crate::edit::cutout;
 use crate::{notify, progress};
+
+/// Cible spéciale : retirer le fond (PNG transparent) au lieu de convertir.
+pub const CUTOUT: &str = "cutout";
 
 /// Au-delà, la conversion passe dans la mini-fenêtre.
 const DETACH_AFTER: Duration = Duration::from_secs(2);
@@ -57,6 +62,8 @@ pub struct Job {
     pub id: u64,
     pub target: String,
     pub files: Vec<FileState>,
+    /// Précision affichée pendant le traitement (ex : premier téléchargement du modèle).
+    pub note: Option<String>,
     /// Début, en millisecondes depuis l'époque Unix (pour le temps restant).
     pub started_ms: u64,
     pub finished: bool,
@@ -102,9 +109,12 @@ pub fn list(app: &AppHandle) -> Vec<Job> {
 /// Démarre la conversion de `paths` vers `target` ; renvoie son premier instantané.
 pub fn start(app: &AppHandle, paths: Vec<String>, target: String, out_dir: Option<PathBuf>, duplicates: Duplicates) -> Job {
     let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+    let note = (target == CUTOUT && !cutout::model_ready())
+        .then(|| "Premier détourage : téléchargement du modèle (170 Mo, une seule fois).".to_string());
     let job = Job {
         id,
         target,
+        note,
         files: paths
             .into_iter()
             .map(|input| FileState {
@@ -195,7 +205,13 @@ fn work(app: &AppHandle, id: u64) {
                 emit(app, id);
             }
         };
-        let result = output::scoped(scope, || convert::convert(Path::new(&input), &target, &mut report));
+        let result = output::scoped(scope, || {
+            if target == CUTOUT {
+                cutout::remove_background(Path::new(&input), &mut report)
+            } else {
+                convert::convert(Path::new(&input), &target, &mut report)
+            }
+        });
         with_job(app, id, |j| {
             let f = &mut j.files[index];
             f.progress = 1.0;

@@ -1,9 +1,9 @@
 import type { ReactElement } from "react";
-import { CompressIcon, CropIcon, EditIcon } from "../icons";
+import { CompressIcon, CropIcon, CutoutIcon, EditIcon } from "../icons";
 import { isCompressible, kindOfPath } from "../formats";
 import type { Kind } from "../types";
 
-export type ToolId = "crop" | "compress" | "edit";
+export type ToolId = "crop" | "cutout" | "compress" | "edit";
 
 export interface ToolInfo {
   label: string;
@@ -12,6 +12,8 @@ export interface ToolInfo {
   kinds: Kind[];
   /** Lot traité d'un coup (Compress) ; sinon, un lot est traité fichier par fichier. */
   wholeBatch: boolean;
+  /** Pas de fenêtre : le traitement part aussitôt, comme une conversion (Détourer). */
+  direct?: boolean;
   /** Filtre plus fin que le type (formats réellement pris en charge). */
   accepts?: (path: string) => boolean;
   /** Milestone où l'outil arrive pour un type, tant qu'il n'est pas disponible. */
@@ -20,6 +22,7 @@ export interface ToolInfo {
 
 export const TOOLS: Record<ToolId, ToolInfo> = {
   crop: { label: "Recadrer", icon: CropIcon, kinds: ["image"], wholeBatch: false },
+  cutout: { label: "Détourer", icon: CutoutIcon, kinds: ["image"], wholeBatch: true, direct: true },
   compress: {
     label: "Compresser",
     icon: CompressIcon,

@@ -12,14 +12,17 @@ fn summary(job: &Job) -> (String, String) {
     let (done, failed) = (count(Status::Done), count(Status::Error) + count(Status::Conflict));
     let s = |n: usize| if n > 1 { "s" } else { "" };
     if failed == 0 {
-        let title = match done {
-            1 => format!("Fichier converti en {}", job.target.to_uppercase()),
-            n => format!("{n} fichiers convertis en {}", job.target.to_uppercase()),
+        let title = match (done, job.target == crate::jobs::CUTOUT) {
+            (1, true) => "Fond retiré".to_string(),
+            (n, true) => format!("Fond retiré de {n} images"),
+            (1, false) => format!("Fichier converti en {}", job.target.to_uppercase()),
+            (n, false) => format!("{n} fichiers convertis en {}", job.target.to_uppercase()),
         };
         (title, "Clique pour ouvrir le dossier.".into())
     } else {
         let body = format!("{done} sur {} réussi{}, {failed} erreur{} : détails dans Morph.", job.files.len(), s(done), s(failed));
-        ("Conversion terminée avec des erreurs".into(), body)
+        let title = if job.target == crate::jobs::CUTOUT { "Détourage terminé avec des erreurs" } else { "Conversion terminée avec des erreurs" };
+        (title.into(), body)
     }
 }
 

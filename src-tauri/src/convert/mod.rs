@@ -29,6 +29,8 @@ pub enum ConvertError {
     Compress(String),
     #[error("édition impossible : {0}")]
     Edit(String),
+    #[error("téléchargement impossible : {0}")]
+    Download(String),
     #[error("annulé")]
     Cancelled,
     #[error("le fichier existe déjà : {}", .0.display())]
@@ -63,6 +65,10 @@ impl ConvertError {
             ConvertError::Image(_) => ("unreadable", "Image illisible ou endommagée.".into()),
             ConvertError::Ffmpeg(log) => ffmpeg_message(log),
             ConvertError::Compress(m) | ConvertError::Edit(m) => ("failed", sentence(m)),
+            ConvertError::Download(_) => (
+                "download",
+                "Téléchargement du modèle de détourage impossible : vérifie la connexion à internet, puis réessaie.".into(),
+            ),
             ConvertError::Cancelled => ("cancelled", "Annulé.".into()),
             ConvertError::Exists(p) => (
                 "exists",

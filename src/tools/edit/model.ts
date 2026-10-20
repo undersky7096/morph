@@ -127,6 +127,8 @@ export interface EditState {
   preset: string;
   geometry: Geometry;
   shapes: Shape[];
+  /** Fond retiré (éditeur d'image). */
+  cutout: boolean;
 }
 
 export const EDIT_DEFAULT: EditState = {
@@ -135,6 +137,7 @@ export const EDIT_DEFAULT: EditState = {
   preset: "none",
   geometry: GEOMETRY_DEFAULT,
   shapes: [],
+  cutout: false,
 };
 
 export type AnnotateTool = "select" | "text" | "brush" | "highlight" | "eraser" | "arrow" | "line" | "rect" | "ellipse";

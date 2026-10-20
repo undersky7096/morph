@@ -350,7 +350,24 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
   ~219 → ~183 Mo pour WebView2), code chargé par fenêtre (`main.tsx`, imports
   dynamiques). Le dépôt GitHub est privé : lien GitHub absent de « À propos », et
   à régler avant les mises à jour automatiques (10c).
-- **Reprendre à 10b (retirer le fond)** après validation de 10a.
+- **10b fait** (2026-10-20) — v0.11.0. Détourage `src-tauri/src/edit/cutout.rs` :
+  IS-Net (`isnet-general-use.onnx`, 178 648 008 octets, SHA-256 60920e99…964a,
+  adresse des releases de rembg) téléchargé au premier détourage dans
+  `%LOCALAPPDATA%/com.underskydev.morph/models`, vérifié, gardé en mémoire 90 s
+  après usage. Prétraitement de rembg (1024², valeurs/max − 0,5). ONNX Runtime
+  1.31.0 officiel (`npm run fetch:onnxruntime`, empreinte figée) chargé à la
+  demande (`ort` en `load-dynamic`) : sous Windows `onnxruntime.dll` + runtime
+  Visual C++ (msvcp140, msvcp140_1, vcruntime140, vcruntime140_1, pris dans les
+  Build Tools) à côté de l'exe (`tauri.windows.conf.json`) ; sous Linux
+  `onnxruntime/libonnxruntime.so` (`tauri.linux.conf.json`). Pourquoi : les binaires
+  liés statiquement par `ort` imposent DirectML.dll et MSVCP140.dll à l'exe (Morph
+  ne démarrerait plus sur un Windows sans runtime Visual C++) ; `tract` (Rust pur)
+  prend 11,7 s par image contre 0,84 s. Pétale « Détourer » (outil `direct`) : tâche
+  de fond `jobs::CUTOUT` → `nom Cutout.png`, note « téléchargement du modèle » dans
+  la mini-fenêtre ; éditeur d'image : « Retirer le fond » / « Remettre le fond »
+  (annulable, damier sous l'image), enregistrement en PNG si le format d'origine
+  n'a pas de transparence (JPEG, BMP).
+- **Reprendre à 10c** (mises à jour, Sandbox, v1.0.0) après validation de 10b.
 - **Décisions M6** (validées par l'utilisateur le 2026-10-20) :
   - Découpage en sous-étapes, un commit + validation chacune :
     **6a** éditeur image, **6b** découpe audio, **6c** éditeur vidéo.

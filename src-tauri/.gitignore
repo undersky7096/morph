@@ -8,3 +8,5 @@
 
 # Sidecars téléchargés (npm run fetch:ffmpeg)
 /binaries/
+# ONNX Runtime et runtime Visual C++ embarqués (npm run fetch:onnxruntime)
+/onnxruntime/
