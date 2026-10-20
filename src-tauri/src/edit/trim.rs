@@ -36,9 +36,19 @@ fn check_audio(input: &Path) -> Result<(), ConvertError> {
     Ok(())
 }
 
-/// Forme d'onde : durée exacte (échantillons décodés) et un pic (0-255) par 1/[`PEAKS_PER_SEC`] s.
+/// Forme d'onde (son d'un fichier audio ou d'une vidéo) : durée exacte (échantillons décodés)
+/// et un pic (0-255) par 1/[`PEAKS_PER_SEC`] s. Vidéo muette : durée de l'en-tête, aucun pic.
 pub fn peaks(input: &Path) -> Result<(f64, Vec<u8>), ConvertError> {
-    check_audio(input)?;
+    if !input.is_file() {
+        return Err(ConvertError::NotFound(input.display().to_string()));
+    }
+    let kind = formats::kind_of(input);
+    if kind == Some(Kind::Video) && !ffmpeg::probe(input)?.contains("Audio: ") {
+        return Ok((ffmpeg::probe_duration(input)?, Vec::new()));
+    }
+    if !matches!(kind, Some(Kind::Audio | Kind::Video)) {
+        return Err(ConvertError::Unsupported(input.display().to_string()));
+    }
     let mut child = ffmpeg::command()
         .arg("-i")
         .arg(input)
@@ -101,7 +111,7 @@ pub fn preview_wav(input: &Path) -> Result<Vec<u8>, ConvertError> {
 }
 
 /// Segments triés, ramenés dans le fichier, trop courts retirés, contigus recollés.
-fn normalize(segments: &[Segment], duration: f64) -> Vec<Segment> {
+pub(crate) fn normalize(segments: &[Segment], duration: f64) -> Vec<Segment> {
     let mut segs: Vec<Segment> = segments
         .iter()
         .map(|s| Segment { start: s.start.max(0.0), end: s.end.min(duration) })
@@ -119,7 +129,7 @@ fn normalize(segments: &[Segment], duration: f64) -> Vec<Segment> {
 }
 
 /// Graphe de filtres : chaque segment est extrait (fondu aux points de coupe), puis concaténé.
-fn filter_graph(segs: &[Segment], duration: f64) -> String {
+pub(crate) fn filter_graph(segs: &[Segment], duration: f64) -> String {
     let mut graph = String::new();
     for (i, s) in segs.iter().enumerate() {
         let len = s.end - s.start;
@@ -140,7 +150,7 @@ fn filter_graph(segs: &[Segment], duration: f64) -> String {
 }
 
 /// Codec et débit du premier flux audio (`Stream #0:0: Audio: mp3 (mp3float), 44100 Hz, stereo, fltp, 128 kb/s`).
-fn source_audio(probe: &str) -> (String, Option<u32>) {
+pub(crate) fn source_audio(probe: &str) -> (String, Option<u32>) {
     let Some(line) = probe.lines().find(|l| l.contains("Stream #") && l.contains("Audio: ")) else {
         return (String::new(), None);
     };
@@ -199,7 +209,7 @@ pub fn trim(input: &Path, segments: &[Segment], on_progress: &mut dyn FnMut(f32)
 
     let output = convert::suffixed_output(input, "Edited");
     on_progress(0.0);
-    ffmpeg::run_for(input, &args, &output, Some(kept), on_progress)?;
+    ffmpeg::run_for(input, &args, &output, Some(kept), None, on_progress)?;
     Ok(output)
 }
 

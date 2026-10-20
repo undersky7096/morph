@@ -12,6 +12,7 @@ import "./tools.css";
 // Konva est lourd : chargé seulement quand l'éditeur s'ouvre (le menu radial reste léger).
 const ImageEditor = lazy(() => import("./edit/ImageEditor"));
 const AudioEditor = lazy(() => import("./edit/AudioEditor"));
+const VideoEditor = lazy(() => import("./edit/VideoEditor"));
 
 interface Payload {
   tool: ToolId;
@@ -114,6 +115,8 @@ export default function ToolWindow() {
           <Suspense fallback={<p className="tool-hint tool-loading">Chargement de l'éditeur…</p>}>
             {kindOfPath(current![0]) === "audio" ? (
               <AudioEditor key={key} path={current![0]} footerExtra={skip} onSaved={advance} />
+            ) : kindOfPath(current![0]) === "video" ? (
+              <VideoEditor key={key} path={current![0]} footerExtra={skip} onSaved={advance} />
             ) : (
               <ImageEditor key={key} path={current![0]} footerExtra={skip} onSaved={advance} />
             )}

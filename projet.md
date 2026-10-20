@@ -211,8 +211,25 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
   (atrim + concat, fondus de 8 ms aux coupes, débit/profondeur de la source,
   pochette gardée en MP3/FLAC/M4A) → `nom Edited.ext`. CLI :
   `morph-cli trim 0-12.5,20-31 fichier`.
-- **Reprendre à M6c (éditeur vidéo)** ; réutiliser `Waveform`/`segments` pour
-  la découpe vidéo.
+- **M6c fait** (2026-10-20) — **v0.6.0** : éditeur vidéo
+  `src/tools/edit/VideoEditor.tsx`. Découpe partagée avec l'audio
+  (`Timeline.tsx` : lecture qui saute les trous, sélection, raccourcis, liste
+  des passages). Aperçu = même rendu WebGL que l'image (`renderer.updateImage`
+  à chaque image) ; lecture en continu via le protocole `asset` (fichier
+  autorisé à la demande par `allow_media`, en-têtes CORS → WebGL OK), copie
+  H.264 720p (`video_preview`) si le conteneur n'est pas lisible (AVI, WMV…).
+  Onglets Découpe / Réglages / Filtres / Cadre (rotation, miroir, redresser,
+  ratio Recadrer ou Ajuster avec fond flou/couleur, résolution par petit côté,
+  sans agrandissement) / Son (vitesse 0,25–4× via atempo, volume 0–200 %,
+  couper, EBU R128, fondus). Rust `src-tauri/src/edit/video.rs` : couleurs par
+  LUT 3D `.cube` calculée avec les formules du shader, vignettage par masque
+  PNG exact, netteté par `convolution`, flou `gblur`, grain `noise` ; même
+  conteneur en sortie (x264 CRF 18, VP9, mpeg4, wmv2, mpeg2) → `nom Edited.ext`.
+  `morph --edit|--crop|--compress fichiers` ouvre directement un outil.
+- Connu : `morph fichier` (sans option) affiche un menu radial vide quand Morph
+  est lancé par un autre programme (focus refusé par Windows au démarrage) ; le
+  vrai déclencheur Shift+glisser n'est pas concerné. À revoir en M7/M8.
+- **Reprendre à M7 (réglages + tray)**.
 - **Décisions M6** (validées par l'utilisateur le 2026-10-20) :
   - Découpage en sous-étapes, un commit + validation chacune :
     **6a** éditeur image, **6b** découpe audio, **6c** éditeur vidéo.

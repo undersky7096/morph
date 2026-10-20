@@ -2,10 +2,10 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 use tauri::ipc::Response;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::convert::{self, ConvertError, formats};
-use crate::edit::{self, compress, trim};
+use crate::edit::{self, compress, trim, video};
 use crate::{radial, tools};
 
 #[tauri::command]
@@ -177,6 +177,55 @@ pub async fn trim_audio(app: AppHandle, path: String, segments: Vec<trim::Segmen
     blocking(move || {
         trim::trim(Path::new(&path), &segments, &mut |p| {
             let _ = app.emit("trim-progress", p);
+        })
+    })
+    .await
+    .map(|out| out.display().to_string())
+}
+
+/// Ouvre l'accès d'un fichier vidéo au protocole `asset` (lecture en continu par le lecteur,
+/// sans tout charger en mémoire) et le renvoie. Seuls les fichiers demandés sont autorisés.
+#[tauri::command]
+pub fn allow_media(app: AppHandle, path: String) -> Result<String, ConvertError> {
+    let p = Path::new(&path);
+    if !matches!(formats::kind_of(p), Some(formats::Kind::Audio | formats::Kind::Video)) {
+        return Err(ConvertError::Unsupported(path));
+    }
+    app.asset_protocol_scope()
+        .allow_file(p)
+        .map_err(|e| ConvertError::Io(std::io::Error::other(e)))?;
+    Ok(path)
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VideoInfo {
+    duration: f64,
+    width: u32,
+    height: u32,
+    has_audio: bool,
+}
+
+/// Durée, dimensions affichées et présence de son d'une vidéo.
+#[tauri::command]
+pub async fn video_info(path: String) -> Result<VideoInfo, ConvertError> {
+    let i = blocking(move || video::info(Path::new(&path))).await?;
+    Ok(VideoInfo { duration: i.duration, width: i.width, height: i.height, has_audio: i.has_audio })
+}
+
+/// Copie lisible par le webview d'une vidéo dans un conteneur qu'il ne lit pas (AVI, WMV…).
+#[tauri::command]
+pub async fn video_preview(app: AppHandle, path: String) -> Result<String, ConvertError> {
+    let out = blocking(move || video::preview(Path::new(&path))).await?;
+    allow_media(app, out.display().to_string())
+}
+
+/// Enregistre une vidéo éditée. Progression via l'événement `edit-progress`.
+#[tauri::command]
+pub async fn edit_video(app: AppHandle, path: String, edit: video::VideoEdit) -> Result<String, ConvertError> {
+    blocking(move || {
+        video::edit(Path::new(&path), &edit, &mut |p| {
+            let _ = app.emit("edit-progress", p);
         })
     })
     .await

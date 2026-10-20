@@ -1,7 +1,8 @@
-//! Outils d'édition (menu d'actions) : recadrage, compression, éditeurs image et audio.
+//! Outils d'édition (menu d'actions) : recadrage, compression, éditeurs image, audio et vidéo.
 
 pub mod compress;
 pub mod trim;
+pub mod video;
 
 use std::path::{Path, PathBuf};
 

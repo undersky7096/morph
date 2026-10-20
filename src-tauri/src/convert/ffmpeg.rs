@@ -102,19 +102,25 @@ pub fn run(
     output: &Path,
     on_progress: &mut dyn FnMut(f32),
 ) -> Result<(), ConvertError> {
-    run_for(input, args, output, None, on_progress)
+    run_for(input, args, output, None, None, on_progress)
 }
 
 /// Comme [`run`], quand la sortie ne dure pas autant que l'entrée (découpe) :
-/// la progression se mesure alors sur `out_secs`.
+/// la progression se mesure alors sur `out_secs`. `cwd` : dossier de travail, pour
+/// désigner des fichiers annexes par un nom simple dans les filtres (les chemins
+/// Windows, avec leurs `C:\`, y sont pénibles à échapper).
 pub fn run_for(
     input: &Path,
     args: &[impl AsRef<std::ffi::OsStr>],
     output: &Path,
     out_secs: Option<f64>,
+    cwd: Option<&Path>,
     on_progress: &mut dyn FnMut(f32),
 ) -> Result<(), ConvertError> {
     let mut cmd = command();
+    if let Some(dir) = cwd {
+        cmd.current_dir(dir);
+    }
     cmd.args(["-n", "-i"])
         .arg(input)
         .args(args)

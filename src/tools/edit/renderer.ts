@@ -110,6 +110,7 @@ export class Renderer {
   private blur: WebGLProgram;
   private final: WebGLProgram;
   private source: WebGLTexture | null = null;
+  private staging = document.createElement("canvas");
   private targets: Target[] = [];
 
   constructor() {
@@ -126,13 +127,15 @@ export class Renderer {
   /** Charge l'image (orientation EXIF appliquée par le navigateur au dessin). */
   setImage(img: CanvasImageSource & { width: number; height: number }, maxSide = Infinity) {
     const gl = this.gl;
+    // Une vidéo a sa taille dans videoWidth/videoHeight (width/height = attributs de l'élément).
+    const [iw, ih] = img instanceof HTMLVideoElement ? [img.videoWidth, img.videoHeight] : [img.width, img.height];
     const max = Math.min(gl.getParameter(gl.MAX_TEXTURE_SIZE) as number, maxSide);
-    const ratio = Math.min(1, max / Math.max(img.width, img.height));
+    const ratio = Math.min(1, max / Math.max(iw, ih));
     this.downscaled = ratio < 1 && maxSide === Infinity;
-    this.width = Math.max(1, Math.round(img.width * ratio));
-    this.height = Math.max(1, Math.round(img.height * ratio));
+    this.width = Math.max(1, Math.round(iw * ratio));
+    this.height = Math.max(1, Math.round(ih * ratio));
 
-    const staging = document.createElement("canvas");
+    const staging = this.staging;
     staging.width = this.width;
     staging.height = this.height;
     staging.getContext("2d")!.drawImage(img, 0, 0, this.width, this.height);
@@ -151,6 +154,15 @@ export class Renderer {
       return { fb, tex };
     });
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  /** Nouvelle image à la même taille (image suivante d'une vidéo) : seule la texture source change. */
+  updateImage(img: CanvasImageSource) {
+    const gl = this.gl;
+    if (!this.source) return;
+    this.staging.getContext("2d")!.drawImage(img, 0, 0, this.width, this.height);
+    gl.bindTexture(gl.TEXTURE_2D, this.source);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.staging);
   }
 
   /** Libère le contexte WebGL (le navigateur en limite le nombre). */
