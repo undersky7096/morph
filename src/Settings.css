@@ -534,3 +534,51 @@ kbd {
 .about-components small {
   color: var(--muted);
 }
+
+.about-update {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.about-update p {
+  margin: 0;
+}
+
+.about-notes {
+  max-height: 140px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.about-bar {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  height: 6px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  overflow: hidden;
+}
+
+.about-bar > span {
+  position: absolute;
+  inset: 0;
+  transform-origin: left;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent-2), var(--accent));
+  transition: transform 0.25s ease-out;
+}
+
+.settings-button.is-primary {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  color: #fff;
+}
+
+.settings-button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}

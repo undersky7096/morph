@@ -139,6 +139,23 @@ pub fn cancel_task(app: AppHandle, task: String) {
     jobs::cancel_task(&app, &task);
 }
 
+#[tauri::command]
+pub fn update_status(app: AppHandle) -> crate::updates::Status {
+    crate::updates::status(&app)
+}
+
+/// « Rechercher une mise à jour » (Réglages).
+#[tauri::command]
+pub async fn check_update(app: AppHandle) -> crate::updates::Status {
+    crate::updates::check(&app).await
+}
+
+/// Installe la mise à jour trouvée ; Morph redémarre ensuite.
+#[tauri::command]
+pub async fn install_update(app: AppHandle) -> Result<(), String> {
+    crate::updates::install(&app).await
+}
+
 /// Interface des Réglages prête : la fenêtre s'affiche.
 #[tauri::command]
 pub fn reveal_settings(app: AppHandle) -> Result<(), String> {

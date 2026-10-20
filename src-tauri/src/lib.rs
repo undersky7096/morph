@@ -10,6 +10,7 @@ mod radial;
 mod settings;
 mod tools;
 mod tray;
+mod updates;
 #[cfg(windows)]
 mod shift_drag;
 
@@ -65,11 +66,13 @@ pub fn run() {
         .plugin(tauri_plugin_autostart::Builder::new().args([HIDDEN_ARG]).build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(radial::Pending::default())
         .manage(tools::Pending::default())
         .manage(settings::State::default())
         .manage(jobs::Jobs::default())
         .manage(jobs::Tasks::default())
+        .manage(updates::State::default())
         .setup(|app| {
             settings::load(app.handle());
             if let Ok(dir) = app.path().app_local_data_dir() {
@@ -82,6 +85,7 @@ pub fn run() {
             icon::refresh(app.handle());
             #[cfg(windows)]
             shift_drag::start(app.handle().clone());
+            updates::start(app.handle());
 
             let args: Vec<String> = std::env::args().skip(1).collect();
             handle_args(app.handle(), &args)?;
@@ -106,6 +110,9 @@ pub fn run() {
             commands::cancel_task,
             commands::reveal,
             commands::reveal_settings,
+            commands::update_status,
+            commands::check_update,
+            commands::install_update,
             commands::open_link,
             commands::open_radial,
             commands::open_actions,

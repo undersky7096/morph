@@ -367,7 +367,31 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
   la mini-fenêtre ; éditeur d'image : « Retirer le fond » / « Remettre le fond »
   (annulable, damier sous l'image), enregistrement en PNG si le format d'origine
   n'a pas de transparence (JPEG, BMP).
-- **Reprendre à 10c** (mises à jour, Sandbox, v1.0.0) après validation de 10b.
+- **Décisions 10c** (validées par l'utilisateur le 2026-10-20) : le dépôt GitHub
+  passe en public (fait par l'utilisateur ; règle aussi l'accès au code source exigé
+  par la GPL), releases et mises à jour via GitHub ; Morph vérifie au démarrage puis
+  toutes les 6 h, prévient (notification + Réglages) et n'installe que sur clic,
+  jamais pendant un traitement ; Linux : build GitHub seulement (pas de WSL) ;
+  pas de certificat de signature pour la v1.0.0 (avertissement SmartScreen accepté) ;
+  tests sur machine propre (Windows Sandbox, à lancer en administrateur) quand
+  l'utilisateur le dira.
+- **10c en cours** (2026-10-20) — v0.12.0. Mises à jour : `tauri-plugin-updater`,
+  `src-tauri/src/updates.rs` (vérification 30 s après le démarrage puis toutes les
+  6 h, notification une fois par version → Réglages « À propos », installation sur
+  clic refusée si un traitement tourne ou si un outil est ouvert, puis redémarrage),
+  manifeste `…/releases/latest/download/latest.json` (`scripts/updater-json.mjs`,
+  job `updater` de la CI sur un tag). Clé de signature : `~/.tauri/morph-updater.key`
+  + `.password` (hors dépôt, à sauvegarder), secrets GitHub
+  `TAURI_SIGNING_PRIVATE_KEY` / `_PASSWORD` ; sans secret, la CI construit sans
+  fichiers de mise à jour. Notes de version : `.github/release-notes/vX.Y.Z.md`
+  (release et manifeste). Test machine propre : `tests/sandbox/run.ps1` (Sandbox en
+  administrateur, script `inside.ps1` automatique : installation silencieuse, premier
+  lancement, conversions et détourage via `morph-cli`, désinstallation, rapport et
+  captures). `morph-cli cutout`. README réécrit pour le dépôt public.
+- **Reste pour 10c** : secrets GitHub (accord de l'utilisateur), dépôt passé en public
+  par l'utilisateur, test Sandbox (quand l'utilisateur le dira), puis v1.0.0 (tag →
+  release brouillon relue et publiée par l'utilisateur) et test de mise à jour réel
+  0.12.0 → 1.0.0.
 - **Décisions M6** (validées par l'utilisateur le 2026-10-20) :
   - Découpage en sous-étapes, un commit + validation chacune :
     **6a** éditeur image, **6b** découpe audio, **6c** éditeur vidéo.

@@ -100,6 +100,12 @@ fn emit(app: &AppHandle, id: u64) {
     }
 }
 
+/// Un traitement est en cours (conversion, détourage, ou opération d'un outil).
+pub fn any_running(app: &AppHandle) -> bool {
+    app.state::<Jobs>().0.lock().unwrap().values().any(|j| !j.finished)
+        || !app.state::<Tasks>().0.lock().unwrap().is_empty()
+}
+
 pub fn list(app: &AppHandle) -> Vec<Job> {
     let mut jobs: Vec<Job> = app.state::<Jobs>().0.lock().unwrap().values().cloned().collect();
     jobs.sort_by_key(|j| j.id);

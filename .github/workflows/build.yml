@@ -1,6 +1,8 @@
 # Construit les installeurs Windows (NSIS) et Linux (AppImage).
 # Lancé à chaque push sur main, sur les PR, et à la main (onglet Actions).
-# Un tag v* publie en plus une release brouillon avec les deux installeurs.
+# Un tag v* publie en plus une release brouillon avec les deux installeurs, leurs
+# signatures et le manifeste des mises à jour (latest.json), lu par Morph une fois la
+# release publiée.
 name: build
 
 on:
@@ -60,20 +62,56 @@ jobs:
         working-directory: src-tauri
         run: cargo test --release
 
+      # Signature des mises à jour : clé en secret du dépôt. Sans elle (PR d'un fork…),
+      # les installeurs sont construits sans fichiers de mise à jour.
       - name: Installeur
-        run: npx tauri build --bundles ${{ matrix.bundle }}
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            npx tauri build --bundles ${{ matrix.bundle }}
+          else
+            echo "::warning::Clé de signature absente : installeur sans mise à jour signée"
+            unset TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+            npx tauri build --bundles ${{ matrix.bundle }} --config '{"bundle":{"createUpdaterArtifacts":false}}'
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
           name: morph-${{ matrix.bundle }}
-          path: ${{ matrix.artifact }}
+          path: |
+            ${{ matrix.artifact }}
+            ${{ matrix.artifact }}.sig
           if-no-files-found: error
 
       - name: Release brouillon
         if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
         run: |
+          notes=".github/release-notes/$GITHUB_REF_NAME.md"
+          [ -f "$notes" ] || notes=/dev/null
           gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
-            || gh release create "$GITHUB_REF_NAME" --draft --title "Morph ${GITHUB_REF_NAME#v}" --notes "" \
+            || gh release create "$GITHUB_REF_NAME" --draft --title "Morph ${GITHUB_REF_NAME#v}" --notes-file "$notes" \
             || true
-          gh release upload "$GITHUB_REF_NAME" ${{ matrix.artifact }} --clobber
+          gh release upload "$GITHUB_REF_NAME" ${{ matrix.artifact }} ${{ matrix.artifact }}.sig --clobber
+
+  # Manifeste des mises à jour, une fois les deux installeurs signés dans la release.
+  updater:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: latest.json
+        run: |
+          gh release download "$GITHUB_REF_NAME" --pattern '*.sig' --dir sigs
+          node scripts/updater-json.mjs "$GITHUB_REF_NAME" sigs > latest.json
+          cat latest.json
+          gh release upload "$GITHUB_REF_NAME" latest.json --clobber

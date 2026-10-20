@@ -26,28 +26,57 @@ fn summary(job: &Job) -> (String, String) {
     }
 }
 
+/// Clic sur une notification.
+enum OnClick {
+    /// Montre le fichier dans l'explorateur.
+    Reveal(PathBuf),
+    /// Ouvre les Réglages sur « À propos » (mise à jour).
+    Updates,
+}
+
+fn activate(app: &AppHandle, click: &OnClick) {
+    match click {
+        OnClick::Reveal(path) => {
+            let _ = tauri_plugin_opener::reveal_item_in_dir(path);
+        }
+        OnClick::Updates => {
+            let _ = crate::tray::show_settings_at(app, Some("about"));
+        }
+    }
+}
+
+pub fn update_available(app: &AppHandle, version: &str) {
+    show(
+        app,
+        &format!("Morph {version} est disponible"),
+        "Clique pour voir les nouveautés et installer la mise à jour.",
+        Some(OnClick::Updates),
+    );
+}
+
 pub fn job_finished(app: &AppHandle, job: &Job) {
     // Tout annulé : rien à annoncer.
     if !job.files.iter().any(|f| matches!(f.status, Status::Done | Status::Error | Status::Conflict)) {
         return;
     }
-    let first: Option<PathBuf> = job.files.iter().find_map(|f| f.output.as_ref().map(PathBuf::from));
+    let first = job.files.iter().find_map(|f| f.output.as_ref().map(PathBuf::from));
     let (title, body) = summary(job);
-    show(app, &title, &body, first);
+    show(app, &title, &body, first.map(OnClick::Reveal));
 }
 
 #[cfg(windows)]
-fn show(app: &AppHandle, title: &str, body: &str, reveal: Option<PathBuf>) {
+fn show(app: &AppHandle, title: &str, body: &str, click: Option<OnClick>) {
     use tauri_winrt_notification::Toast;
     // Installé : identifiant posé sur le raccourci par l'installeur ; sinon (développement),
     // celui de PowerShell, toujours enregistré.
     let id = if cfg!(debug_assertions) { Toast::POWERSHELL_APP_ID.to_string() } else { app.config().identifier.clone() };
+    let handle = app.clone();
     let result = Toast::new(&id)
         .title(title)
         .text1(body)
         .on_activated(move |_| {
-            if let Some(path) = &reveal {
-                let _ = tauri_plugin_opener::reveal_item_in_dir(path);
+            if let Some(click) = &click {
+                activate(&handle, click);
             }
             Ok(())
         })
@@ -58,19 +87,25 @@ fn show(app: &AppHandle, title: &str, body: &str, reveal: Option<PathBuf>) {
 }
 
 #[cfg(target_os = "linux")]
-fn show(_app: &AppHandle, title: &str, body: &str, reveal: Option<PathBuf>) {
-    let (title, body) = (title.to_string(), body.to_string());
+fn show(app: &AppHandle, title: &str, body: &str, click: Option<OnClick>) {
+    let (title, body, app) = (title.to_string(), body.to_string(), app.clone());
     std::thread::spawn(move || {
         let mut n = notify_rust::Notification::new();
         n.summary(&title).body(&body).appname("Morph");
-        if reveal.is_some() {
-            n.action("default", "Ouvrir le dossier");
+        match &click {
+            Some(OnClick::Reveal(_)) => {
+                n.action("default", "Ouvrir le dossier");
+            }
+            Some(OnClick::Updates) => {
+                n.action("default", "Voir la mise à jour");
+            }
+            None => {}
         }
         match n.show() {
             Ok(handle) => handle.wait_for_action(|action| {
                 if action == "default" {
-                    if let Some(path) = &reveal {
-                        let _ = tauri_plugin_opener::reveal_item_in_dir(path);
+                    if let Some(click) = &click {
+                        activate(&app, click);
                     }
                 }
             }),
@@ -80,4 +115,4 @@ fn show(_app: &AppHandle, title: &str, body: &str, reveal: Option<PathBuf>) {
 }
 
 #[cfg(not(any(windows, target_os = "linux")))]
-fn show(_app: &AppHandle, _title: &str, _body: &str, _reveal: Option<PathBuf>) {}
+fn show(_app: &AppHandle, _title: &str, _body: &str, _click: Option<OnClick>) {}

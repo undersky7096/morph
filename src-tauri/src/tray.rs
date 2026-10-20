@@ -2,7 +2,7 @@
 
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 
 /// La fenêtre principale sert de fenêtre de Réglages.
 pub const SETTINGS: &str = "main";
@@ -12,10 +12,19 @@ pub const ID: &str = "morph";
 /// à la fermeture) : Morph au repos dans la zone de notification reste léger. Une fenêtre
 /// créée s'affiche quand son interface est prête (`reveal_settings`), sans flash blanc.
 pub fn show_settings(app: &AppHandle) -> tauri::Result<()> {
+    show_settings_at(app, None)
+}
+
+/// Ouvre les Réglages sur une section (`#about`…), ou sur la dernière affichée.
+pub fn show_settings_at(app: &AppHandle, section: Option<&str>) -> tauri::Result<()> {
     if app.get_webview_window(SETTINGS).is_some() {
+        if let Some(section) = section {
+            app.emit_to(SETTINGS, "settings-section", section)?;
+        }
         return reveal_settings(app);
     }
-    let window = WebviewWindowBuilder::new(app, SETTINGS, WebviewUrl::App("index.html".into()))
+    let url = section.map_or_else(|| "index.html".to_string(), |s| format!("index.html#{s}"));
+    let window = WebviewWindowBuilder::new(app, SETTINGS, WebviewUrl::App(url.into()))
         .title("Réglages · Morph")
         .inner_size(880.0, 640.0)
         .min_inner_size(720.0, 520.0)

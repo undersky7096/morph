@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { getVersion } from "@tauri-apps/api/app";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -29,6 +30,12 @@ const SECTIONS: [Section, string][] = [
   ["system", "Système"],
   ["about", "À propos"],
 ];
+
+/** Section demandée à l'ouverture (`index.html#about`, depuis une notification). */
+const initialSection = (): Section => {
+  const hash = window.location.hash.slice(1);
+  return SECTIONS.some(([id]) => id === hash) ? (hash as Section) : "appearance";
+};
 
 const SITE = "https://morph.underskydev.com";
 const CONTACT = "contact@underskydev.com";
@@ -68,13 +75,21 @@ function App() {
   // Accueil rouvert depuis les Réglages : à la fin, on y revient (sinon la fenêtre se masque).
   const seenSettings = useRef(false);
   if (loaded && settings.onboarded) seenSettings.current = true;
-  const [section, setSection] = useState<Section>("appearance");
+  const [section, setSection] = useState<Section>(initialSection);
   const [version, setVersion] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [over, setOver] = useState(false);
 
   useEffect(() => {
     getVersion().then(setVersion);
+  }, []);
+
+  // Fenêtre déjà ouverte et notification cliquée : on passe à la section demandée.
+  useEffect(() => {
+    const unlisten = listen<Section>("settings-section", ({ payload }) => setSection(payload));
+    return () => {
+      unlisten.then((fn) => fn());
+    };
   }, []);
 
   // Fenêtre créée cachée : on l'affiche une fois les réglages chargés (pas de flash blanc).
@@ -332,6 +347,7 @@ function AboutSection({ version }: { version: string }) {
           </div>
         </div>
       </section>
+      <UpdatesGroup />
       <Group title="Licence" hint="Morph est un logiciel libre, distribué sous licence GPL-3.0-or-later.">
         <p className="settings-hint">© 2026 UnderSkyDev.</p>
       </Group>
@@ -349,6 +365,81 @@ function AboutSection({ version }: { version: string }) {
         </ul>
       </Group>
     </>
+  );
+}
+
+interface UpdateStatus {
+  available: { version: string; notes: string | null } | null;
+  checking: boolean;
+  installing: number | null;
+  error: string | null;
+  lastCheckMs: number | null;
+}
+
+/** « il y a 3 h », « il y a 5 min », « à l'instant ». */
+function ago(ms: number) {
+  const min = Math.round((Date.now() - ms) / 60000);
+  if (min < 1) return "à l'instant";
+  if (min < 60) return `il y a ${min} min`;
+  const h = Math.round(min / 60);
+  return h < 24 ? `il y a ${h} h` : `il y a ${Math.round(h / 24)} j`;
+}
+
+/** Mises à jour : vérifiées automatiquement (démarrage, puis toutes les 6 h), installées sur clic. */
+function UpdatesGroup() {
+  const [status, setStatus] = useState<UpdateStatus | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    invoke<UpdateStatus>("update_status").then(setStatus);
+    const unlisten = listen<UpdateStatus>("update-status", ({ payload }) => setStatus(payload));
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
+
+  async function install() {
+    setError(null);
+    try {
+      await invoke("install_update");
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
+  if (!status) return null;
+  const { available, checking, installing, lastCheckMs } = status;
+  return (
+    <Group title="Mises à jour">
+      {installing !== null ? (
+        <div className="about-update">
+          <p>Téléchargement de Morph {available?.version}… {Math.round(installing * 100)} %</p>
+          <div className="about-bar">
+            <span style={{ transform: `scaleX(${installing})` }} />
+          </div>
+          <p className="settings-hint">Morph redémarrera tout seul une fois la mise à jour installée.</p>
+        </div>
+      ) : available ? (
+        <div className="about-update">
+          <p>
+            <strong>Morph {available.version} est disponible.</strong>
+          </p>
+          {available.notes && <p className="about-notes">{available.notes}</p>}
+          <button className="settings-button is-primary" onClick={install}>
+            Installer et redémarrer
+          </button>
+        </div>
+      ) : (
+        <div className="about-update">
+          <p>{checking ? "Recherche d'une mise à jour…" : "Morph est à jour."}</p>
+          {lastCheckMs !== null && !checking && <p className="settings-hint">Dernière vérification {ago(lastCheckMs)}.</p>}
+          <button className="settings-button" disabled={checking} onClick={() => invoke("check_update")}>
+            Rechercher maintenant
+          </button>
+        </div>
+      )}
+      {(error ?? status.error) && <p className="settings-error">{error ?? status.error}</p>}
+    </Group>
   );
 }
 

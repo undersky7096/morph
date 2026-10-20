@@ -3,6 +3,7 @@
 //!   morph-cli <format> <fichiers…>  convertit chaque fichier vers <format>
 //!   morph-cli compress <light|medium|strong> [--colors] [--target <Mo>] <fichiers…>
 //!   morph-cli trim <début-fin,début-fin…> <fichiers…>  garde ces passages (en secondes)
+//!   morph-cli cutout <images…>       retire le fond (télécharge le modèle la première fois)
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -10,7 +11,49 @@ use std::process::ExitCode;
 
 use morph_lib::convert::{self, formats};
 use morph_lib::edit::compress::{self, Level, Options, Outcome};
+use morph_lib::edit::cutout;
 use morph_lib::edit::trim::{self, Segment};
+
+/// Détourage, avec le modèle et ONNX Runtime aux emplacements de l'application installée
+/// (ou, en développement, ONNX Runtime de `src-tauri/onnxruntime/`).
+fn cutout_cmd(files: &[String]) -> ExitCode {
+    let data = if cfg!(windows) {
+        std::env::var_os("LOCALAPPDATA").map(PathBuf::from)
+    } else {
+        std::env::var_os("XDG_DATA_HOME")
+            .map(PathBuf::from)
+            .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".local/share")))
+    };
+    let Some(data) = data else {
+        eprintln!("dossier de données introuvable");
+        return ExitCode::FAILURE;
+    };
+    cutout::set_models_dir(data.join("com.underskydev.morph").join("models"));
+    let beside_exe = std::env::current_exe().ok().and_then(|e| e.parent().map(|d| d.join(cutout::RUNTIME_LIB)));
+    let dev = Path::new(env!("CARGO_MANIFEST_DIR")).join("onnxruntime").join(Path::new(cutout::RUNTIME_LIB).file_name().unwrap());
+    cutout::set_runtime(beside_exe.filter(|p| p.exists()).unwrap_or(dev));
+
+    let mut failed = false;
+    for file in files {
+        let mut last = -1;
+        let mut report = |p: f32| {
+            let pct = (p * 100.0) as i32;
+            if pct != last {
+                last = pct;
+                print!("\r{file} → détourage : {pct:3}%");
+                let _ = std::io::stdout().flush();
+            }
+        };
+        match cutout::remove_background(Path::new(file), &mut report) {
+            Ok(out) => println!("\r{file} → {} ✓", out.display()),
+            Err(e) => {
+                failed = true;
+                println!("\r{file} → détourage ✗\n{e}");
+            }
+        }
+    }
+    if failed { ExitCode::FAILURE } else { ExitCode::SUCCESS }
+}
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -30,6 +73,9 @@ fn main() -> ExitCode {
     }
     if command == "trim" {
         return trim_cmd(files);
+    }
+    if command == "cutout" {
+        return cutout_cmd(files);
     }
 
     let mut failed = false;

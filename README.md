@@ -1,55 +1,91 @@
 # Morph
 
-Convertisseur et éditeur de fichiers déclenché par un geste drag + Shift, avec menus radiaux.
-Cadrage complet : voir [projet.md](projet.md).
+Convertir et retoucher ses images, sons et vidéos en un geste, sans ouvrir d'application :
+on glisse des fichiers en maintenant **Shift**, on les lâche n'importe où, et un menu radial
+propose les formats et les outils. Windows et Linux. Site : [morph.underskydev.com](https://morph.underskydev.com).
 
-## Stack
+## Ce que fait Morph
 
-- Tauri v2 (Rust) + React + TypeScript (Vite)
+- **Convertir** : images (PNG, JPG, WebP, GIF, BMP, TIFF, ICO, TGA), audio (MP3, WAV, OGG,
+  FLAC, M4A, Opus), vidéo (MP4, WebM, MKV, MOV, AVI, GIF) et extraction du son d'une vidéo.
+  Formats favoris en premier, lots de fichiers mélangés.
+- **Recadrer** une image, **Détourer** (retirer le fond, en local), **Compresser** (images,
+  audio, vidéo, taille cible), **Éditer** : retouches et annotations d'image, découpe et
+  volume audio, montage léger de vidéo (découpe, cadrage, vitesse, effets, son).
+- Traitements en arrière-plan avec mini-fenêtre de progression, annulation, doublons et
+  erreurs expliqués ; notification à la fin.
+- Thème clair / sombre / couleurs personnalisées, lancement à l'ouverture de session,
+  mises à jour automatiques (proposées, jamais imposées).
+
+Tout se passe sur l'ordinateur : aucun fichier n'est envoyé. Le modèle de détourage est
+téléchargé une seule fois, au premier usage.
+
+## Installation
+
+Télécharger l'installeur de la [dernière version](https://github.com/undersky7096/morph/releases/latest) :
+
+- **Windows** : `Morph_x.y.z_x64-setup.exe` (installation pour l'utilisateur, sans droits
+  administrateur). L'installeur n'est pas signé : Windows peut afficher « Windows a protégé
+  votre ordinateur » ; cliquer sur « Informations complémentaires » puis « Exécuter quand même ».
+- **Linux** : `Morph_x.y.z_amd64.AppImage`, à rendre exécutable puis lancer ; « Ajouter Morph
+  au système » (écran d'accueil ou Réglages) crée l'entrée de menu et les actions du clic
+  droit (Nautilus, Dolphin, Nemo).
 
 ## Développement
 
-Prérequis : Node.js 22.12+ (ou 24), Rust (stable), outils de build C++ Visual Studio (Windows).
+Prérequis : Node.js 22.12+ (ou 24), Rust stable, et sous Windows les outils de build C++ de
+Visual Studio (Build Tools).
 
 ```sh
 npm install
-npm run fetch:ffmpeg   # télécharge le sidecar ffmpeg (src-tauri/binaries/, non versionné)
-npm run fetch:onnxruntime  # ONNX Runtime pour le détourage (+ runtime Visual C++ sous Windows, pris dans les Build Tools)
-npm run tauri dev      # lance l'application en mode dev
-npm run tauri build    # produit l'installeur (NSIS sous Windows, AppImage sous Linux)
+npm run fetch:ffmpeg       # sidecar ffmpeg (src-tauri/binaries/, non versionné)
+npm run fetch:onnxruntime  # ONNX Runtime pour le détourage (+ runtime Visual C++ sous Windows)
+npm run tauri dev          # application en mode développement
 ```
 
-### Tester le moteur de conversion en CLI
+Construire l'installeur demande la clé qui signe les mises à jour (voir plus bas) :
+
+```sh
+TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/morph-updater.key)" \
+TAURI_SIGNING_PRIVATE_KEY_PASSWORD="$(cat ~/.tauri/morph-updater.password)" \
+npm run tauri build        # NSIS sous Windows, AppImage sous Linux
+```
+
+Sans la clé : `npm run tauri build -- --config '{"bundle":{"createUpdaterArtifacts":false}}'`.
+
+### Moteur en ligne de commande
 
 ```sh
 cd src-tauri
-cargo run --bin morph-cli -- targets photo.png clip.mov   # formats proposés (JSON)
-cargo run --bin morph-cli -- webp photo.png               # convertit à côté de l'original
-cargo run --bin morph-cli -- compress medium --target 20 clip.mp4   # compresse (light|medium|strong, --colors pour les PNG)
-cargo test                                                 # tests unitaires
+cargo run --bin morph-cli -- targets photo.png clip.mov             # formats proposés (JSON)
+cargo run --bin morph-cli -- webp photo.png                         # convertit à côté de l'original
+cargo run --bin morph-cli -- compress medium --target 20 clip.mp4   # compresse
+cargo test                                                          # tests
 ```
-
-### Builds (GitHub Actions)
-
-`.github/workflows/build.yml` construit l'installeur Windows (NSIS) et l'AppImage Linux à chaque push sur `main` (téléchargeables dans l'onglet Actions, artefacts `morph-nsis` / `morph-appimage`). Pousser un tag `vX.Y.Z` crée en plus une release brouillon avec les deux fichiers.
 
 ### Logo et icônes
 
-Le logo est `branding/morph-logo.png` ; `python scripts/icons.py` en tire toutes les icônes (exe, installeur, Linux) et le masque utilisé par l'icône dynamique.
+Le logo est `branding/morph-logo.png` ; `python scripts/icons.py` en tire toutes les icônes
+(exe, installeur, Linux) et le masque de l'icône dynamique.
+
+### Builds et versions
+
+`.github/workflows/build.yml` construit l'installeur Windows et l'AppImage à chaque push sur
+`main` (artefacts de l'onglet Actions). Pour une version :
+
+1. `npm run bump -- x.y.z`, notes dans `.github/release-notes/vx.y.z.md`, commit ;
+2. pousser le tag `vx.y.z` : la build crée une **release brouillon** avec les deux
+   installeurs, leurs signatures et `latest.json` (manifeste des mises à jour) ;
+3. relire puis publier la release : les Morph installés la proposent alors en mise à jour.
+
+Les mises à jour sont signées : clé privée hors du dépôt (`~/.tauri/morph-updater.key` et
+son mot de passe, **à sauvegarder** : sans elle, plus aucune mise à jour ne pourra être
+publiée), en secrets du dépôt `TAURI_SIGNING_PRIVATE_KEY` et
+`TAURI_SIGNING_PRIVATE_KEY_PASSWORD` ; clé publique dans `src-tauri/tauri.conf.json`.
 
 ## Licence
 
-GPL-3.0-or-later (voir [LICENSE](LICENSE)). ffmpeg est livré à part, en sidecar (build GPL de BtbN). ONNX Runtime (MIT) est embarqué ; le modèle de détourage IS-Net (Apache-2.0) est téléchargé à la première utilisation.
-
-## Statut
-
-Version actuelle : **0.5.0** (`0.<milestone>.0` ; changer avec `npm run bump -- x.y.z`).
-
-- M6a : éditeur image (réglages, filtres, rotation/miroir/redressement, vignettage, grain, inversion ; texte, pinceau, gomme, surligneur, formes ; annuler/rétablir). Après chaque enregistrement : retour aux pétales, ou fichier suivant d'un lot.
-- M5 : outil Compresser — PNG optimisé sans perte (oxipng) + option « réduire les couleurs » (libimagequant), JPEG/WebP/GIF par niveau, audio/vidéo par niveau ou par taille cible (2 passes, préréglage Discord 20 Mo), aperçu du poids, lots. Résultat `nom Compressed.ext`, rien d'enregistré si pas plus léger.
-- M4 : menu d'actions (après conversion, ou pétale « Éditer ») + outil Recadrer dans une popup, bouton « Outil suivant ».
-
-- M0 : squelette — build Windows (installeur NSIS) OK ; build Linux (AppImage) via GitHub Actions.
-- M1 : moteur de conversion — images (crate `image` : png, jpg, webp, bmp, gif, tiff, ico, tga) et audio/vidéo (ffmpeg sidecar : mp4, webm, mkv, mov, avi, gif, mp3, wav, ogg, flac, m4a, opus), progression, noms sans écrasement.
-- M3 : déclencheur Shift + glisser depuis l'explorateur/le bureau (Windows), halo de survol, dépôt toujours en copie.
-- M2 : menu radial des formats (fenêtre transparente sous le curseur). Test : glisser des fichiers dans la fenêtre Morph, ou `morph.exe fichier1 fichier2`. Voir les milestones dans [projet.md](projet.md).
+GPL-3.0-or-later (voir [LICENSE](LICENSE)). Composants : ffmpeg (sidecar, build GPL de
+BtbN), ONNX Runtime (MIT, embarqué), modèle de détourage IS-Net (Apache-2.0, téléchargé au
+premier usage) ; liste complète dans Réglages → À propos. Cadrage et historique du projet :
+[projet.md](projet.md).
