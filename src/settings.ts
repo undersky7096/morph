@@ -6,6 +6,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 
+import { type Language, lang, t } from "./i18n";
+
 export type ThemeMode = "system" | "light" | "dark";
 export type MixedBatch = "groups" | "common";
 export type SaveMode = "beside" | "folder" | "ask";
@@ -14,6 +16,8 @@ export type Duplicates = "keep" | "replace" | "ask";
 export type CutoutQuality = "fast" | "best";
 
 export interface Settings {
+  /** Langue de l'interface ; « system » suit celle de l'ordinateur. */
+  language: Language;
   theme: ThemeMode;
   accent: string | null;
   background: string | null;
@@ -31,6 +35,7 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
+  language: "system",
   theme: "system",
   accent: null,
   background: null,
@@ -110,6 +115,7 @@ export function initSettings() {
 function update(s: Settings, fade = false) {
   current = s;
   loaded = true;
+  document.documentElement.lang = lang();
   apply(s, fade);
   subscribers.forEach((fn) => fn(s));
 }
@@ -162,6 +168,6 @@ export async function saveSettings(patch: Partial<Settings>): Promise<Settings> 
  */
 export async function chooseOutputDir(): Promise<string | null | undefined> {
   if (current.saveMode !== "ask") return undefined;
-  const dir = await open({ directory: true, title: "Enregistrer dans…" });
+  const dir = await open({ directory: true, title: t("Enregistrer dans…", "Save to…") });
   return typeof dir === "string" ? dir : null;
 }

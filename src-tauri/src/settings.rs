@@ -42,9 +42,20 @@ pub enum SaveMode {
     Ask,
 }
 
+/// Langue de l'interface ; `System` suit celle de l'ordinateur.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Language {
+    #[default]
+    System,
+    Fr,
+    En,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Settings {
+    pub language: Language,
     pub theme: ThemeMode,
     /// Couleur d'accent (`#rrggbb`) ; aucune : celle du thème.
     pub accent: Option<String>,
@@ -70,6 +81,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Settings {
+            language: Language::System,
             theme: ThemeMode::System,
             accent: None,
             background: None,

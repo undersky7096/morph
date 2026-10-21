@@ -3,25 +3,26 @@
 import { motion } from "motion/react";
 
 import { kindOf, outputsOf } from "./formats";
+import { t } from "./i18n";
 import type { Settings, ThemeMode } from "./settings";
 import type { Kind } from "./types";
 
-export const THEMES: [ThemeMode, string][] = [
-  ["system", "Système"],
-  ["light", "Clair"],
-  ["dark", "Sombre"],
+export const THEMES = (): [ThemeMode, string][] => [
+  ["system", t("Système", "System")],
+  ["light", t("Clair", "Light")],
+  ["dark", t("Sombre", "Dark")],
 ];
 
 export const ACCENTS = ["#2f6bff", "#8b5cf6", "#ec4899", "#ef4444", "#f97316", "#eab308", "#10b981", "#06b6d4"];
 export const BACKGROUNDS = ["#0b0d12", "#16112a", "#0d1f24", "#1f1414", "#f7f3ea", "#eef3ff", "#fdf0f4", "#eefaf3"];
 
 /** Formats de sortie par type, pour choisir les favoris. */
-const OUTPUTS: [string, Kind][] = [
-  ["Images", "image"],
-  ["Audio", "audio"],
-  ["Vidéo", "video"],
-  ["Documents", "document"],
-  ["Archives", "archive"],
+const OUTPUTS = (): [string, Kind][] => [
+  [t("Images", "Images"), "image"],
+  [t("Audio", "Audio"), "audio"],
+  [t("Vidéo", "Video"), "video"],
+  [t("Documents", "Documents"), "document"],
+  [t("Archives", "Archives"), "archive"],
 ];
 
 /** Glissement de l'indicateur de sélection (navigation, choix du thème). */
@@ -34,7 +35,7 @@ export function ThemePicker({ settings, save, id = "theme-active" }: { settings:
   const custom = settings.accent !== null || settings.background !== null;
   return (
     <div className="settings-segmented">
-      {THEMES.map(([theme, label]) => {
+      {THEMES().map(([theme, label]) => {
         const active = !custom && settings.theme === theme;
         return (
           <button
@@ -58,7 +59,7 @@ export function ColorChoice(props: { value: string | null; colors: string[]; onC
   return (
     <div className="settings-colors">
       <button className={`settings-chip ${value === null ? "is-active" : ""}`} onClick={() => onChange(null)}>
-        Par défaut
+        {t("Par défaut", "Default")}
       </button>
       {colors.map((c) => (
         <button
@@ -71,7 +72,7 @@ export function ColorChoice(props: { value: string | null; colors: string[]; onC
       ))}
       <label
         className={`settings-swatch settings-picker ${custom ? "is-active" : ""}`}
-        title="Autre couleur"
+        title={t("Autre couleur", "Other colour")}
         style={custom ? { background: value } : undefined}
       >
         <input type="color" value={value ?? "#808080"} onChange={(e) => onChange(e.target.value)} />
@@ -89,8 +90,8 @@ export function FavoritesPicker({ settings, save }: { settings: Settings; save: 
     });
   return (
     <>
-      {OUTPUTS.map(([label, kind]) => (
-        <div key={label} className="settings-formats">
+      {OUTPUTS().map(([label, kind]) => (
+        <div key={kind} className="settings-formats">
           <span>{label}</span>
           <div>
             {outputsOf(kind).map((f) => {
