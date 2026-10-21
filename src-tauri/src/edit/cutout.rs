@@ -9,7 +9,7 @@
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
@@ -43,6 +43,10 @@ struct Model {
     std: [f32; 3],
     /// Sortie en logits (à passer dans une sigmoïde) plutôt qu'en probabilités.
     logits: bool,
+    /// Durées typiques (chargement du modèle, calcul) en millisecondes, pour faire avancer
+    /// la progression pendant ces étapes muettes ; remplacées par les durées mesurées.
+    load_ms: u64,
+    run_ms: u64,
 }
 
 const FAST: Model = Model {
@@ -53,6 +57,8 @@ const FAST: Model = Model {
     mean: [0.5; 3],
     std: [1.0; 3],
     logits: false,
+    load_ms: 800,
+    run_ms: 700,
 };
 
 const BEST: Model = Model {
@@ -63,9 +69,25 @@ const BEST: Model = Model {
     mean: [0.485, 0.456, 0.406],
     std: [0.229, 0.224, 0.225],
     logits: true,
+    load_ms: 5_000,
+    run_ms: 14_000,
 };
 
+/// Durées mesurées au dernier détourage (0 : pas encore), par modèle : [chargement, calcul].
+static MEASURED: [[AtomicU64; 2]; 2] = [[AtomicU64::new(0), AtomicU64::new(0)], [AtomicU64::new(0), AtomicU64::new(0)]];
+
 impl Quality {
+    /// Durée attendue d'une étape (0 : chargement, 1 : calcul), mesurée ou typique.
+    fn expected(self, stage: usize) -> Duration {
+        let measured = MEASURED[self as usize][stage].load(Ordering::Relaxed);
+        let typical = if stage == 0 { self.model().load_ms } else { self.model().run_ms };
+        Duration::from_millis(if measured > 0 { measured } else { typical })
+    }
+
+    fn measured(self, stage: usize, took: Duration) {
+        MEASURED[self as usize][stage].store(took.as_millis() as u64, Ordering::Relaxed);
+    }
+
     fn model(self) -> &'static Model {
         match self {
             Quality::Fast => &FAST,
@@ -88,6 +110,8 @@ const SIDE: u32 = 1024;
 const IDLE_RELEASE: Duration = Duration::from_secs(90);
 /// Part de la progression occupée par le téléchargement du modèle, s'il a lieu.
 const DOWNLOAD_SHARE: f32 = 0.85;
+/// Part occupée par la lecture de l'image.
+const IMAGE_SHARE: f32 = 0.04;
 
 /// Bibliothèque ONNX Runtime, relative aux ressources de l'application. Sous Windows, à
 /// côté de l'exécutable : le runtime Visual C++ qu'elle importe y est aussi.
@@ -201,20 +225,28 @@ fn engine_error(e: impl std::fmt::Display) -> ConvertError {
     ConvertError::Edit(format!("détourage impossible : {e}"))
 }
 
-fn with_session<T>(model: &Path, f: impl FnOnce(&mut Session) -> Result<T, ConvertError>) -> Result<T, ConvertError> {
-    let mut slot = ENGINE.lock().unwrap();
-    if slot.as_ref().is_none_or(|e| e.path != model) {
-        // Un seul modèle en mémoire : l'autre est libéré avant de charger celui-ci.
-        *slot = None;
-        let session = Session::builder(environment()?).map_err(engine_error)?.commit_from_file(model).map_err(engine_error)?;
-        *slot = Some(Engine { path: model.to_path_buf(), session, used: Instant::now() });
-    }
-    let engine = slot.as_mut().unwrap();
-    let result = f(&mut engine.session);
-    engine.used = Instant::now();
-    drop(slot);
-    schedule_release();
-    result
+/// Exécute `work` dans un fil à part. Pendant ce temps, la progression avance de `from`
+/// vers `to` au rythme de la durée `expected` (90 % de l'étape au temps prévu, puis de plus
+/// en plus lentement, sans jamais l'atteindre) : une étape longue ne fige pas l'affichage.
+fn ticking<T: Send>(
+    expected: Duration,
+    from: f32,
+    to: f32,
+    on_progress: &mut dyn FnMut(f32),
+    work: impl FnOnce() -> T + Send,
+) -> (T, Duration) {
+    let started = Instant::now();
+    std::thread::scope(|scope| {
+        let handle = scope.spawn(work);
+        while !handle.is_finished() {
+            let x = started.elapsed().as_secs_f32() / expected.as_secs_f32().max(0.1);
+            let done = if x < 1.0 { 0.9 * x } else { 1.0 - 0.1 * (1.0 - x).exp() };
+            on_progress(from + (to - from) * done);
+            std::thread::sleep(Duration::from_millis(100));
+        }
+        let result = handle.join().unwrap_or_else(|e| std::panic::resume_unwind(e));
+        (result, started.elapsed())
+    })
 }
 
 /// Libère le modèle (de 200 Mo à 2 Go en mémoire) quand il ne sert plus.
@@ -238,9 +270,9 @@ fn schedule_release() {
 /// Masque du sujet (255 = garder), à la taille de l'image.
 pub fn mask(img: &DynamicImage, quality: Quality, on_progress: &mut dyn FnMut(f32)) -> Result<GrayImage, ConvertError> {
     let downloading = !model_ready(quality);
-    let path = ensure_model(quality, &mut |p| on_progress(p * DOWNLOAD_SHARE))?;
+    let path = ensure_model(quality, &mut |p| on_progress(IMAGE_SHARE + p * (DOWNLOAD_SHARE - IMAGE_SHARE)))?;
     let model = quality.model();
-    let base = if downloading { DOWNLOAD_SHARE } else { 0.0 };
+    let base = if downloading { DOWNLOAD_SHARE } else { IMAGE_SHARE };
     let step = |p: f32| base + (1.0 - base) * p;
     output::check_cancel()?;
 
@@ -254,17 +286,33 @@ pub fn mask(img: &DynamicImage, quality: Quality, on_progress: &mut dyn FnMut(f3
             data[c * plane + i] = (px[c] as f32 / max - model.mean[c]) / model.std[c];
         }
     }
-    on_progress(step(0.15));
+    on_progress(step(0.05));
 
-    let mut pred = with_session(&path, |session| {
-        on_progress(step(0.3));
+    // Modèle gardé en mémoire entre deux détourages ; un seul à la fois.
+    let mut slot = ENGINE.lock().unwrap();
+    if slot.as_ref().is_none_or(|e| e.path != path) {
+        *slot = None;
+        let env = environment()?;
+        let (session, took) = ticking(quality.expected(0), step(0.05), step(0.3), on_progress, || {
+            Session::builder(env)?.commit_from_file(&path)
+        });
+        quality.measured(0, took);
+        *slot = Some(Engine { path: path.clone(), session: session.map_err(engine_error)?, used: Instant::now() });
+    }
+    let engine = slot.as_mut().unwrap();
+    let session = &mut engine.session;
+    let (pred, took) = ticking(quality.expected(1), step(0.3), step(0.95), on_progress, move || {
         let input = Tensor::from_array(([1usize, 3, SIDE as usize, SIDE as usize], data)).map_err(engine_error)?;
         let outputs = session.run(ort::inputs![input]).map_err(engine_error)?;
         let (_, values) = outputs[0].try_extract_tensor::<f32>().map_err(engine_error)?;
-        Ok(values.to_vec())
-    })?;
+        Ok::<_, ConvertError>(values.to_vec())
+    });
+    quality.measured(1, took);
+    engine.used = Instant::now();
+    drop(slot);
+    schedule_release();
+    let mut pred = pred?;
     output::check_cancel()?;
-    on_progress(step(0.85));
 
     // Sortie ramenée à 0…1, puis à la taille de l'image.
     if model.logits {
@@ -287,11 +335,17 @@ pub fn apply_mask(img: &DynamicImage, mask: &GrayImage) -> RgbaImage {
     rgba
 }
 
+/// Lit l'image à détourer ; la progression avance dès le début.
+fn load(input: &Path, on_progress: &mut dyn FnMut(f32)) -> Result<DynamicImage, ConvertError> {
+    on_progress(0.0);
+    ticking(Duration::from_millis(600), 0.0, IMAGE_SHARE, on_progress, || raster::load(input)).0
+}
+
 /// Image détourée, en PNG (compression rapide), pour l'aperçu de l'éditeur d'image.
 pub fn cutout_png(input: &Path, quality: Quality, on_progress: &mut dyn FnMut(f32)) -> Result<Vec<u8>, ConvertError> {
     use image::ImageEncoder;
     use image::codecs::png::{CompressionType, FilterType, PngEncoder};
-    let img = raster::load(input)?;
+    let img = load(input, on_progress)?;
     let mask = mask(&img, quality, on_progress)?;
     let rgba = apply_mask(&img, &mask);
     let mut png = Vec::new();
@@ -307,7 +361,7 @@ pub fn cutout_png(input: &Path, quality: Quality, on_progress: &mut dyn FnMut(f3
 
 /// Retire le fond d'une image : `nom Cutout.png` (transparent) à côté de l'original.
 pub fn remove_background(input: &Path, quality: Quality, on_progress: &mut dyn FnMut(f32)) -> Result<PathBuf, ConvertError> {
-    let img = raster::load(input)?;
+    let img = load(input, on_progress)?;
     let mask = mask(&img, quality, on_progress)?;
     let output = convert::suffixed_output_as(input, "Cutout", "png")?;
     raster::save(&DynamicImage::ImageRgba8(apply_mask(&img, &mask)), &output, "png")?;
