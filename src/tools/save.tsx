@@ -6,6 +6,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { type AppError, describe, newTask } from "../errors";
 import { chooseOutputDir } from "../settings";
+import { t } from "../i18n";
 
 export type Duplicates = "keep" | "replace";
 
@@ -70,7 +71,7 @@ export function useSaveFlow(): SaveFlow {
         return null;
       }
       if (err.code === "cancelled") {
-        setNotice("Enregistrement annulé.");
+        setNotice(t("Enregistrement annulé.", "Save cancelled."));
         return null;
       }
       setFailure(err);
@@ -99,13 +100,13 @@ export function SaveExtras({ flow }: { flow: SaveFlow }) {
     return (
       <span className="save-conflict">
         <span>{message}</span>
-        <button onClick={() => retry("replace")}>Remplacer</button>
-        <button onClick={() => retry("keep")}>Garder les deux</button>
-        <button onClick={flow.dismissConflict}>Annuler</button>
+        <button onClick={() => retry("replace")}>{t("Remplacer", "Replace")}</button>
+        <button onClick={() => retry("keep")}>{t("Garder les deux", "Keep both")}</button>
+        <button onClick={flow.dismissConflict}>{t("Annuler", "Cancel")}</button>
       </span>
     );
   }
-  if (flow.running) return <button onClick={flow.cancel}>Annuler</button>;
+  if (flow.running) return <button onClick={flow.cancel}>{t("Annuler", "Cancel")}</button>;
   if (flow.notice) return <span className="save-notice">{flow.notice}</span>;
   if (flow.failure) return <CopyDetail error={flow.failure} />;
   return null;
@@ -124,7 +125,7 @@ export function CopyDetail({ error, className = "" }: { error: AppError; classNa
         window.setTimeout(() => setCopied(false), 1500);
       }}
     >
-      {copied ? "Copié ✓" : "Copier le détail"}
+      {copied ? t("Copié ✓", "Copied ✓") : t("Copier le détail", "Copy details")}
     </button>
   );
 }

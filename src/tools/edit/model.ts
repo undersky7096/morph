@@ -1,6 +1,8 @@
 // État de l'éditeur image : réglages, filtre, géométrie et annotations.
 // Tout est non destructif : l'image d'origine n'est modifiée qu'à l'enregistrement.
 
+import { t } from "../../i18n";
+
 /** Réglages numériques : −100…100 (centrés sur 0) ou 0…100. */
 export interface Adjust {
   exposure: number;
@@ -29,15 +31,15 @@ export const ADJUST_DEFAULT: Adjust = {
 };
 
 export const SLIDERS: { key: AdjustKey; label: string; min: number }[] = [
-  { key: "exposure", label: "Exposition", min: -100 },
-  { key: "brightness", label: "Luminosité", min: -100 },
-  { key: "contrast", label: "Contraste", min: -100 },
-  { key: "saturation", label: "Saturation", min: -100 },
-  { key: "temperature", label: "Température", min: -100 },
-  { key: "sharpness", label: "Netteté", min: 0 },
-  { key: "blur", label: "Flou", min: 0 },
-  { key: "vignette", label: "Vignettage", min: 0 },
-  { key: "grain", label: "Grain", min: 0 },
+  { key: "exposure", get label() { return t("Exposition", "Exposure"); }, min: -100 },
+  { key: "brightness", get label() { return t("Luminosité", "Brightness"); }, min: -100 },
+  { key: "contrast", get label() { return t("Contraste", "Contrast"); }, min: -100 },
+  { key: "saturation", get label() { return t("Saturation", "Saturation"); }, min: -100 },
+  { key: "temperature", get label() { return t("Température", "Temperature"); }, min: -100 },
+  { key: "sharpness", get label() { return t("Netteté", "Sharpness"); }, min: 0 },
+  { key: "blur", get label() { return t("Flou", "Blur"); }, min: 0 },
+  { key: "vignette", get label() { return t("Vignettage", "Vignette"); }, min: 0 },
+  { key: "grain", get label() { return t("Grain", "Grain"); }, min: 0 },
 ];
 
 /** Filtre prédéfini : s'ajoute aux réglages de l'utilisateur. */
@@ -52,16 +54,16 @@ export interface Preset {
 }
 
 export const PRESETS: Preset[] = [
-  { id: "none", label: "Aucun", adjust: {} },
-  { id: "bw", label: "N&B", adjust: { saturation: -100, contrast: 10 } },
-  { id: "noir", label: "Noir", adjust: { saturation: -100, contrast: 55, vignette: 50, grain: 20 } },
-  { id: "sepia", label: "Sépia", adjust: { contrast: 5 }, sepia: 0.85 },
-  { id: "vintage", label: "Vintage", adjust: { saturation: -20, contrast: -10, vignette: 35 }, sepia: 0.35, fade: 0.1 },
-  { id: "fade", label: "Délavé", adjust: { contrast: -15, saturation: -15 }, fade: 0.18 },
-  { id: "warm", label: "Chaud", adjust: { temperature: 35, saturation: 10 } },
-  { id: "cold", label: "Froid", adjust: { temperature: -35, saturation: -5 } },
-  { id: "vivid", label: "Éclatant", adjust: { saturation: 45, contrast: 15 } },
-  { id: "dramatic", label: "Dramatique", adjust: { contrast: 40, saturation: -25, vignette: 45, exposure: -5 } },
+  { id: "none", get label() { return t("Aucun", "None"); }, adjust: {} },
+  { id: "bw", get label() { return t("N&B", "B&W"); }, adjust: { saturation: -100, contrast: 10 } },
+  { id: "noir", get label() { return t("Noir", "Noir"); }, adjust: { saturation: -100, contrast: 55, vignette: 50, grain: 20 } },
+  { id: "sepia", get label() { return t("Sépia", "Sepia"); }, adjust: { contrast: 5 }, sepia: 0.85 },
+  { id: "vintage", get label() { return t("Vintage", "Vintage"); }, adjust: { saturation: -20, contrast: -10, vignette: 35 }, sepia: 0.35, fade: 0.1 },
+  { id: "fade", get label() { return t("Délavé", "Faded"); }, adjust: { contrast: -15, saturation: -15 }, fade: 0.18 },
+  { id: "warm", get label() { return t("Chaud", "Warm"); }, adjust: { temperature: 35, saturation: 10 } },
+  { id: "cold", get label() { return t("Froid", "Cool"); }, adjust: { temperature: -35, saturation: -5 } },
+  { id: "vivid", get label() { return t("Éclatant", "Vivid"); }, adjust: { saturation: 45, contrast: 15 } },
+  { id: "dramatic", get label() { return t("Dramatique", "Dramatic"); }, adjust: { contrast: 40, saturation: -25, vignette: 45, exposure: -5 } },
 ];
 
 export interface Geometry {

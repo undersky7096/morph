@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 import { chooseOutputDir, getSettings } from "../settings";
+import { t } from "../i18n";
 import { comingIn, TOOLS } from "../tools/registry";
 import { ARCHIVE_7Z, ARCHIVE_ZIP, type Job, jobProgress } from "../jobs";
 import type { RadialPayload } from "../types";
@@ -85,7 +86,7 @@ export default function Radial() {
         setStack([
           payload.ring === "formats"
             ? { label: "", items: buildItems(payload.menu, getSettings()) }
-            : { label: "", items: actionItems(payload.paths), done: payload.ring === "saved" ? "Enregistré" : undefined },
+            : { label: "", items: actionItems(payload.paths), done: payload.ring === "saved" ? t("Enregistré", "Saved") : undefined },
         ]);
       }
       setPhase({ name: "menu" });
@@ -130,8 +131,8 @@ export default function Radial() {
   // Rien à proposer (fichiers non supportés) : on affiche le message puis on ferme.
   useEffect(() => {
     if (open && phase.name === "menu" && stack.length === 1 && items.length === 0) {
-      const t = setTimeout(close, 1800);
-      return () => clearTimeout(t);
+      const timer = setTimeout(close, 1800);
+      return () => clearTimeout(timer);
     }
   }, [open, phase.name, stack.length, items.length, close]);
 
@@ -190,7 +191,7 @@ export default function Radial() {
     // Archive tout juste créée : rien à enchaîner (l'extraire n'aurait pas de sens).
     if (!actions.length || job.target === ARCHIVE_ZIP || job.target === ARCHIVE_7Z) return close();
     // Conversion réussie : le menu enchaîne sur les actions d'édition du résultat.
-    const done = Object.values(TOOLS).find((t) => t.direct === job.target)?.done ?? "Converti";
+    const done = Object.values(TOOLS).find((tool) => tool.direct === job.target)?.done ?? t("Converti", "Converted");
     setStack([{ label: "", items: actions, done }]);
     setPhase({ name: "menu" });
   }
@@ -344,7 +345,7 @@ function HubContent(props: { phase: Phase; fileCount: number; level?: Level; emp
       </>
     );
   }
-  if (empty) return <span className="hub-caption">Format non pris en charge</span>;
+  if (empty) return <span className="hub-caption">{t("Format non pris en charge", "Unsupported format")}</span>;
   if (level && level.label) {
     return (
       <>
@@ -356,7 +357,7 @@ function HubContent(props: { phase: Phase; fileCount: number; level?: Level; emp
   return (
     <>
       <span className="hub-value">{fileCount}</span>
-      <span className="hub-caption">fichier{fileCount > 1 ? "s" : ""}</span>
+      <span className="hub-caption">{t(fileCount > 1 ? "fichiers" : "fichier", fileCount === 1 ? "file" : "files")}</span>
     </>
   );
 }
@@ -376,12 +377,12 @@ function itemKey(item: Item) {
 }
 
 function itemTitle(item: Item) {
-  if (item.type === "group") return `${item.label} : ${item.items.length} choix`;
+  if (item.type === "group") return t(`${item.label} : ${item.items.length} choix`, `${item.label}: ${item.items.length} options`);
   if (item.type === "format") return item.blocked;
   if (item.type === "action") {
     const label = TOOLS[item.tool].label;
     const soon = comingIn(item.tool, item.paths);
-    return soon ? `${label} : disponible bientôt (${soon})` : label;
+    return soon ? t(`${label} : disponible bientôt (${soon})`, `${label}: coming soon (${soon})`) : label;
   }
   return undefined;
 }

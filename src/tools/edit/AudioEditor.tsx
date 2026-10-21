@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 
 import { describe } from "../../errors";
 import { type Duplicates, SaveExtras, useSaveFlow } from "../save";
+import { t } from "../../i18n";
 import { Slider } from "./controls";
 import { useHistory } from "./history";
 import type { Segment } from "./segments";
@@ -68,17 +69,17 @@ export default function AudioEditor({ path, onSaved, footerExtra }: Props) {
     const ext = path.split(".").pop()?.toLowerCase() ?? "";
     let fellBack = NOT_PLAYABLE.has(ext);
     player.onerror = () => {
-      if (fellBack) return setError("Lecture impossible pour ce fichier (la découpe reste possible).");
+      if (fellBack) return setError(t("Lecture impossible pour ce fichier (la découpe reste possible).", "This file can’t be played (trimming still works)."));
       fellBack = true;
       load(true).catch((e) => setError(describe(e).message));
     };
     load(fellBack).catch((e) => setError(describe(e).message));
 
     loadTrack(path)
-      .then((t) => {
+      .then((loaded) => {
         if (cancelled) return;
-        setTrack(t);
-        history.reset({ segments: [{ start: 0, end: t.duration }], volume: 100 });
+        setTrack(loaded);
+        history.reset({ segments: [{ start: 0, end: loaded.duration }], volume: 100 });
       })
       .catch((e) => setError(describe(e).message));
 
@@ -141,10 +142,10 @@ export default function AudioEditor({ path, onSaved, footerExtra }: Props) {
   const status =
     error ??
     (busy !== null
-      ? `Enregistrement… ${Math.round(busy * 100)} %`
+      ? `${t("Enregistrement…", "Saving…")} ${Math.round(busy * 100)} %`
       : track
-        ? `Résultat : ${keptSummary(segments, track.duration)}`
-        : "Analyse du fichier…");
+        ? `${t("Résultat : ", "Result: ")}${keptSummary(segments, track.duration)}`
+        : t("Analyse du fichier…", "Analysing file…"));
 
   return (
     <div className="editor audio-editor">
@@ -152,21 +153,21 @@ export default function AudioEditor({ path, onSaved, footerExtra }: Props) {
         {track ? (
           <TrimTimeline trimmer={trimmer} peaks={track.peaks} />
         ) : (
-          <p className="tool-hint audio-loading">{error ? "" : "Analyse de la forme d'onde…"}</p>
+          <p className="tool-hint audio-loading">{error ? "" : t("Analyse de la forme d'onde…", "Analysing waveform…")}</p>
         )}
         <TrimTransport trimmer={trimmer} history={history} ready={!!track} />
       </div>
 
       <aside className="tool-panel">
         <section>
-          <h2>Passages gardés</h2>
+          <h2>{t("Passages gardés", "Kept sections")}</h2>
           <SegmentList trimmer={trimmer} ready={!!track} />
         </section>
 
         <section>
-          <h2>Volume</h2>
+          <h2>{t("Volume", "Volume")}</h2>
           <Slider
-            label="Volume"
+            label={t("Volume", "Volume")}
             min={0}
             max={200}
             neutral={100}
@@ -174,17 +175,27 @@ export default function AudioEditor({ path, onSaved, footerExtra }: Props) {
             value={volume}
             onChange={(v) => update((s) => ({ ...s, volume: v }), "volume")}
           />
-          <p className="tool-hint">Au-delà de 100 %, un limiteur évite la saturation.</p>
+          <p className="tool-hint">{t("Au-delà de 100 %, un limiteur évite la saturation.", "Above 100%, a limiter prevents clipping.")}</p>
         </section>
 
         <section>
-          <h2>Mode d'emploi</h2>
+          <h2>{t("Mode d'emploi", "How to use")}</h2>
           <ul className="audio-help">
-            <li>Glissez sur la forme d'onde pour sélectionner, puis <kbd>Suppr</kbd> pour retirer ce passage.</li>
-            <li>Tirez les bords violets pour ajuster le début et la fin.</li>
-            <li><kbd>S</kbd> coupe au curseur de lecture ; double-clic : sélectionne un passage.</li>
-            <li>La lecture saute les passages retirés : vous entendez le résultat.</li>
-            <li><kbd>Ctrl</kbd> + molette pour zoomer.</li>
+            <li>
+              {t("Glissez sur la forme d'onde pour sélectionner, puis ", "Drag on the waveform to select, then ")}
+              <kbd>{t("Suppr", "Delete")}</kbd>
+              {t(" pour retirer ce passage.", " to remove that section.")}
+            </li>
+            <li>{t("Tirez les bords violets pour ajuster le début et la fin.", "Drag the purple edges to adjust the start and end.")}</li>
+            <li>
+              <kbd>S</kbd>
+              {t(" coupe au curseur de lecture ; double-clic : sélectionne un passage.", " cuts at the playhead; double-click selects a section.")}
+            </li>
+            <li>{t("La lecture saute les passages retirés : vous entendez le résultat.", "Playback skips removed sections: you hear the result.")}</li>
+            <li>
+              <kbd>Ctrl</kbd>
+              {t(" + molette pour zoomer.", " + scroll wheel to zoom.")}
+            </li>
           </ul>
         </section>
       </aside>
@@ -194,7 +205,7 @@ export default function AudioEditor({ path, onSaved, footerExtra }: Props) {
         <SaveExtras flow={flow} />
         {footerExtra}
         <button className="primary" onClick={() => save()} disabled={!track || !segments.length || busy !== null}>
-          {busy !== null ? "Enregistrement…" : "Enregistrer"}
+          {busy !== null ? t("Enregistrement…", "Saving…") : t("Enregistrer", "Save")}
         </button>
       </footer>
     </div>

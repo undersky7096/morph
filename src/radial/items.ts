@@ -1,4 +1,5 @@
 import { isAudioFormat, kindOf, kindOfPath } from "../formats";
+import { t } from "../i18n";
 import { ARCHIVE_7Z, ARCHIVE_ZIP } from "../jobs";
 import type { Settings } from "../settings";
 import { TOOLS, type ToolId, toolsFor } from "../tools/registry";
@@ -20,13 +21,14 @@ export type Item =
   | { type: "group"; label: string; kind: Kind; items: Item[]; icon?: ToolId }
   | { type: "action"; tool: ToolId; kind: Kind; paths: string[] };
 
-const GROUP_LABELS: Record<Kind, string> = {
-  image: "Images",
-  audio: "Audio",
-  video: "Vidéos",
-  document: "Documents",
-  archive: "Archives",
-};
+const groupLabel = (kind: Kind) =>
+  ({
+    image: t("Images", "Images"),
+    audio: t("Audio", "Audio"),
+    video: t("Vidéos", "Videos"),
+    document: t("Documents", "Documents"),
+    archive: t("Archives", "Archives"),
+  })[kind];
 
 /** « Archiver › » : une archive ZIP ou 7Z de toute la sélection (fichiers et dossiers). */
 function archiveItems(paths: string[]): Item[] {
@@ -36,7 +38,7 @@ function archiveItems(paths: string[]): Item[] {
   ];
 }
 
-const archiveGroup = (paths: string[]): Item => ({ type: "group", label: "Archiver", kind: "archive", items: archiveItems(paths) });
+const archiveGroup = (paths: string[]): Item => ({ type: "group", label: t("Archiver", "Archive"), kind: "archive", items: archiveItems(paths) });
 
 /** Pétales par anneau au-delà desquels les derniers formats passent dans « Plus › ». */
 const MAX_PETALS = 9;
@@ -66,7 +68,7 @@ function fit(items: Item[], kind: Kind): Item[] {
   const formats = items.filter((i) => i.type === "format");
   const others = items.filter((i) => i.type !== "format");
   const keep = Math.max(MAX_PETALS - 1 - others.length, 1);
-  const more: Item = { type: "group", label: "Plus", kind, items: formats.slice(keep) };
+  const more: Item = { type: "group", label: t("Plus", "More"), kind, items: formats.slice(keep) };
   return [...formats.slice(0, keep), more, ...others];
 }
 
@@ -84,7 +86,7 @@ function groupItems(group: TargetGroup, favorites: string[]): Item[] {
   const audioBlocked = group.blocked.filter((b) => isAudioFormat(b.format));
   if (audio.length || audioBlocked.length) {
     const audioItems = fit(formatItems(audio, group.paths, favorites, audioBlocked), "audio");
-    items.push({ type: "group", label: "Audio", kind: "audio", items: audioItems });
+    items.push({ type: "group", label: t("Audio", "Audio"), kind: "audio", items: audioItems });
   }
   return items;
 }
@@ -107,7 +109,7 @@ export function buildItems(menu: TargetMenu, settings: Settings): Item[] {
     const actions = actionItems(group.paths);
     // Geste attendu (fusionner des PDF, extraire une archive) : dès le premier niveau.
     items.unshift(...actions.filter((a) => a.type === "action" && TOOLS[a.tool].primary));
-    if (actions.length) items.push({ type: "group", label: "Éditer", kind: group.kind, items: actions, icon: "edit" });
+    if (actions.length) items.push({ type: "group", label: t("Éditer", "Edit"), kind: group.kind, items: actions, icon: "edit" });
     // Toute sélection s'archive (sauf des archives, qui changent plutôt de format).
     if (group.kind !== "archive") items.push(archiveGroup(group.paths));
     return fit(items, group.kind);
@@ -129,7 +131,7 @@ export function buildItems(menu: TargetMenu, settings: Settings): Item[] {
       ...groups.map(
         (g): Item => ({
           type: "group",
-          label: GROUP_LABELS[g.kind],
+          label: groupLabel(g.kind),
           kind: g.kind,
           items: fit(groupItems(g, settings.favorites), g.kind),
         }),

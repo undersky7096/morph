@@ -3,6 +3,7 @@ import type Konva from "konva";
 import { Arrow, Ellipse, Image as KImage, Layer, Line, Rect, Stage, Text, Transformer } from "react-konva";
 
 import type { AnnotateTool, DrawStyle, Label, Shape } from "./model";
+import { t } from "../../i18n";
 
 interface Props {
   /** Image rendue par le moteur WebGL, redessinée quand `version` change. */
@@ -86,7 +87,7 @@ const Canvas = forwardRef<CanvasHandle, Props>(function Canvas(props, ref) {
         type: "text",
         x,
         y,
-        text: "Texte",
+        text: t("Texte", "Text"),
         font: style.font,
         size: Math.round(style.size * side),
         bold: style.bold,

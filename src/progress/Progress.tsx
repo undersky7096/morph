@@ -4,6 +4,7 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { AnimatePresence, motion } from "motion/react";
 
 import { basename } from "../formats";
+import { t } from "../i18n";
 import { CloseIcon, MinimizeIcon } from "../icons";
 import { countStatus, CUTOUT, formatDuration, type Job, type JobFile, jobLabel, jobProgress, jobRemaining } from "../jobs";
 // Barre de titre commune avec les fenêtres d'outils.
@@ -59,7 +60,11 @@ export default function Progress() {
 
   const ordered = [...jobs].reverse();
   const active = jobs.filter((j) => !j.finished);
-  const title = !running ? "Terminé" : active.every((j) => j.target === CUTOUT) ? "Détourage en cours" : "Conversion en cours";
+  const title = !running
+    ? t("Terminé", "Done")
+    : active.every((j) => j.target === CUTOUT)
+      ? t("Détourage en cours", "Removing background")
+      : t("Conversion en cours", "Converting");
 
   return (
     <div className="progress" onPointerEnter={() => setHover(true)} onPointerLeave={() => setHover(false)}>
@@ -68,13 +73,13 @@ export default function Progress() {
           <strong data-tauri-drag-region>{title}</strong>
         </span>
         <div className="titlebar-buttons">
-          <button aria-label="Réduire" onClick={() => win.minimize()}>
+          <button aria-label={t("Réduire", "Minimize")} onClick={() => win.minimize()}>
             <MinimizeIcon />
           </button>
           <button
-            aria-label="Fermer"
+            aria-label={t("Fermer", "Close")}
             className="is-close"
-            title={running ? "Fermer (le traitement continue)" : "Fermer"}
+            title={running ? t("Fermer (le traitement continue)", "Close (processing continues)") : t("Fermer", "Close")}
             onClick={closeWindow}
           >
             <CloseIcon />
@@ -98,7 +103,7 @@ export default function Progress() {
             </motion.section>
           ))}
         </AnimatePresence>
-        {!jobs.length && <p className="progress-empty">Rien en cours.</p>}
+        {!jobs.length && <p className="progress-empty">{t("Rien en cours.", "Nothing in progress.")}</p>}
       </main>
     </div>
   );
@@ -115,13 +120,13 @@ function JobCard({ job, now }: { job: Job; now: number }) {
 
   let status: string;
   if (!job.finished) {
-    status = `${done}/${total}${remaining !== null ? ` · encore ${formatDuration(remaining)}` : ""}`;
+    status = `${done}/${total}${remaining !== null ? ` · ${t(`encore ${formatDuration(remaining)}`, `${formatDuration(remaining)} left`)}` : ""}`;
   } else if (errors || conflicts) {
-    status = `${done}/${total} réussi${done > 1 ? "s" : ""}`;
+    status = `${done}/${total} ${t(done > 1 ? "réussis" : "réussi", "succeeded")}`;
   } else if (!done) {
-    status = "Annulée";
+    status = t("Annulée", "Cancelled");
   } else {
-    status = "Terminé";
+    status = t("Terminé", "Done");
   }
 
   return (
@@ -129,12 +134,14 @@ function JobCard({ job, now }: { job: Job; now: number }) {
       <div className="job-head">
         <span className="job-title">
           {jobLabel(job.target)}{" "}
-          <small>· {total} fichier{total > 1 ? "s" : ""}</small>
+          <small>
+            · {total} {t(total > 1 ? "fichiers" : "fichier", total === 1 ? "file" : "files")}
+          </small>
         </span>
         <span className="job-status">{status}</span>
         {!job.finished && (
           <button className="job-cancel" onClick={() => invoke("cancel_job", { id: job.id })}>
-            Annuler
+            {t("Annuler", "Cancel")}
           </button>
         )}
       </div>
@@ -145,7 +152,7 @@ function JobCard({ job, now }: { job: Job; now: number }) {
 
       {conflicts > 1 && (
         <div className="job-conflicts">
-          <span>{conflicts} fichiers existent déjà :</span>
+          <span>{t(`${conflicts} fichiers existent déjà :`, `${conflicts} files already exist:`)}</span>
           <ConflictButtons id={job.id} />
         </div>
       )}
@@ -158,9 +165,9 @@ function JobCard({ job, now }: { job: Job; now: number }) {
 
       {job.finished && outputs.length > 0 && (
         <div className="job-actions">
-          <button onClick={() => invoke("reveal", { path: outputs[0] })}>Ouvrir le dossier</button>
-          <button onClick={() => invoke("open_actions", { paths: outputs })}>Éditer…</button>
-          {errors > 1 && <button onClick={() => invoke("retry_job", { id: job.id })}>Tout réessayer</button>}
+          <button onClick={() => invoke("reveal", { path: outputs[0] })}>{t("Ouvrir le dossier", "Open folder")}</button>
+          <button onClick={() => invoke("open_actions", { paths: outputs })}>{t("Éditer…", "Edit…")}</button>
+          {errors > 1 && <button onClick={() => invoke("retry_job", { id: job.id })}>{t("Tout réessayer", "Retry all")}</button>}
         </div>
       )}
     </>
@@ -171,9 +178,9 @@ function JobCard({ job, now }: { job: Job; now: number }) {
 function ConflictButtons({ id, index }: { id: number; index?: number }) {
   return (
     <span className="conflict-buttons">
-      <button onClick={() => invoke("retry_job", { id, index, duplicates: "replace" })}>Remplacer</button>
-      <button onClick={() => invoke("retry_job", { id, index, duplicates: "keep" })}>Garder les deux</button>
-      <button onClick={() => invoke("skip_conflicts", { id, index })}>Ignorer</button>
+      <button onClick={() => invoke("retry_job", { id, index, duplicates: "replace" })}>{t("Remplacer", "Replace")}</button>
+      <button onClick={() => invoke("retry_job", { id, index, duplicates: "keep" })}>{t("Garder les deux", "Keep both")}</button>
+      <button onClick={() => invoke("skip_conflicts", { id, index })}>{t("Ignorer", "Skip")}</button>
     </span>
   );
 }
@@ -206,7 +213,7 @@ function FileRow({ id, index, file, single }: { id: number; index: number; file:
       <span className="file-main">
         <button
           className="file-name"
-          title={file.output ? "Montrer dans l'explorateur" : file.input}
+          title={file.output ? t("Montrer dans l'explorateur", "Show in folder") : file.input}
           disabled={!file.output}
           onClick={() => file.output && invoke("reveal", { path: file.output })}
         >
@@ -221,8 +228,8 @@ function FileRow({ id, index, file, single }: { id: number; index: number; file:
           <span className="file-error">
             {file.error.message}
             <span className="file-links">
-              <button onClick={() => invoke("retry_job", { id, index })}>Réessayer</button>
-              <button onClick={copy}>{copied ? "Copié ✓" : "Copier le détail"}</button>
+              <button onClick={() => invoke("retry_job", { id, index })}>{t("Réessayer", "Retry")}</button>
+              <button onClick={copy}>{copied ? t("Copié ✓", "Copied ✓") : t("Copier le détail", "Copy details")}</button>
             </span>
           </span>
         )}
@@ -232,11 +239,18 @@ function FileRow({ id, index, file, single }: { id: number; index: number; file:
             {single && <ConflictButtons id={id} index={index} />}
           </span>
         )}
-        {file.status === "skipped" && <span className="file-note">Ignoré : le fichier existant est conservé.</span>}
-        {file.status === "cancelled" && <span className="file-note">Annulé.</span>}
+        {file.status === "skipped" && (
+          <span className="file-note">{t("Ignoré : le fichier existant est conservé.", "Skipped: the existing file is kept.")}</span>
+        )}
+        {file.status === "cancelled" && <span className="file-note">{t("Annulé.", "Cancelled.")}</span>}
       </span>
       {cancellable && (
-        <button className="file-cancel" aria-label="Annuler ce fichier" title="Annuler ce fichier" onClick={() => invoke("cancel_job", { id, index })}>
+        <button
+          className="file-cancel"
+          aria-label={t("Annuler ce fichier", "Cancel this file")}
+          title={t("Annuler ce fichier", "Cancel this file")}
+          onClick={() => invoke("cancel_job", { id, index })}
+        >
           ×
         </button>
       )}

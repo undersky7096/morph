@@ -1,6 +1,7 @@
 // Conversions en arrière-plan (miroir de `src-tauri/src/jobs.rs`).
 
 import type { AppError } from "./errors";
+import { t } from "./i18n";
 
 export type FileStatus = "pending" | "running" | "done" | "error" | "conflict" | "cancelled" | "skipped";
 
@@ -24,16 +25,16 @@ export const ARCHIVE_ZIP = "archive-zip";
 export const ARCHIVE_7Z = "archive-7z";
 export const EXTRACT = "extract";
 
-const LABELS: Record<string, string> = {
-  [CUTOUT]: "Détourage",
-  [MERGE]: "Fusion",
-  [EXTRACT]: "Extraction",
-  [ARCHIVE_ZIP]: "Archive ZIP",
-  [ARCHIVE_7Z]: "Archive 7Z",
-};
+const LABELS = (): Record<string, string> => ({
+  [CUTOUT]: t("Détourage", "Background removal"),
+  [MERGE]: t("Fusion", "Merge"),
+  [EXTRACT]: t("Extraction", "Extraction"),
+  [ARCHIVE_ZIP]: t("Archive ZIP", "ZIP archive"),
+  [ARCHIVE_7Z]: t("Archive 7Z", "7Z archive"),
+});
 
 /** Nom d'un traitement : « Détourage », « Fusion », « → WEBP ». */
-export const jobLabel = (target: string) => LABELS[target] ?? `→ ${target.toUpperCase()}`;
+export const jobLabel = (target: string) => LABELS()[target] ?? `→ ${target.toUpperCase()}`;
 
 export interface Job {
   id: number;

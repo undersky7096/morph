@@ -5,6 +5,7 @@ import { listen } from "@tauri-apps/api/event";
 import { type AppError, describe } from "../../errors";
 import { basename, formatBytes, hasBitrate, isPng, kindOfPath } from "../../formats";
 import type { ConvertProgress } from "../../types";
+import { t } from "../../i18n";
 import { type Duplicates, SaveExtras, useSaveFlow } from "../save";
 import "./Compress.css";
 
@@ -28,10 +29,10 @@ interface CompressResult {
   error: AppError | null;
 }
 
-const LEVELS: { label: string; value: Level; hint: string }[] = [
-  { label: "Léger", value: "light", hint: "Différence quasi invisible." },
-  { label: "Moyen", value: "medium", hint: "Bon compromis poids / qualité." },
-  { label: "Fort", value: "strong", hint: "Poids minimal, perte visible." },
+const LEVELS = (): { label: string; value: Level; hint: string }[] => [
+  { label: t("Léger", "Light"), value: "light", hint: t("Différence quasi invisible.", "Almost invisible difference.") },
+  { label: t("Moyen", "Medium"), value: "medium", hint: t("Bon compromis poids / qualité.", "Good size / quality balance.") },
+  { label: t("Fort", "Strong"), value: "strong", hint: t("Poids minimal, perte visible.", "Smallest size, visible loss.") },
 ];
 
 /** Limite d'envoi de fichiers sur Discord (compte gratuit). */
@@ -99,7 +100,7 @@ export default function Compress({ paths, onDone }: Props) {
       setProgress(null);
       const conflicts = merged.filter((r) => r.error?.code === "exists").length;
       if (conflicts) {
-        flow.ask(conflicts > 1 ? `${conflicts} fichiers existent déjà.` : merged.find((r) => r.error?.code === "exists")!.error!.message, run);
+        flow.ask(conflicts > 1 ? t(`${conflicts} fichiers existent déjà.`, `${conflicts} files already exist.`) : merged.find((r) => r.error?.code === "exists")!.error!.message, run);
       }
       // Une erreur garde la fenêtre ouverte pour la lire ; sinon bilan, puis pétales.
       const outputs = merged.flatMap((r) => (r.outcome?.status === "saved" ? [r.outcome.output] : []));
@@ -135,9 +136,9 @@ export default function Compress({ paths, onDone }: Props) {
       <aside className="tool-panel">
         {(mode === "quality" || hasImages) && (
           <section>
-            <h2>Niveau</h2>
+            <h2>{t("Niveau", "Level")}</h2>
             <div className="chips">
-              {LEVELS.map((l) => (
+              {LEVELS().map((l) => (
                 <button
                   key={l.value}
                   className={`chip ${level === l.value ? "is-active" : ""}`}
@@ -148,8 +149,10 @@ export default function Compress({ paths, onDone }: Props) {
               ))}
             </div>
             <p className="tool-hint">
-              {LEVELS.find((l) => l.value === level)!.hint}
-              {mode === "target" && hasMedia && " En mode taille cible, le niveau ne s'applique qu'aux images."}
+              {LEVELS().find((l) => l.value === level)!.hint}
+              {mode === "target" &&
+                hasMedia &&
+                t(" En mode taille cible, le niveau ne s'applique qu'aux images.", " In target size mode, the level only applies to images.")}
             </p>
           </section>
         )}
@@ -159,24 +162,26 @@ export default function Compress({ paths, onDone }: Props) {
             <h2>PNG</h2>
             <label className="check">
               <input type="checkbox" checked={reduceColors} onChange={(e) => setReduceColors(e.target.checked)} />
-              Réduire les couleurs
+              {t("Réduire les couleurs", "Reduce colours")}
             </label>
             <p className="tool-hint">
-              Jusqu'à −80 % en passant à 256 couleurs maximum, comme TinyPNG. L'optimisation sans perte est toujours
-              appliquée.
+              {t(
+                "Jusqu'à −80 % en passant à 256 couleurs maximum, comme TinyPNG. L'optimisation sans perte est toujours appliquée.",
+                "Up to −80% by using 256 colours at most, like TinyPNG. Lossless optimisation is always applied.",
+              )}
             </p>
           </section>
         )}
 
         {hasMedia && (
           <section>
-            <h2>Audio et vidéo</h2>
+            <h2>{t("Audio et vidéo", "Audio and video")}</h2>
             <div className="chips chips-2">
               <button className={`chip ${mode === "quality" ? "is-active" : ""}`} onClick={() => setMode("quality")}>
-                Qualité
+                {t("Qualité", "Quality")}
               </button>
               <button className={`chip ${mode === "target" ? "is-active" : ""}`} onClick={() => setMode("target")}>
-                Taille cible
+                {t("Taille cible", "Target size")}
               </button>
             </div>
             {mode === "target" && (
@@ -190,16 +195,16 @@ export default function Compress({ paths, onDone }: Props) {
                     aria-invalid={!targetValid}
                     onChange={(e) => setTargetText(e.target.value)}
                   />
-                  <span>Mo par fichier</span>
+                  <span>{t("Mo par fichier", "MB per file")}</span>
                 </label>
                 <button
                   className={`chip chip-wide ${targetMb === DISCORD_MB ? "is-active" : ""}`}
                   onClick={() => setTargetText(String(DISCORD_MB))}
                 >
-                  Discord · {DISCORD_MB} Mo
+                  Discord · {DISCORD_MB} {t("Mo", "MB")}
                 </button>
                 <p className="tool-hint">
-                  Le débit est calculé d'après la durée ; la résolution baisse si nécessaire.
+                  {t("Le débit est calculé d'après la durée ; la résolution baisse si nécessaire.", "Bitrate is computed from the duration; resolution is lowered if needed.")}
                 </p>
               </>
             )}
@@ -217,7 +222,7 @@ export default function Compress({ paths, onDone }: Props) {
         />
         <SaveExtras flow={flow} />
         <button className="primary" onClick={() => run()} disabled={!!progress || !targetValid}>
-          {progress ? "Compression…" : "Compresser"}
+          {progress ? t("Compression…", "Compressing…") : t("Compresser", "Compress")}
         </button>
       </footer>
     </div>
@@ -287,7 +292,7 @@ function PreviewCanvas({ preview, before }: { preview: Preview; before: number |
   const [showOriginal, setShowOriginal] = useState(false);
   const { original, compressed, busy } = preview;
   const src = showOriginal ? original : (compressed?.url ?? original);
-  const label = showOriginal || !compressed ? "Original" : "Compressé";
+  const label = showOriginal || !compressed ? t("Original", "Original") : t("Compressé", "Compressed");
   const size = showOriginal || !compressed ? before : compressed.size;
 
   return (
@@ -296,7 +301,7 @@ function PreviewCanvas({ preview, before }: { preview: Preview; before: number |
       <div className="compress-badge">
         <strong>{label}</strong>
         {size !== undefined && <span>{formatBytes(size)}</span>}
-        {busy && <span className="compress-busy">Calcul…</span>}
+        {busy && <span className="compress-busy">{t("Calcul…", "Computing…")}</span>}
       </div>
       {compressed && (
         <button
@@ -305,10 +310,10 @@ function PreviewCanvas({ preview, before }: { preview: Preview; before: number |
           onPointerUp={() => setShowOriginal(false)}
           onPointerLeave={() => setShowOriginal(false)}
         >
-          Maintenir pour voir l'original
+          {t("Maintenir pour voir l'original", "Hold to see the original")}
         </button>
       )}
-      {!src && <p className="tool-hint">Chargement…</p>}
+      {!src && <p className="tool-hint">{t("Chargement…", "Loading…")}</p>}
     </div>
   );
 }
@@ -318,9 +323,9 @@ function FileRow(props: { path: string; size?: number; progress?: number; result
   const outcome = result?.outcome;
   let after: ReactNode = null;
   if (result?.error?.code === "exists") {
-    after = <span className="is-warn">existe déjà</span>;
+    after = <span className="is-warn">{t("existe déjà", "already exists")}</span>;
   } else if (result?.error?.code === "cancelled") {
-    after = <span className="is-muted">annulé</span>;
+    after = <span className="is-muted">{t("annulé", "cancelled")}</span>;
   } else if (result?.error) {
     after = (
       <span className="is-error" title={`${result.error.message}\n\n${result.error.detail}`}>
@@ -334,7 +339,7 @@ function FileRow(props: { path: string; size?: number; progress?: number; result
       </span>
     );
   } else if (outcome?.status === "noGain") {
-    after = <span className="is-muted">déjà optimisé</span>;
+    after = <span className="is-muted">{t("déjà optimisé", "already optimised")}</span>;
   } else if (progress !== undefined) {
     after = <span className="is-muted">{Math.round(progress * 100)} %</span>;
   }
@@ -363,27 +368,31 @@ function Status(props: {
   if (error) {
     text = error;
   } else if (progress) {
-    text = `Compression… ${Math.round((progress.reduce((a, b) => a + b, 0) / progress.length) * 100)} %`;
+    text = `${t("Compression…", "Compressing…")} ${Math.round((progress.reduce((a, b) => a + b, 0) / progress.length) * 100)} %`;
   } else if (results.length) {
     const failed = results.filter((r) => r.error && r.error.code !== "exists" && r.error.code !== "cancelled").length;
     const done = results.flatMap((r) => (r.outcome ? [r.outcome] : []));
     const before = done.reduce((s, o) => s + o.before, 0);
     const after = done.reduce((s, o) => s + (o.status === "saved" ? o.after : o.before), 0);
     if (done.length && done.every((o) => o.status === "noGain")) {
-      text = "Déjà optimisé : rien n'a été enregistré.";
+      text = t("Déjà optimisé : rien n'a été enregistré.", "Already optimised: nothing was saved.");
     } else if (done.length) {
       text = `${formatBytes(before)} → ${formatBytes(after)} (${percentLess(before, after)})`;
     } else {
       text = "";
     }
-    if (failed) text += `${text ? " · " : ""}${failed} erreur${failed > 1 ? "s" : ""} (survoler pour le détail)`;
+    if (failed)
+      text += `${text ? " · " : ""}${t(
+        `${failed} erreur${failed > 1 ? "s" : ""} (survoler pour le détail)`,
+        `${failed} error${failed > 1 ? "s" : ""} (hover for details)`,
+      )}`;
   } else if (previewSize !== undefined && sizes[0]) {
     text =
       previewSize < sizes[0]
         ? `${formatBytes(sizes[0])} → ${formatBytes(previewSize)} (${percentLess(sizes[0], previewSize)})`
-        : `${formatBytes(sizes[0])} : déjà optimisé à ce niveau`;
+        : `${formatBytes(sizes[0])}${t(" : déjà optimisé à ce niveau", ": already optimised at this level")}`;
   } else {
-    text = sizes.length ? `Poids actuel : ${formatBytes(sizes.reduce((a, b) => a + b, 0))}` : "";
+    text = sizes.length ? `${t("Poids actuel : ", "Current size: ")}${formatBytes(sizes.reduce((a, b) => a + b, 0))}` : "";
   }
 
   const failedOnly = !error && results.length > 0 && results.every((r) => r.error);

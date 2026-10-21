@@ -2,6 +2,7 @@
 
 import { motion } from "motion/react";
 
+import { locale, t } from "../../i18n";
 import { combined, EDIT_DEFAULT, GEOMETRY_DEFAULT, PRESETS } from "./model";
 import { Renderer } from "./renderer";
 
@@ -44,13 +45,13 @@ export function Slider(props: {
     <label
       className="slider"
       onDoubleClick={() => onChange(neutral)}
-      title={`Double-clic : remettre à ${neutral.toLocaleString("fr-FR")}${unit}`}
+      title={t(`Double-clic : remettre à ${neutral.toLocaleString(locale())}${unit}`, `Double-click: reset to ${neutral.toLocaleString(locale())}${unit}`)}
     >
       <span className="slider-head">
         <span>{label}</span>
         <span className={`slider-value ${value !== neutral ? "is-changed" : ""}`}>
           {value > 0 && min < 0 ? "+" : ""}
-          {value.toLocaleString("fr-FR")}
+          {value.toLocaleString(locale())}
           {unit}
         </span>
       </span>

@@ -2,6 +2,7 @@ import type { ReactElement } from "react";
 import { CompressIcon, CropIcon, CutoutIcon, EditIcon, ExtractIcon, MergeIcon } from "../icons";
 import { isCompressible, isEditable, isPdf, kindOfPath } from "../formats";
 import { CUTOUT, EXTRACT, MERGE } from "../jobs";
+import { t } from "../i18n";
 import type { Kind } from "../types";
 
 export type ToolId = "crop" | "cutout" | "compress" | "merge" | "extract" | "edit";
@@ -30,37 +31,44 @@ export interface ToolInfo {
 }
 
 export const TOOLS: Record<ToolId, ToolInfo> = {
-  crop: { label: "Recadrer", icon: CropIcon, kinds: ["image"], wholeBatch: false, accepts: isEditable },
-  cutout: { label: "Détourer", icon: CutoutIcon, kinds: ["image"], wholeBatch: true, direct: CUTOUT, done: "Détouré" },
+  crop: { get label() { return t("Recadrer", "Crop"); }, icon: CropIcon, kinds: ["image"], wholeBatch: false, accepts: isEditable },
+  cutout: {
+    get label() { return t("Détourer", "Remove BG"); },
+    icon: CutoutIcon,
+    kinds: ["image"],
+    wholeBatch: true,
+    direct: CUTOUT,
+    get done() { return t("Détouré", "Done"); },
+  },
   merge: {
-    label: "Fusionner",
+    get label() { return t("Fusionner", "Merge"); },
     icon: MergeIcon,
     kinds: ["document"],
     wholeBatch: true,
     direct: MERGE,
     minFiles: 2,
     accepts: isPdf,
-    done: "Fusionné",
+    get done() { return t("Fusionné", "Merged"); },
     primary: true,
   },
   extract: {
-    label: "Extraire",
+    get label() { return t("Extraire", "Extract"); },
     icon: ExtractIcon,
     kinds: ["archive"],
     wholeBatch: true,
     direct: EXTRACT,
-    done: "Extrait",
+    get done() { return t("Extrait", "Extracted"); },
     primary: true,
   },
   compress: {
-    label: "Compresser",
+    get label() { return t("Compresser", "Compress"); },
     icon: CompressIcon,
     kinds: ["image", "audio", "video", "document"],
     wholeBatch: true,
     accepts: isCompressible,
   },
   edit: {
-    label: "Éditer",
+    get label() { return t("Éditer", "Edit"); },
     icon: EditIcon,
     kinds: ["image", "audio", "video"],
     wholeBatch: false,

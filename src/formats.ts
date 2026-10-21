@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { Kind } from "./types";
+import { locale, t } from "./i18n";
 
 /** Ligne de la table des formats (`src-tauri/src/convert/catalog.rs`, seule source). */
 export interface FormatInfo {
@@ -67,9 +68,9 @@ export const hasBitrate = (path: string) => {
 
 /** Poids lisible, en unités décimales (1 Mo = 10⁶ octets, comme la taille cible). */
 export function formatBytes(bytes: number): string {
-  const fmt = (n: number) => n.toLocaleString("fr-FR", { maximumFractionDigits: n < 10 ? 1 : 0 });
-  if (bytes >= 1e9) return `${fmt(bytes / 1e9)} Go`;
-  if (bytes >= 1e6) return `${fmt(bytes / 1e6)} Mo`;
-  if (bytes >= 1e3) return `${fmt(bytes / 1e3)} Ko`;
-  return `${bytes} o`;
+  const fmt = (n: number) => n.toLocaleString(locale(), { maximumFractionDigits: n < 10 ? 1 : 0 });
+  if (bytes >= 1e9) return `${fmt(bytes / 1e9)} ${t("Go", "GB")}`;
+  if (bytes >= 1e6) return `${fmt(bytes / 1e6)} ${t("Mo", "MB")}`;
+  if (bytes >= 1e3) return `${fmt(bytes / 1e3)} ${t("Ko", "KB")}`;
+  return `${bytes} ${t("o", "B")}`;
 }

@@ -2,12 +2,13 @@ import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "re
 import { invoke } from "@tauri-apps/api/core";
 
 import { describe } from "../../errors";
+import { t } from "../../i18n";
 import { type Duplicates, SaveExtras, useSaveFlow } from "../save";
 import { dragRect, fitRatio, type Handle, type Rect, resizeTo, type Size, toPixels } from "./geometry";
 import "./Crop.css";
 
-const RATIOS: { label: string; value: number | null }[] = [
-  { label: "Libre", value: null },
+const RATIOS = (): { label: string; value: number | null }[] => [
+  { label: t("Libre", "Free"), value: null },
   { label: "1:1", value: 1 },
   { label: "16:9", value: 16 / 9 },
   { label: "9:16", value: 9 / 16 },
@@ -155,14 +156,14 @@ export default function Crop({ path, onSaved, footerExtra }: Props) {
             )}
           </div>
         )}
-        {!src && !error && <p className="tool-hint">Chargement…</p>}
+        {!src && !error && <p className="tool-hint">{t("Chargement…", "Loading…")}</p>}
       </div>
 
       <aside className="tool-panel">
         <section>
-          <h2>Format</h2>
+          <h2>{t("Format", "Aspect ratio")}</h2>
           <div className="chips">
-            {RATIOS.map((r) => (
+            {RATIOS().map((r) => (
               <button
                 key={r.label}
                 className={`chip ${ratio === r.value ? "is-active" : ""}`}
@@ -178,7 +179,7 @@ export default function Crop({ path, onSaved, footerExtra }: Props) {
           <h2>Dimensions</h2>
           <div className="dims">
             <label>
-              <span>L</span>
+              <span>{t("L", "W")}</span>
               <input type="number" min={1} value={px?.width ?? ""} onChange={(e) => onDimension("w", e.target.value)} />
             </label>
             <span className="dims-x">×</span>
@@ -189,13 +190,14 @@ export default function Crop({ path, onSaved, footerExtra }: Props) {
           </div>
           {img && (
             <p className="tool-hint">
-              Image d'origine : {img.w} × {img.h} px
+              {t("Image d'origine : ", "Original image: ")}
+              {img.w} × {img.h} px
             </p>
           )}
         </section>
 
         <button className="link" onClick={() => img && setRect(fitRatio(img, ratio))}>
-          Réinitialiser
+          {t("Réinitialiser", "Reset")}
         </button>
       </aside>
 
@@ -204,7 +206,7 @@ export default function Crop({ path, onSaved, footerExtra }: Props) {
         <SaveExtras flow={flow} />
         {footerExtra}
         <button className="primary" onClick={() => apply()} disabled={!rect || busy}>
-          {busy ? "Enregistrement…" : "Appliquer"}
+          {busy ? t("Enregistrement…", "Saving…") : t("Appliquer", "Apply")}
         </button>
       </footer>
     </div>

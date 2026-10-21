@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 
 import { describe, isCancelled, newTask } from "../../errors";
 import { type Duplicates, SaveExtras, useSaveFlow } from "../save";
+import { t } from "../../i18n";
 import {
   ArrowIcon,
   BrushIcon,
@@ -45,16 +46,16 @@ import "./ImageEditor.css";
 
 type Tab = "adjust" | "filters" | "annotate";
 
-const TOOLS: { id: AnnotateTool; label: string; icon: () => ReactNode }[] = [
-  { id: "select", label: "Sélectionner / déplacer", icon: PointerIcon },
-  { id: "text", label: "Texte", icon: TextIcon },
-  { id: "brush", label: "Pinceau", icon: BrushIcon },
-  { id: "highlight", label: "Surligneur", icon: HighlighterIcon },
-  { id: "eraser", label: "Gomme (efface les annotations)", icon: EraserIcon },
-  { id: "arrow", label: "Flèche", icon: ArrowIcon },
-  { id: "line", label: "Trait", icon: LineIcon },
-  { id: "rect", label: "Rectangle", icon: RectIcon },
-  { id: "ellipse", label: "Ellipse", icon: EllipseIcon },
+const TOOLS = (): { id: AnnotateTool; label: string; icon: () => ReactNode }[] => [
+  { id: "select", label: t("Sélectionner / déplacer", "Select / move"), icon: PointerIcon },
+  { id: "text", label: t("Texte", "Text"), icon: TextIcon },
+  { id: "brush", label: t("Pinceau", "Brush"), icon: BrushIcon },
+  { id: "highlight", label: t("Surligneur", "Highlighter"), icon: HighlighterIcon },
+  { id: "eraser", label: t("Gomme (efface les annotations)", "Eraser (erases annotations)"), icon: EraserIcon },
+  { id: "arrow", label: t("Flèche", "Arrow"), icon: ArrowIcon },
+  { id: "line", label: t("Trait", "Line"), icon: LineIcon },
+  { id: "rect", label: t("Rectangle", "Rectangle"), icon: RectIcon },
+  { id: "ellipse", label: t("Ellipse", "Ellipse"), icon: EllipseIcon },
 ];
 
 /** Épaisseur réelle d'un tracé : le surligneur et la gomme sont plus larges que le pinceau. */
@@ -319,23 +320,23 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
     <div className="editor">
       <div className="editor-area" ref={areaRef}>
         <div className="editor-toolbar">
-          <button title="Annuler (Ctrl+Z)" onClick={history.undo} disabled={!history.canUndo}>
+          <button title={t("Annuler (Ctrl+Z)", "Undo (Ctrl+Z)")} onClick={history.undo} disabled={!history.canUndo}>
             <UndoIcon />
           </button>
-          <button title="Rétablir (Ctrl+Y)" onClick={history.redo} disabled={!history.canRedo}>
+          <button title={t("Rétablir (Ctrl+Y)", "Redo (Ctrl+Y)")} onClick={history.redo} disabled={!history.canRedo}>
             <RedoIcon />
           </button>
           <span className="editor-toolbar-sep" />
-          <button title="Pivoter à gauche" onClick={() => update((s) => ({ ...s, geometry: { ...s.geometry, quarter: (s.geometry.quarter + 3) % 4 } }))}>
+          <button title={t("Pivoter à gauche", "Rotate left")} onClick={() => update((s) => ({ ...s, geometry: { ...s.geometry, quarter: (s.geometry.quarter + 3) % 4 } }))}>
             <RotateLeftIcon />
           </button>
-          <button title="Pivoter à droite" onClick={() => update((s) => ({ ...s, geometry: { ...s.geometry, quarter: (s.geometry.quarter + 1) % 4 } }))}>
+          <button title={t("Pivoter à droite", "Rotate right")} onClick={() => update((s) => ({ ...s, geometry: { ...s.geometry, quarter: (s.geometry.quarter + 1) % 4 } }))}>
             <RotateRightIcon />
           </button>
-          <button title="Miroir horizontal" onClick={() => update((s) => ({ ...s, geometry: { ...s.geometry, flipH: !s.geometry.flipH } }))}>
+          <button title={t("Miroir horizontal", "Flip horizontally")} onClick={() => update((s) => ({ ...s, geometry: { ...s.geometry, flipH: !s.geometry.flipH } }))}>
             <FlipHIcon />
           </button>
-          <button title="Miroir vertical" onClick={() => update((s) => ({ ...s, geometry: { ...s.geometry, flipV: !s.geometry.flipV } }))}>
+          <button title={t("Miroir vertical", "Flip vertically")} onClick={() => update((s) => ({ ...s, geometry: { ...s.geometry, flipV: !s.geometry.flipV } }))}>
             <FlipVIcon />
           </button>
         </div>
@@ -357,16 +358,16 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
               onChange={onCanvasChange}
             />
           )}
-          {!renderer && !error && <p className="tool-hint">Chargement…</p>}
+          {!renderer && !error && <p className="tool-hint">{t("Chargement…", "Loading…")}</p>}
         </div>
       </div>
 
       <aside className="tool-panel editor-panel">
         <EditorTabs
           tabs={[
-            ["adjust", "Réglages"],
-            ["filters", "Filtres"],
-            ["annotate", "Annoter"],
+            ["adjust", t("Réglages", "Adjust")],
+            ["filters", t("Filtres", "Filters")],
+            ["annotate", t("Annoter", "Annotate")],
           ]}
           value={tab}
           onChange={setTab}
@@ -375,7 +376,7 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
         {tab === "adjust" && (
           <>
             <section>
-              <h2>Fond</h2>
+              <h2>{t("Fond", "Background")}</h2>
               {cutting ? (
                 <div className="cutout-progress">
                   <div className="bar">
@@ -383,16 +384,19 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
                   </div>
                   <span>
                     {cutting.download && cutting.progress < 0.85
-                      ? `Téléchargement du modèle (${cutting.download}, une seule fois)… ${Math.round(cutting.progress * 100)} %`
-                      : "Détourage…"}
+                      ? t(
+                          `Téléchargement du modèle (${cutting.download}, une seule fois)… ${Math.round(cutting.progress * 100)} %`,
+                          `Downloading the model (${cutting.download}, only once)… ${Math.round(cutting.progress * 100)}%`,
+                        )
+                      : t("Détourage…", "Removing background…")}
                   </span>
                   <button className="link" onClick={() => invoke("cancel_task", { task: cutting.task })}>
-                    Annuler
+                    {t("Annuler", "Cancel")}
                   </button>
                 </div>
               ) : (
                 <button className="editor-button" onClick={toggleBackground} disabled={!renderer}>
-                  {transparent ? "Remettre le fond" : "Retirer le fond"}
+                  {transparent ? t("Remettre le fond", "Restore background") : t("Retirer le fond", "Remove background")}
                 </button>
               )}
             </section>
@@ -409,13 +413,13 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
               ))}
               <label className="check">
                 <input type="checkbox" checked={invert} onChange={(e) => update((s) => ({ ...s, invert: e.target.checked }))} />
-                Inverser les couleurs
+                {t("Inverser les couleurs", "Invert colours")}
               </label>
             </section>
             <section>
-              <h2>Géométrie</h2>
+              <h2>{t("Géométrie", "Geometry")}</h2>
               <Slider
-                label="Redresser"
+                label={t("Redresser", "Straighten")}
                 min={-45}
                 max={45}
                 step={0.5}
@@ -428,7 +432,7 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
               className="link"
               onClick={() => update((s) => ({ ...s, adjust: ADJUST_DEFAULT, invert: false, geometry: GEOMETRY_DEFAULT }))}
             >
-              Réinitialiser les réglages
+              {t("Réinitialiser les réglages", "Reset adjustments")}
             </button>
           </>
         )}
@@ -447,7 +451,9 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
                 </button>
               ))}
             </div>
-            <p className="tool-hint">Le filtre s'ajoute aux réglages : on peut l'affiner dans l'onglet Réglages.</p>
+            <p className="tool-hint">
+              {t("Le filtre s'ajoute aux réglages : on peut l'affiner dans l'onglet Réglages.", "The filter adds to your adjustments: fine-tune it in the Adjust tab.")}
+            </p>
           </section>
         )}
 
@@ -455,7 +461,7 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
           <>
             <section>
               <div className="annotate-tools">
-                {TOOLS.map(({ id, label, icon: Icon }) => (
+                {TOOLS().map(({ id, label, icon: Icon }) => (
                   <button
                     key={id}
                     title={label}
@@ -474,7 +480,7 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
 
             {selectedShape?.type === "text" && (
               <section>
-                <h2>Texte</h2>
+                <h2>{t("Texte", "Text")}</h2>
                 <textarea
                   ref={textRef}
                   className="editor-text"
@@ -487,7 +493,7 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
 
             {(hasColor || hasWidth || isText) && (
               <section>
-                <h2>Style</h2>
+                <h2>{t("Style", "Style")}</h2>
                 {hasColor && (
                   <div className="swatches">
                     {COLORS.map((c) => (
@@ -502,7 +508,7 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
                     <input
                       type="color"
                       className="swatch-custom"
-                      title="Autre couleur"
+                      title={t("Autre couleur", "Other colour")}
                       value={shown.color}
                       onChange={(e) => setStyleProp("color", e.target.value)}
                     />
@@ -510,7 +516,7 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
                 )}
                 {hasWidth && (
                   <Slider
-                    label="Épaisseur"
+                    label={t("Épaisseur", "Thickness")}
                     min={1}
                     max={60}
                     value={Math.round(shown.width * 2000)}
@@ -520,7 +526,7 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
                 {hasFill && (
                   <label className="check">
                     <input type="checkbox" checked={shown.fill} onChange={(e) => setStyleProp("fill", e.target.checked)} />
-                    Plein
+                    {t("Plein", "Filled")}
                   </label>
                 )}
                 {isText && (
@@ -533,7 +539,7 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
                       ))}
                     </select>
                     <Slider
-                      label="Taille"
+                      label={t("Taille", "Size")}
                       min={1}
                       max={30}
                       step={0.5}
@@ -543,15 +549,15 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
                     />
                     <label className="check">
                       <input type="checkbox" checked={shown.bold} onChange={(e) => setStyleProp("bold", e.target.checked)} />
-                      Gras
+                      {t("Gras", "Bold")}
                     </label>
                     <label className="check">
                       <input type="checkbox" checked={shown.outline} onChange={(e) => setStyleProp("outline", e.target.checked)} />
-                      Contour
+                      {t("Contour", "Outline")}
                     </label>
                     <label className="check">
                       <input type="checkbox" checked={shown.shadow} onChange={(e) => setStyleProp("shadow", e.target.checked)} />
-                      Ombre
+                      {t("Ombre", "Shadow")}
                     </label>
                   </>
                 )}
@@ -560,15 +566,18 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
 
             {selectedShape && (
               <button className="link link-danger" onClick={deleteSelected}>
-                <TrashIcon /> Supprimer l'annotation
+                <TrashIcon /> {t("Supprimer l'annotation", "Delete annotation")}
               </button>
             )}
             <p className="tool-hint">
               {tool === "select"
-                ? "Cliquez une annotation pour la déplacer, la redimensionner ou la faire pivoter. Suppr pour l'effacer."
+                ? t(
+                    "Cliquez une annotation pour la déplacer, la redimensionner ou la faire pivoter. Suppr pour l'effacer.",
+                    "Click an annotation to move, resize or rotate it. Delete to remove it.",
+                  )
                 : tool === "text"
-                  ? "Cliquez sur l'image pour placer un texte."
-                  : "Dessinez directement sur l'image."}
+                  ? t("Cliquez sur l'image pour placer un texte.", "Click the image to place text.")
+                  : t("Dessinez directement sur l'image.", "Draw directly on the image.")}
             </p>
           </>
         )}
@@ -578,13 +587,13 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
         <span className={`tool-status ${error ? "is-error" : ""}`}>
           {error ??
             (size
-              ? `${size.w} × ${size.h} px${renderer?.downscaled ? " (réduite : trop grande pour l'éditeur)" : ""}`
+              ? `${size.w} × ${size.h} px${renderer?.downscaled ? t(" (réduite : trop grande pour l'éditeur)", " (downscaled: too large for the editor)") : ""}`
               : "")}
         </span>
         <SaveExtras flow={flow} />
         {footerExtra}
         <button className="primary" onClick={() => save()} disabled={!renderer || busy}>
-          {busy ? "Enregistrement…" : "Enregistrer"}
+          {busy ? t("Enregistrement…", "Saving…") : t("Enregistrer", "Save")}
         </button>
       </footer>
     </div>

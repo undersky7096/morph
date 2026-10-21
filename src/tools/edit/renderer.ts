@@ -1,6 +1,7 @@
 // Rendu des réglages image en WebGL : rapide en pleine résolution, identique sous
 // Windows (WebView2) et Linux (WebKitGTK), contrairement aux filtres CSS du canvas 2D.
 
+import { t } from "../../i18n";
 import type { Adjust, Geometry } from "./model";
 
 const VERTEX = `
@@ -115,7 +116,7 @@ export class Renderer {
 
   constructor() {
     const gl = this.canvas.getContext("webgl", { premultipliedAlpha: false, preserveDrawingBuffer: true });
-    if (!gl) throw new Error("WebGL indisponible : impossible d'afficher l'éditeur.");
+    if (!gl) throw new Error(t("WebGL indisponible : impossible d'afficher l'éditeur.", "WebGL unavailable: the editor can’t be displayed."));
     this.gl = gl;
     this.blur = program(gl, BLUR);
     this.final = program(gl, FINAL);

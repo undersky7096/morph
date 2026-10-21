@@ -15,6 +15,8 @@ import {
   ZoomInIcon,
   ZoomOutIcon,
 } from "../../icons";
+// `t` désigne ici la découpe en cours : la traduction s'appelle `tr`.
+import { t as tr } from "../../i18n";
 import { formatTime, intersect, moveEdge, type Segment, segmentAt, split, subtract, totalLength } from "./segments";
 import Waveform, { Overview, panView, type Range, type View, zoomView } from "./Waveform";
 
@@ -278,8 +280,8 @@ export function TrimTransport({ trimmer: t, history, ready }: { trimmer: Trimmer
         className="audio-play"
         onClick={t.togglePlay}
         disabled={!ready}
-        aria-label={t.playing ? "Pause" : "Lecture"}
-        title="Lecture / pause (Espace)"
+        aria-label={t.playing ? tr("Pause", "Pause") : tr("Lecture", "Play")}
+        title={tr("Lecture / pause (Espace)", "Play / pause (Space)")}
       >
         {t.playing ? <PauseIcon /> : <PlayIcon />}
       </button>
@@ -288,30 +290,30 @@ export function TrimTransport({ trimmer: t, history, ready }: { trimmer: Trimmer
       </span>
 
       <div className="editor-toolbar">
-        <button onClick={t.cutHere} disabled={!ready} title="Couper au curseur de lecture (S)">
+        <button onClick={t.cutHere} disabled={!ready} title={tr("Couper au curseur de lecture (S)", "Cut at the playhead (S)")}>
           <ScissorsIcon />
         </button>
-        <button onClick={t.removeSelection} disabled={!t.selection} title="Retirer la sélection (Suppr)">
+        <button onClick={t.removeSelection} disabled={!t.selection} title={tr("Retirer la sélection (Suppr)", "Remove selection (Delete)")}>
           <TrashIcon />
         </button>
-        <button onClick={t.keepSelection} disabled={!t.selection} title="Ne garder que la sélection (K)">
+        <button onClick={t.keepSelection} disabled={!t.selection} title={tr("Ne garder que la sélection (K)", "Keep only the selection (K)")}>
           <KeepIcon />
         </button>
         <span className="editor-toolbar-sep" />
-        <button onClick={history.undo} disabled={!history.canUndo} title="Annuler (Ctrl+Z)">
+        <button onClick={history.undo} disabled={!history.canUndo} title={tr("Annuler (Ctrl+Z)", "Undo (Ctrl+Z)")}>
           <UndoIcon />
         </button>
-        <button onClick={history.redo} disabled={!history.canRedo} title="Rétablir (Ctrl+Y)">
+        <button onClick={history.redo} disabled={!history.canRedo} title={tr("Rétablir (Ctrl+Y)", "Redo (Ctrl+Y)")}>
           <RedoIcon />
         </button>
         <span className="editor-toolbar-sep" />
-        <button onClick={() => t.zoom(1 / 2)} disabled={!ready} title="Zoom avant (Ctrl + molette)">
+        <button onClick={() => t.zoom(1 / 2)} disabled={!ready} title={tr("Zoom avant (Ctrl + molette)", "Zoom in (Ctrl + scroll)")}>
           <ZoomInIcon />
         </button>
-        <button onClick={() => t.zoom(2)} disabled={!ready} title="Zoom arrière">
+        <button onClick={() => t.zoom(2)} disabled={!ready} title={tr("Zoom arrière", "Zoom out")}>
           <ZoomOutIcon />
         </button>
-        <button onClick={() => t.setView({ start: 0, end: t.duration })} disabled={!ready} title="Tout afficher">
+        <button onClick={() => t.setView({ start: 0, end: t.duration })} disabled={!ready} title={tr("Tout afficher", "Show all")}>
           <FitIcon />
         </button>
       </div>
@@ -345,8 +347,8 @@ export function SegmentList({ trimmer: t, ready }: { trimmer: Trimmer; ready: bo
               <button
                 className="segment-remove"
                 onClick={() => t.removeSegment(i)}
-                aria-label="Retirer ce passage"
-                title="Retirer ce passage"
+                aria-label={tr("Retirer ce passage", "Remove this section")}
+                title={tr("Retirer ce passage", "Remove this section")}
               >
                 <TrashIcon />
               </button>
@@ -354,10 +356,10 @@ export function SegmentList({ trimmer: t, ready }: { trimmer: Trimmer; ready: bo
           );
         })}
       </ol>
-      {ready && !t.segments.length && <p className="tool-hint">Aucun passage gardé : annulez ou restaurez.</p>}
+      {ready && !t.segments.length && <p className="tool-hint">{tr("Aucun passage gardé : annulez ou restaurez.", "No section kept: undo or restore.")}</p>}
       {ready && (t.segments.length !== 1 || kept < t.duration - 0.005) && (
         <button className="link" onClick={t.restore}>
-          Tout restaurer
+          {tr("Tout restaurer", "Restore all")}
         </button>
       )}
     </>
