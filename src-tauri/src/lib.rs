@@ -1,4 +1,5 @@
 mod commands;
+mod i18n;
 pub mod convert;
 pub mod edit;
 mod icon;

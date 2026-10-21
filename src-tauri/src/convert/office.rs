@@ -109,7 +109,7 @@ fn profile_url() -> String {
 /// instances de LibreOffice partageant un profil se gênent.
 pub fn convert(input: &Path, output: &Path, to: &str, on_progress: &mut dyn FnMut(f32)) -> Result<(), ConvertError> {
     static ONE_AT_A_TIME: Mutex<()> = Mutex::new(());
-    let soffice = soffice().ok_or(ConvertError::EngineMissing(super::engines::LIBREOFFICE_MISSING.reason))?;
+    let soffice = soffice().ok_or(ConvertError::EngineMissing(super::engines::LIBREOFFICE_MISSING.reason()))?;
     let from = catalog::find(input.extension().and_then(|e| e.to_str()).unwrap_or_default());
     let family = from.map_or(Family::Text, |f| f.family);
     let filter = filter(to, family).ok_or_else(|| ConvertError::NoRoute {

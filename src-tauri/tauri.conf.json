@@ -76,9 +76,10 @@
       "nsis": {
         "installMode": "currentUser",
         "languages": [
-          "French"
+          "French",
+          "English"
         ],
-        "displayLanguageSelector": false,
+        "displayLanguageSelector": true,
         "headerImage": "installer/header.bmp",
         "sidebarImage": "installer/sidebar.bmp",
         "installerIcon": "icons/icon.ico",

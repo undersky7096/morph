@@ -293,7 +293,9 @@ fn two_pass(
     let audio_kbps = if total_kbps >= 1000.0 { 128.0 } else if total_kbps >= 400.0 { 96.0 } else { 64.0 };
     let video_kbps = total_kbps - audio_kbps;
     if video_kbps < 60.0 {
-        return Err(ConvertError::Compress("taille cible trop petite pour la durée de cette vidéo".into()));
+        return Err(ConvertError::Compress(
+            crate::i18n::tr("taille cible trop petite pour la durée de cette vidéo", "target size too small for this video’s duration").into(),
+        ));
     }
     // Débit faible : on réduit la résolution plutôt que d'obtenir une bouillie de blocs.
     let max_side = if video_kbps < 800.0 { Some(480) } else if video_kbps < 1600.0 { Some(720) } else { None };

@@ -179,11 +179,27 @@ fn read_from_disk(app: &AppHandle) -> Settings {
 /// session par défaut, puisque le Shift + glisser n'existe que s'il tourne.
 pub fn load(app: &AppHandle) {
     let first_run = file(app).is_some_and(|p| !p.exists());
+    let installer_language = take_installer_language(app);
     let s = get(app);
     if first_run {
-        if let Err(e) = set(app, Settings { autostart: true, ..s }) {
+        // Langue choisie dans l'installeur Windows ; sinon, celle du système.
+        let language = installer_language.unwrap_or(s.language);
+        if let Err(e) = set(app, Settings { autostart: true, language, ..s }) {
             eprintln!("[morph] réglages par défaut : {e}");
         }
+    }
+}
+
+/// Langue choisie dans l'installeur (fichier `installer-language` écrit par ses hooks),
+/// lue puis supprimée : elle ne sert qu'au premier lancement.
+fn take_installer_language(app: &AppHandle) -> Option<Language> {
+    let path = app.path().app_config_dir().ok()?.join("installer-language");
+    let text = std::fs::read_to_string(&path).ok()?;
+    let _ = std::fs::remove_file(&path);
+    match text.trim() {
+        "fr" => Some(Language::Fr),
+        "en" => Some(Language::En),
+        _ => None,
     }
 }
 
@@ -193,7 +209,12 @@ pub fn get(app: &AppHandle) -> Settings {
         return s.clone();
     }
     let mut slot = state.0.write().unwrap();
-    slot.get_or_insert_with(|| read_from_disk(app)).clone()
+    slot.get_or_insert_with(|| {
+        let s = read_from_disk(app);
+        crate::i18n::apply(s.language);
+        s
+    })
+    .clone()
 }
 
 /// Enregistre, applique (lancement au démarrage) et diffuse à toutes les fenêtres.
@@ -203,7 +224,7 @@ pub fn set(app: &AppHandle, new: Settings) -> Result<Settings, String> {
     if new.autostart != old.autostart {
         let launcher = app.autolaunch();
         let result = if new.autostart { launcher.enable() } else { launcher.disable() };
-        result.map_err(|e| format!("lancement au démarrage : {e}"))?;
+        result.map_err(|e| format!("{}{e}", crate::i18n::tr("lancement au démarrage : ", "start at sign-in: ")))?;
     }
     if let Some(path) = file(app) {
         if let Some(dir) = path.parent() {
@@ -212,8 +233,12 @@ pub fn set(app: &AppHandle, new: Settings) -> Result<Settings, String> {
         let json = serde_json::to_string_pretty(&new).map_err(|e| e.to_string())?;
         std::fs::write(&path, json).map_err(|e| e.to_string())?;
     }
+    crate::i18n::apply(new.language);
     *app.state::<State>().0.write().unwrap() = Some(new.clone());
     let _ = app.emit("settings-changed", &new);
+    if new.language != old.language {
+        crate::tray::relabel(app);
+    }
     crate::icon::refresh(app);
     Ok(new)
 }

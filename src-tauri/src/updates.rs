@@ -9,6 +9,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_updater::{Update, UpdaterExt};
 
+use crate::i18n::tr;
 use crate::{jobs, notify, tools};
 
 /// Première vérification, après le démarrage (laisse la session s'ouvrir tranquillement).
@@ -112,7 +113,7 @@ pub async fn check(app: &AppHandle) -> Status {
             Ok(available) => s.available = available,
             Err(e) => {
                 eprintln!("[morph] mise à jour : {e}");
-                s.error = Some("Impossible de vérifier les mises à jour (connexion ?).".into());
+                s.error = Some(tr("Impossible de vérifier les mises à jour (connexion ?).", "Couldn’t check for updates (connection?).").into());
             }
         }
     })
@@ -121,10 +122,10 @@ pub async fn check(app: &AppHandle) -> Status {
 /// Raison d'attendre avant d'installer (l'application redémarre).
 fn busy(app: &AppHandle) -> Option<&'static str> {
     if jobs::any_running(app) {
-        return Some("Un traitement est en cours : la mise à jour pourra s'installer à la fin.");
+        return Some(tr("Un traitement est en cours : la mise à jour pourra s'installer à la fin.", "A task is running: the update can be installed when it’s done."));
     }
     if app.get_webview_window(tools::LABEL).is_some() {
-        return Some("Un outil est ouvert : ferme-le avant d'installer la mise à jour.");
+        return Some(tr("Un outil est ouvert : ferme-le avant d'installer la mise à jour.", "A tool is open: close it before installing the update."));
     }
     None
 }
@@ -135,7 +136,7 @@ pub async fn install(app: &AppHandle) -> Result<(), String> {
         return Err(reason.into());
     }
     let Some(update) = app.state::<State>().update.lock().unwrap().clone() else {
-        return Err("Aucune mise à jour à installer.".into());
+        return Err(tr("Aucune mise à jour à installer.", "No update to install.").into());
     };
     change(app, |s| {
         s.installing = Some(0.0);
@@ -161,7 +162,7 @@ pub async fn install(app: &AppHandle) -> Result<(), String> {
             eprintln!("[morph] installation de la mise à jour : {e}");
             change(app, |s| {
                 s.installing = None;
-                s.error = Some("Le téléchargement de la mise à jour a échoué : réessaie plus tard.".into());
+                s.error = Some(tr("Le téléchargement de la mise à jour a échoué : réessaie plus tard.", "The update download failed: try again later.").into());
             });
             Err(e.to_string())
         }

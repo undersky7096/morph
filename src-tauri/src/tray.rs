@@ -25,7 +25,7 @@ pub fn show_settings_at(app: &AppHandle, section: Option<&str>) -> tauri::Result
     }
     let url = section.map_or_else(|| "index.html".to_string(), |s| format!("index.html#{s}"));
     let window = WebviewWindowBuilder::new(app, SETTINGS, WebviewUrl::App(url.into()))
-        .title("Réglages · Morph")
+        .title(crate::i18n::tr("Réglages · Morph", "Settings · Morph"))
         .inner_size(880.0, 640.0)
         .min_inner_size(720.0, 520.0)
         .center()
@@ -46,10 +46,25 @@ pub fn reveal_settings(app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
+/// Menu de l'icône, dans la langue de l'interface.
+fn menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
+    let settings = MenuItem::with_id(app, "settings", crate::i18n::tr("Réglages", "Settings"), true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", crate::i18n::tr("Quitter Morph", "Quit Morph"), true, None::<&str>)?;
+    Menu::with_items(app, &[&settings, &PredefinedMenuItem::separator(app)?, &quit])
+}
+
+/// Langue changée : le menu de l'icône et le titre des Réglages suivent.
+pub fn relabel(app: &AppHandle) {
+    if let (Some(tray), Ok(menu)) = (app.tray_by_id(ID), menu(app)) {
+        let _ = tray.set_menu(Some(menu));
+    }
+    if let Some(window) = app.get_webview_window(SETTINGS) {
+        let _ = window.set_title(crate::i18n::tr("Réglages · Morph", "Settings · Morph"));
+    }
+}
+
 pub fn create(app: &AppHandle) -> tauri::Result<()> {
-    let settings = MenuItem::with_id(app, "settings", "Réglages", true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", "Quitter Morph", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&settings, &PredefinedMenuItem::separator(app)?, &quit])?;
+    let menu = menu(app)?;
 
     let mut builder = TrayIconBuilder::with_id(ID)
         .tooltip("Morph")

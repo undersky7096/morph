@@ -212,7 +212,7 @@ pub fn trim(
     let duration = ffmpeg::probe_duration(input)?;
     let segs = normalize(segments, duration);
     if segs.is_empty() {
-        return Err(ConvertError::Edit("aucun passage à garder".into()));
+        return Err(ConvertError::Edit(crate::i18n::tr("aucun passage à garder", "no section to keep").into()));
     }
     let kept: f64 = segs.iter().map(|s| s.end - s.start).sum();
 

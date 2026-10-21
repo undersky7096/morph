@@ -128,7 +128,10 @@ pub fn start(app: &AppHandle, paths: Vec<String>, target: String, out_dir: Optio
     let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
     let quality = settings::get(app).cutout;
     let note = (target == CUTOUT && !cutout::model_ready(quality)).then(|| {
-        format!("Premier détourage : téléchargement du modèle ({}, une seule fois).", quality.download_size())
+        crate::i18n::tr(
+            format!("Premier détourage : téléchargement du modèle ({}, une seule fois).", quality.download_size()),
+            format!("First background removal: downloading the model ({}, only once).", quality.download_size()),
+        )
     });
     // Fusion, images → PDF : un seul fichier produit pour tout le lot.
     let groups: Vec<Vec<String>> = if convert::is_batch(&target, &paths) {

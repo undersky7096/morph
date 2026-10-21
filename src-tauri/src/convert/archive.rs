@@ -304,7 +304,7 @@ pub fn rar_tool() -> Option<(PathBuf, &'static [&'static str])> {
 }
 
 fn unrar(input: &Path, dest: &Path) -> Result<(), ConvertError> {
-    let (tool, args) = rar_tool().ok_or(ConvertError::EngineMissing(super::engines::RAR_MISSING.reason))?;
+    let (tool, args) = rar_tool().ok_or(ConvertError::EngineMissing(super::engines::RAR_MISSING.reason()))?;
     let mut cmd = Command::new(&tool);
     no_window(&mut cmd);
     let name = tool.file_name().unwrap_or_default().to_string_lossy().to_lowercase();

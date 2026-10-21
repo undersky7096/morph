@@ -139,7 +139,7 @@ pub fn menu_for(paths: &[&Path]) -> TargetMenu {
             .into_iter()
             .filter_map(|format| {
                 let missing = blocked_reason(src, format)?;
-                Some(Blocked { format, reason: missing.reason, link: missing.link })
+                Some(Blocked { format, reason: missing.reason(), link: missing.link })
             })
             .collect();
 
