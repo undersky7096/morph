@@ -3,6 +3,8 @@
 //!   morph-cli <format> <fichiers…>  convertit chaque fichier vers <format>
 //!   morph-cli compress <light|medium|strong> [--colors] [--target <Mo>] <fichiers…>
 //!   morph-cli trim <début-fin,début-fin…> <fichiers…>  garde ces passages (en secondes)
+//!   morph-cli merge <pdf…>           fusionne des PDF (nom Merged.pdf)
+//!   morph-cli pdf <images…>          assemble plusieurs images en un PDF
 //!   morph-cli cutout [--best] <images…>  retire le fond (télécharge le modèle la première
 //!                                        fois ; --best : modèle « qualité »)
 
@@ -60,7 +62,15 @@ fn cutout_cmd(files: &[String]) -> ExitCode {
     if failed { ExitCode::FAILURE } else { ExitCode::SUCCESS }
 }
 
+/// pdfium : à côté de l'exécutable (application installée), sinon dans `src-tauri/pdfium/`.
+fn set_pdfium() {
+    let beside_exe = std::env::current_exe().ok().and_then(|e| e.parent().map(|d| d.join(convert::pdf::LIBRARY)));
+    let dev = Path::new(env!("CARGO_MANIFEST_DIR")).join("pdfium").join(Path::new(convert::pdf::LIBRARY).file_name().unwrap());
+    convert::pdf::set_library(beside_exe.filter(|p| p.exists()).unwrap_or(dev));
+}
+
 fn main() -> ExitCode {
+    set_pdfium();
     let args: Vec<String> = std::env::args().skip(1).collect();
     let Some((command, files)) = args.split_first().filter(|(_, f)| !f.is_empty()) else {
         eprintln!("usage : morph-cli targets <fichiers…> | morph-cli <format> <fichiers…>");
@@ -81,6 +91,19 @@ fn main() -> ExitCode {
     }
     if command == "cutout" {
         return cutout_cmd(files);
+    }
+    if convert::pdf::is_batch(command, files) {
+        let inputs: Vec<PathBuf> = files.iter().map(PathBuf::from).collect();
+        return match convert::pdf::batch(&inputs, command, &mut |_| {}) {
+            Ok(out) => {
+                println!("{} fichiers → {} ✓", files.len(), out.display());
+                ExitCode::SUCCESS
+            }
+            Err(e) => {
+                println!("{command} ✗\n{e}");
+                ExitCode::FAILURE
+            }
+        };
     }
 
     let mut failed = false;
@@ -170,8 +193,7 @@ fn trim_cmd(args: &[String]) -> ExitCode {
             Ok(out) => println!("{file} → {} ✓", out.display()),
             Err(e) => {
                 failed = true;
-                println!("{file} ✗
-{e}");
+                println!("{file} ✗\n{e}");
             }
         }
     }

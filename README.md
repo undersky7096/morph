@@ -1,14 +1,18 @@
 # Morph
 
-Convertir et retoucher ses images, sons et vidéos en un geste, sans ouvrir d'application :
+Convertir et retoucher ses images, sons, vidéos et documents en un geste, sans ouvrir d'application :
 on glisse des fichiers en maintenant **Shift**, on les lâche n'importe où, et un menu radial
 propose les formats et les outils. Windows et Linux. Site : [morph.underskydev.com](https://morph.underskydev.com).
 
 ## Ce que fait Morph
 
-- **Convertir** : images (PNG, JPG, WebP, GIF, BMP, TIFF, ICO, TGA), audio (MP3, WAV, OGG,
-  FLAC, M4A, Opus), vidéo (MP4, WebM, MKV, MOV, AVI, GIF) et extraction du son d'une vidéo.
-  Formats favoris en premier, lots de fichiers mélangés.
+- **Convertir** : images (PNG, JPG, WebP, AVIF, GIF, BMP, TIFF, ICO, TGA ; HEIC et SVG en
+  lecture), audio (MP3, WAV, FLAC, OGG, AAC, M4A, Opus, WMA, AIFF), vidéo (MP4, WebM, MKV,
+  MOV, AVI, WMV, FLV, 3GP, GIF, sans réencodage quand c'est possible), extraction du son
+  d'une vidéo ; documents (DOCX, ODT, RTF, Markdown, HTML, TXT, EPUB) entre eux, tableurs
+  (XLSX, ODS, CSV) et présentations (PPTX, ODP), tout document en PDF, pages d'un PDF en
+  images, images en un PDF. Formats favoris en premier, lots de fichiers mélangés.
+- **PDF** : fusionner plusieurs PDF, compresser un PDF.
 - **Recadrer** une image, **Détourer** (retirer le fond, en local), **Compresser** (images,
   audio, vidéo, taille cible), **Éditer** : retouches et annotations d'image, découpe et
   volume audio, montage léger de vidéo (découpe, cadrage, vitesse, effets, son).
@@ -18,7 +22,9 @@ propose les formats et les outils. Windows et Linux. Site : [morph.underskydev.c
   mises à jour automatiques (proposées, jamais imposées).
 
 Tout se passe sur l'ordinateur : aucun fichier n'est envoyé. Le modèle de détourage est
-téléchargé une seule fois, au premier usage.
+téléchargé une seule fois, au premier usage. Les formats bureautiques (DOCX ↔ ODT, XLSX,
+PPTX…) et l'export PDF des documents utilisent [LibreOffice](https://www.libreoffice.org)
+s'il est installé (gratuit) ; sans lui, ces formats apparaissent grisés dans le menu.
 
 ## Installation
 
@@ -40,6 +46,8 @@ Visual Studio (Build Tools).
 npm install
 npm run fetch:ffmpeg       # sidecar ffmpeg (src-tauri/binaries/, non versionné)
 npm run fetch:onnxruntime  # ONNX Runtime pour le détourage (+ runtime Visual C++ sous Windows)
+npm run fetch:pandoc       # sidecar pandoc (documents texte)
+npm run fetch:pdfium       # pdfium (pages de PDF en images, fusion)
 npm run tauri dev          # application en mode développement
 ```
 
@@ -60,6 +68,7 @@ cd src-tauri
 cargo run --bin morph-cli -- targets photo.png clip.mov             # formats proposés (JSON)
 cargo run --bin morph-cli -- webp photo.png                         # convertit à côté de l'original
 cargo run --bin morph-cli -- compress medium --target 20 clip.mp4   # compresse
+cargo run --bin morph-cli -- merge a.pdf b.pdf                      # fusionne des PDF
 cargo test                                                          # tests
 ```
 

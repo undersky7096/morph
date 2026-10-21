@@ -10,3 +10,6 @@
 /binaries/
 # ONNX Runtime et runtime Visual C++ embarqués (npm run fetch:onnxruntime)
 /onnxruntime/
+# pdfium embarqué (npm run fetch:pdfium) et licence de pandoc (npm run fetch:pandoc)
+/pdfium/
+/pandoc/

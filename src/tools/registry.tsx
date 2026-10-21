@@ -1,9 +1,10 @@
 import type { ReactElement } from "react";
-import { CompressIcon, CropIcon, CutoutIcon, EditIcon } from "../icons";
-import { isCompressible, isEditable, kindOfPath } from "../formats";
+import { CompressIcon, CropIcon, CutoutIcon, EditIcon, MergeIcon } from "../icons";
+import { isCompressible, isEditable, isPdf, kindOfPath } from "../formats";
+import { CUTOUT, MERGE } from "../jobs";
 import type { Kind } from "../types";
 
-export type ToolId = "crop" | "cutout" | "compress" | "edit";
+export type ToolId = "crop" | "cutout" | "compress" | "merge" | "edit";
 
 export interface ToolInfo {
   label: string;
@@ -12,8 +13,13 @@ export interface ToolInfo {
   kinds: Kind[];
   /** Lot traité d'un coup (Compress) ; sinon, un lot est traité fichier par fichier. */
   wholeBatch: boolean;
-  /** Pas de fenêtre : le traitement part aussitôt, comme une conversion (Détourer). */
-  direct?: boolean;
+  /** Pas de fenêtre : le traitement part aussitôt, comme une conversion, vers cette cible
+   *  (Détourer, Fusionner). */
+  direct?: string;
+  /** Nombre minimal de fichiers (Fusionner : au moins deux). */
+  minFiles?: number;
+  /** Légende du ✓ quand le traitement direct a réussi. */
+  done?: string;
   /** Filtre plus fin que le type (formats réellement pris en charge). */
   accepts?: (path: string) => boolean;
   /** Milestone où l'outil arrive pour un type, tant qu'il n'est pas disponible. */
@@ -22,11 +28,21 @@ export interface ToolInfo {
 
 export const TOOLS: Record<ToolId, ToolInfo> = {
   crop: { label: "Recadrer", icon: CropIcon, kinds: ["image"], wholeBatch: false, accepts: isEditable },
-  cutout: { label: "Détourer", icon: CutoutIcon, kinds: ["image"], wholeBatch: true, direct: true },
+  cutout: { label: "Détourer", icon: CutoutIcon, kinds: ["image"], wholeBatch: true, direct: CUTOUT, done: "Détouré" },
+  merge: {
+    label: "Fusionner",
+    icon: MergeIcon,
+    kinds: ["document"],
+    wholeBatch: true,
+    direct: MERGE,
+    minFiles: 2,
+    accepts: isPdf,
+    done: "Fusionné",
+  },
   compress: {
     label: "Compresser",
     icon: CompressIcon,
-    kinds: ["image", "audio", "video"],
+    kinds: ["image", "audio", "video", "document"],
     wholeBatch: true,
     accepts: isCompressible,
   },
@@ -46,7 +62,9 @@ export function toolsFor(paths: string[]): ToolId[] {
   return (Object.keys(TOOLS) as ToolId[]).filter((id) => {
     const tool = TOOLS[id];
     return (
-      kinds.every((k) => tool.kinds.includes(k as Kind)) && (!tool.accepts || paths.every(tool.accepts))
+      kinds.every((k) => tool.kinds.includes(k as Kind)) &&
+      (!tool.accepts || paths.every(tool.accepts)) &&
+      paths.length >= (tool.minFiles ?? 1)
     );
   });
 }

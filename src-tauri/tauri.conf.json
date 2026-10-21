@@ -64,7 +64,8 @@
       "icons/icon.ico"
     ],
     "externalBin": [
-      "binaries/ffmpeg"
+      "binaries/ffmpeg",
+      "binaries/pandoc"
     ],
     "publisher": "UnderSkyDev",
     "copyright": "© UnderSkyDev — GPL-3.0-or-later",

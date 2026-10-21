@@ -57,8 +57,13 @@ export const isEditable = (path: string) => formatOfPath(path)?.edit ?? false;
 
 export const isPng = (path: string) => extOf(path) === "png";
 
+export const isPdf = (path: string) => extOf(path) === "pdf";
+
 /** Audio/vidéo dont le débit peut viser une taille (le FLAC reste sans perte). */
-export const hasBitrate = (path: string) => kindOfPath(path) !== "image" && extOf(path) !== "flac";
+export const hasBitrate = (path: string) => {
+  const kind = kindOfPath(path);
+  return (kind === "audio" || kind === "video") && extOf(path) !== "flac";
+};
 
 /** Poids lisible, en unités décimales (1 Mo = 10⁶ octets, comme la taille cible). */
 export function formatBytes(bytes: number): string {

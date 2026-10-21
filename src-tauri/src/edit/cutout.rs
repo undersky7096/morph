@@ -19,7 +19,7 @@ use ort::value::Tensor;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::convert::{self, ConvertError, output, raster};
+use crate::convert::{self, ConvertError, output, raster, ticking};
 
 /// Modèle choisi dans les Réglages.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -223,30 +223,6 @@ static RELEASER: AtomicBool = AtomicBool::new(false);
 
 fn engine_error(e: impl std::fmt::Display) -> ConvertError {
     ConvertError::Edit(format!("détourage impossible : {e}"))
-}
-
-/// Exécute `work` dans un fil à part. Pendant ce temps, la progression avance de `from`
-/// vers `to` au rythme de la durée `expected` (90 % de l'étape au temps prévu, puis de plus
-/// en plus lentement, sans jamais l'atteindre) : une étape longue ne fige pas l'affichage.
-fn ticking<T: Send>(
-    expected: Duration,
-    from: f32,
-    to: f32,
-    on_progress: &mut dyn FnMut(f32),
-    work: impl FnOnce() -> T + Send,
-) -> (T, Duration) {
-    let started = Instant::now();
-    std::thread::scope(|scope| {
-        let handle = scope.spawn(work);
-        while !handle.is_finished() {
-            let x = started.elapsed().as_secs_f32() / expected.as_secs_f32().max(0.1);
-            let done = if x < 1.0 { 0.9 * x } else { 1.0 - 0.1 * (1.0 - x).exp() };
-            on_progress(from + (to - from) * done);
-            std::thread::sleep(Duration::from_millis(100));
-        }
-        let result = handle.join().unwrap_or_else(|e| std::panic::resume_unwind(e));
-        (result, started.elapsed())
-    })
 }
 
 /// Libère le modèle (de 200 Mo à 2 Go en mémoire) quand il ne sert plus.

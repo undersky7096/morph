@@ -11,7 +11,9 @@ fn summary(job: &Job) -> (String, String) {
     let count = |s: Status| job.files.iter().filter(|f| f.status == s).count();
     let (done, failed) = (count(Status::Done), count(Status::Error) + count(Status::Conflict));
     let s = |n: usize| if n > 1 { "s" } else { "" };
-    if failed == 0 {
+    if failed == 0 && job.target == crate::jobs::MERGE {
+        ("PDF fusionnés".into(), "Clique pour ouvrir le dossier.".into())
+    } else if failed == 0 {
         let title = match (done, job.target == crate::jobs::CUTOUT) {
             (1, true) => "Fond retiré".to_string(),
             (n, true) => format!("Fond retiré de {n} images"),

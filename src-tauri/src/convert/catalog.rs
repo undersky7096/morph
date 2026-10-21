@@ -10,6 +10,7 @@ pub enum Kind {
     Image,
     Audio,
     Video,
+    Document,
 }
 
 impl Kind {
@@ -20,8 +21,22 @@ impl Kind {
             Kind::Audio => &[Kind::Audio],
             // Une vidéo peut perdre son image : extraction du son.
             Kind::Video => &[Kind::Video, Kind::Audio],
+            Kind::Document => &[Kind::Document],
         }
     }
+}
+
+/// Famille d'un document : les conversions restent dans la famille (un tableur ne devient
+/// pas un texte), plus le PDF pour toutes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Family {
+    /// Images, sons, vidéos : pas de famille.
+    Media,
+    Text,
+    Sheet,
+    Slides,
+    Pdf,
 }
 
 /// Moteur qui lit ou écrit un format.
@@ -34,6 +49,12 @@ pub enum Engine {
     Svg,
     /// ffmpeg, sidecar.
     Ffmpeg,
+    /// pandoc, sidecar (documents texte).
+    Pandoc,
+    /// LibreOffice, s'il est installé (formats bureautiques, export PDF).
+    Office,
+    /// pdfium (bibliothèque embarquée) et lopdf : lire, assembler, fusionner des PDF.
+    Pdf,
 }
 
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -44,6 +65,10 @@ pub struct Format {
     /// Autres extensions du même format (`jpeg` → `jpg`).
     pub aliases: &'static [&'static str],
     pub kind: Kind,
+    pub family: Family,
+    /// LibreOffice sait l'ouvrir (et l'enregistrer, si `write` n'est pas `None`) : il est
+    /// préféré à pandoc entre deux tels formats, pour garder la mise en page.
+    pub office: bool,
     /// Moteur qui le lit (`None` : sortie seulement).
     pub read: Option<Engine>,
     /// Moteur qui l'écrit (`None` : entrée seulement).
@@ -69,9 +94,12 @@ const IMAGE: Format = Format {
     ext: "",
     aliases: &[],
     kind: Kind::Image,
+    family: Family::Media,
+    office: false,
     read: Some(Engine::Image),
     write: Some(Engine::Image),
-    extra: &[],
+    // Images → PDF (plusieurs images : un seul PDF, une page chacune).
+    extra: &["pdf"],
     compress: false,
     edit: true,
     mime: &[],
@@ -80,6 +108,7 @@ const IMAGE: Format = Format {
 };
 const AUDIO: Format = Format {
     kind: Kind::Audio,
+    extra: &[],
     read: Some(Engine::Ffmpeg),
     write: Some(Engine::Ffmpeg),
     compress: true,
@@ -87,6 +116,19 @@ const AUDIO: Format = Format {
     ..IMAGE
 };
 const VIDEO: Format = Format { kind: Kind::Video, extra: &["gif"], ..AUDIO };
+/// Document texte converti par pandoc (et par LibreOffice s'il le connaît aussi).
+const TEXT: Format = Format {
+    kind: Kind::Document,
+    family: Family::Text,
+    read: Some(Engine::Pandoc),
+    write: Some(Engine::Pandoc),
+    extra: &[],
+    compress: false,
+    edit: false,
+    ..IMAGE
+};
+/// Document bureautique converti par LibreOffice.
+const OFFICE: Format = Format { office: true, read: Some(Engine::Office), write: Some(Engine::Office), ..TEXT };
 
 /// Tous les formats, dans l'ordre des pétales (les plus courants d'abord).
 pub const FORMATS: &[Format] = &[
@@ -103,7 +145,7 @@ pub const FORMATS: &[Format] = &[
         ..IMAGE
     },
     // Un GIF peut être animé : il peut devenir une vidéo.
-    Format { ext: "gif", mime: &["image/gif"], extra: &["mp4", "webm"], compress: true, ..IMAGE },
+    Format { ext: "gif", mime: &["image/gif"], extra: &["mp4", "webm", "pdf"], compress: true, ..IMAGE },
     Format { ext: "bmp", mime: &["image/bmp"], ..IMAGE },
     Format { ext: "tiff", aliases: &["tif"], mime: &["image/tiff"], ..IMAGE },
     Format { ext: "ico", mime: &["image/x-icon", "image/vnd.microsoft.icon"], ..IMAGE },
@@ -181,6 +223,46 @@ pub const FORMATS: &[Format] = &[
     Format { ext: "3gp", mime: &["video/3gpp"], ..VIDEO },
     Format { ext: "mpeg", aliases: &["mpg"], mime: &["video/mpeg"], write: None, ..VIDEO },
     Format { ext: "ts", aliases: &["mts", "m2ts"], mime: &["video/mp2t"], write: None, ..VIDEO },
+    // Documents texte
+    Format {
+        ext: "docx",
+        mime: &["application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+        office: true,
+        ..TEXT
+    },
+    Format { ext: "odt", mime: &["application/vnd.oasis.opendocument.text"], office: true, ..TEXT },
+    Format { ext: "rtf", mime: &["application/rtf", "text/rtf"], office: true, ..TEXT },
+    Format { ext: "md", aliases: &["markdown"], mime: &["text/markdown", "text/x-markdown"], ..TEXT },
+    Format { ext: "html", aliases: &["htm"], mime: &["text/html"], ..TEXT },
+    Format { ext: "txt", mime: &["text/plain"], ..TEXT },
+    Format { ext: "epub", mime: &["application/epub+zip"], ..TEXT },
+    Format { ext: "doc", mime: &["application/msword"], write: None, ..OFFICE },
+    // PDF : écrit par LibreOffice (depuis un document) ou par Morph (depuis des images) ;
+    // ses pages deviennent des images (pdfium).
+    Format {
+        ext: "pdf",
+        mime: &["application/pdf"],
+        family: Family::Pdf,
+        office: false,
+        read: Some(Engine::Pdf),
+        extra: &["png", "jpg"],
+        compress: true,
+        ..OFFICE
+    },
+    // Tableurs
+    Format { ext: "xlsx", mime: &["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"], family: Family::Sheet, ..OFFICE },
+    Format { ext: "ods", mime: &["application/vnd.oasis.opendocument.spreadsheet"], family: Family::Sheet, ..OFFICE },
+    Format { ext: "csv", mime: &["text/csv"], family: Family::Sheet, ..OFFICE },
+    Format { ext: "xls", mime: &["application/vnd.ms-excel"], family: Family::Sheet, write: None, ..OFFICE },
+    // Présentations
+    Format {
+        ext: "pptx",
+        mime: &["application/vnd.openxmlformats-officedocument.presentationml.presentation"],
+        family: Family::Slides,
+        ..OFFICE
+    },
+    Format { ext: "odp", mime: &["application/vnd.oasis.opendocument.presentation"], family: Family::Slides, ..OFFICE },
+    Format { ext: "ppt", mime: &["application/vnd.ms-powerpoint"], family: Family::Slides, write: None, ..OFFICE },
 ];
 
 /// Format d'une extension (alias compris, sans tenir compte de la casse).
@@ -189,12 +271,6 @@ pub fn find(ext: &str) -> Option<&'static Format> {
     FORMATS.iter().find(|f| f.ext == ext || f.aliases.contains(&ext.as_str()))
 }
 
-impl Format {
-    /// Moteurs nécessaires pour passer de ce format à `to`.
-    pub fn engines_to(&self, to: &Format) -> impl Iterator<Item = Engine> {
-        self.read.into_iter().chain(to.write)
-    }
-}
 
 #[cfg(test)]
 mod tests {

@@ -320,6 +320,9 @@ kbd {
   --kind: var(--kind-audio);
 }
 
+.settings-format.kind-document {
+  --kind: var(--kind-document);
+}
 .settings-format.kind-video {
   --kind: var(--kind-video);
 }

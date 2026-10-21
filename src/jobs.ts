@@ -6,6 +6,8 @@ export type FileStatus = "pending" | "running" | "done" | "error" | "conflict" |
 
 export interface JobFile {
   input: string;
+  /** Fichiers traités ensemble (fusion, images → PDF) ; 1 sinon. */
+  count: number;
   status: FileStatus;
   progress: number;
   output: string | null;
@@ -14,6 +16,12 @@ export interface JobFile {
 
 /** Cible spéciale : retirer le fond (voir `jobs::CUTOUT`). */
 export const CUTOUT = "cutout";
+/** Cible spéciale : fusionner des PDF (voir `pdf::MERGE`). */
+export const MERGE = "merge";
+
+/** Nom d'un traitement : « Détourage », « Fusion », « → WEBP ». */
+export const jobLabel = (target: string) =>
+  target === CUTOUT ? "Détourage" : target === MERGE ? "Fusion" : `→ ${target.toUpperCase()}`;
 
 export interface Job {
   id: number;

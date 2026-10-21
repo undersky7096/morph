@@ -57,6 +57,8 @@ jobs:
       - run: npm ci
       - run: npm run fetch:ffmpeg
       - run: npm run fetch:onnxruntime
+      - run: npm run fetch:pandoc
+      - run: npm run fetch:pdfium
 
       - name: Tests du moteur
         working-directory: src-tauri

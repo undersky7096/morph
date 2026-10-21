@@ -74,6 +74,18 @@ pub fn compress(input: &Path, opts: &Options, on_progress: &mut dyn FnMut(f32)) 
     let kind = formats::kind_of(input).expect("type vérifié par supports");
     on_progress(0.0);
 
+    if kind == Kind::Document {
+        // PDF : images réduites et réencodées, texte et vectoriel intacts.
+        let (side, quality) = opts.level.pick((2400, 85), (1600, 72), (1100, 55));
+        let data = convert::pdf::compress(input, side, quality, on_progress)?;
+        on_progress(1.0);
+        if data.len() as u64 >= before {
+            return Ok(Outcome::NoGain { before });
+        }
+        let output = convert::suffixed_output(input, SUFFIX)?;
+        fs::write(&output, &data)?;
+        return Ok(Outcome::Saved { output, before, after: data.len() as u64 });
+    }
     if kind == Kind::Image {
         let data = compress_image(input, opts)?;
         on_progress(1.0);

@@ -20,6 +20,7 @@ const OUTPUTS: [string, Kind][] = [
   ["Images", "image"],
   ["Audio", "audio"],
   ["Vidéo", "video"],
+  ["Documents", "document"],
 ];
 
 /** Glissement de l'indicateur de sélection (navigation, choix du thème). */

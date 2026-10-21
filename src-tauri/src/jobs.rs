@@ -22,6 +22,8 @@ use crate::{notify, progress, settings};
 
 /// Cible spéciale : retirer le fond (PNG transparent) au lieu de convertir.
 pub const CUTOUT: &str = "cutout";
+/// Cible spéciale : fusionner des PDF.
+pub use crate::convert::pdf::MERGE;
 
 /// Au-delà, la conversion passe dans la mini-fenêtre.
 const DETACH_AFTER: Duration = Duration::from_secs(2);
@@ -45,6 +47,11 @@ pub enum Status {
 #[serde(rename_all = "camelCase")]
 pub struct FileState {
     pub input: String,
+    /// Nombre de fichiers traités ensemble (fusion, images → PDF) ; 1 sinon.
+    pub count: usize,
+    /// Tous les fichiers d'une opération sur le lot entier (le premier est `input`).
+    #[serde(skip)]
+    inputs: Vec<String>,
     pub status: Status,
     pub progress: f32,
     pub output: Option<String>,
@@ -119,14 +126,22 @@ pub fn start(app: &AppHandle, paths: Vec<String>, target: String, out_dir: Optio
     let note = (target == CUTOUT && !cutout::model_ready(quality)).then(|| {
         format!("Premier détourage : téléchargement du modèle ({}, une seule fois).", quality.download_size())
     });
+    // Fusion, images → PDF : un seul fichier produit pour tout le lot.
+    let groups: Vec<Vec<String>> = if convert::pdf::is_batch(&target, &paths) {
+        vec![paths]
+    } else {
+        paths.into_iter().map(|p| vec![p]).collect()
+    };
     let job = Job {
         id,
         target,
         note,
-        files: paths
+        files: groups
             .into_iter()
-            .map(|input| FileState {
-                input,
+            .map(|inputs| FileState {
+                input: inputs[0].clone(),
+                count: inputs.len(),
+                inputs,
                 status: Status::Pending,
                 progress: 0.0,
                 output: None,
@@ -192,11 +207,12 @@ fn work(app: &AppHandle, id: u64) {
                 duplicates: f.duplicates.unwrap_or(j.duplicates),
                 cancel: vec![j.cancel.clone(), f.cancel.clone()],
             };
-            Some(Some((i, f.input.clone(), j.target.clone(), scope)))
+            Some(Some((i, f.inputs.clone(), j.target.clone(), scope)))
         })
         .flatten();
         let Some(next) = next else { break };
-        let Some((index, input, target, scope)) = next else { continue };
+        let Some((index, inputs, target, scope)) = next else { continue };
+        let input = inputs[0].clone();
         emit(app, id);
 
         let mut last = Instant::now();
@@ -216,6 +232,9 @@ fn work(app: &AppHandle, id: u64) {
         let result = output::scoped(scope, || {
             if target == CUTOUT {
                 cutout::remove_background(Path::new(&input), settings::get(app).cutout, &mut report)
+            } else if inputs.len() > 1 || target == MERGE {
+                let inputs: Vec<PathBuf> = inputs.iter().map(PathBuf::from).collect();
+                convert::pdf::batch(&inputs, &target, &mut report)
             } else {
                 convert::convert(Path::new(&input), &target, &mut report)
             }

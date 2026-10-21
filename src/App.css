@@ -10,6 +10,7 @@
   --kind-image: #0fb98a;
   --kind-video: #2f6bff;
   --kind-audio: #8b5cf6;
+  --kind-document: #f59e0b;
   --danger: #e5484d;
 
   /* Couleur d'accent de l'interface (réglable) ; --accent-2 l'accompagne dans les dégradés. */
@@ -44,6 +45,7 @@
   --kind-image: #5ef2c2;
   --kind-video: #4d8bff;
   --kind-audio: #b98bff;
+  --kind-document: #fcc35a;
   --danger: #ff6369;
 
   --surface-base: #14161e;

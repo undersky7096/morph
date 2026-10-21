@@ -85,6 +85,27 @@ pub fn check_cancel() -> Result<(), ConvertError> {
     if cancelled() { Err(ConvertError::Cancelled) } else { Ok(()) }
 }
 
+/// Nombre différent à chaque appel (noms de fichiers provisoires).
+pub(super) fn unique_suffix() -> u32 {
+    static N: AtomicU32 = AtomicU32::new(0);
+    N.fetch_add(1, Ordering::Relaxed)
+}
+
+/// Nouveau dossier `stem` pour des résultats issus de `input` (pages d'un PDF…), à côté de
+/// l'original ou dans le dossier de sortie ; « (2) » s'il existe déjà (jamais remplacé).
+pub(super) fn unique_dir(input: &Path, stem: &str) -> Result<PathBuf, ConvertError> {
+    let dir = CONTEXT.with(|c| c.borrow().as_ref().and_then(|ctx| ctx.scope.dir.clone()));
+    let parent = dir.unwrap_or_else(|| input.parent().unwrap_or(Path::new(".")).to_path_buf());
+    let mut target = parent.join(stem);
+    let mut n = 2;
+    while target.exists() {
+        target = parent.join(format!("{stem} ({n})"));
+        n += 1;
+    }
+    std::fs::create_dir_all(&target)?;
+    Ok(target)
+}
+
 /// `dossier/stem.ext` pour un résultat issu de `input`, selon le dossier et la politique
 /// de doublons du contexte (sans contexte : à côté de l'original, « (2) » si besoin).
 pub(super) fn unique_in_dir(input: &Path, stem: &str, ext: &str) -> Result<PathBuf, ConvertError> {

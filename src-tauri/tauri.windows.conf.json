@@ -7,7 +7,10 @@
       "onnxruntime/msvcp140_1.dll": "msvcp140_1.dll",
       "onnxruntime/vcruntime140.dll": "vcruntime140.dll",
       "onnxruntime/vcruntime140_1.dll": "vcruntime140_1.dll",
-      "onnxruntime/LICENSE-onnxruntime.txt": "licenses/onnxruntime.txt"
+      "onnxruntime/LICENSE-onnxruntime.txt": "licenses/onnxruntime.txt",
+      "pdfium/pdfium.dll": "pdfium.dll",
+      "pdfium/LICENSE-pdfium.txt": "licenses/pdfium.txt",
+      "pandoc/LICENSE-pandoc.rtf": "licenses/pandoc.rtf"
     }
   }
 }

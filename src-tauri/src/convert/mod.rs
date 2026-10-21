@@ -1,15 +1,21 @@
 //! Moteur de conversion : images via la crate `image` (SVG via `resvg`, AVIF et HEIC via
-//! ffmpeg), audio/vidéo via ffmpeg (sidecar). Formats et routes : [`catalog`].
+//! ffmpeg), audio/vidéo via ffmpeg (sidecar), documents via pandoc (sidecar) et LibreOffice
+//! (s'il est installé), PDF via pdfium et lopdf. Formats et routes : [`catalog`], [`formats`].
 
 pub mod catalog;
 pub mod engines;
 pub mod ffmpeg;
 pub mod formats;
+pub mod office;
 pub mod output;
+pub mod pandoc;
+pub mod pdf;
 pub(crate) mod raster;
 mod svg;
 
 use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::time::{Duration, Instant};
 
 use serde::Serialize;
 
@@ -37,6 +43,8 @@ pub enum ConvertError {
     Download(String),
     #[error("{0}")]
     EngineMissing(&'static str),
+    #[error("document : {0}")]
+    Document(String),
     #[error("annulé")]
     Cancelled,
     #[error("le fichier existe déjà : {}", .0.display())]
@@ -76,6 +84,7 @@ impl ConvertError {
                 "Téléchargement du modèle de détourage impossible : vérifie la connexion à internet, puis réessaie.".into(),
             ),
             ConvertError::EngineMissing(reason) => ("engine-missing", (*reason).into()),
+            ConvertError::Document(log) => document_message(log),
             ConvertError::Cancelled => ("cancelled", "Annulé.".into()),
             ConvertError::Exists(p) => (
                 "exists",
@@ -103,6 +112,19 @@ fn io_message(e: &std::io::Error) -> (&'static str, String) {
         ErrorKind::StorageFull => ("disk-full", DISK_FULL.into()),
         ErrorKind::NotFound => ("not-found", "Fichier ou dossier introuvable.".into()),
         _ => ("io", "Erreur de lecture ou d'écriture du fichier.".into()),
+    }
+}
+
+/// Cause probable d'un échec de conversion de document (pandoc, LibreOffice, PDF).
+fn document_message(log: &str) -> (&'static str, String) {
+    if log.contains("mot de passe") {
+        ("protected", "PDF protégé par un mot de passe : retire la protection d'abord.".into())
+    } else if log.contains("délai dépassé") {
+        ("failed", "LibreOffice ne répond pas : ferme ses fenêtres ouvertes, puis réessaie.".into())
+    } else if log.contains("impossible de lancer") {
+        ("engine-missing", "Le moteur de conversion des documents est introuvable : réinstalle Morph.".into())
+    } else {
+        ("unreadable", "Conversion du document impossible : fichier illisible ou endommagé ?".into())
     }
 }
 
@@ -151,20 +173,76 @@ pub fn convert(
             to: target,
         });
     }
-    if let Some(reason) = formats::blocked_reason(src, &target) {
-        return Err(ConvertError::EngineMissing(reason));
+    if let Some(missing) = formats::blocked_reason(src, &target) {
+        return Err(ConvertError::EngineMissing(missing.reason));
     }
-
-    let output = unique_output(input, &target)?;
+    let to = catalog::find(&target).expect("cible de la table");
     on_progress(0.0);
-    let to_image = catalog::find(&target).is_some_and(|f| f.kind == Kind::Image);
-    if src.kind == Kind::Image && to_image {
-        raster::convert(input, &output, &target)?;
-        on_progress(1.0);
-    } else {
-        ffmpeg::convert(input, &output, &target, on_progress)?;
+
+    // Pages d'un PDF : un fichier, ou un dossier s'il y a plusieurs pages.
+    if src.ext == "pdf" {
+        return pdf::render_pages(input, &target, on_progress);
+    }
+    let output = unique_output(input, &target)?;
+    match formats::route(src, to).as_slice() {
+        _ if src.kind == Kind::Image && to.ext == "pdf" => {
+            pdf::images_to_pdf(&[input.to_path_buf()], &output, on_progress)?;
+        }
+        _ if src.kind == Kind::Image && to.kind == Kind::Image => {
+            raster::convert(input, &output, &target)?;
+            on_progress(1.0);
+        }
+        [catalog::Engine::Office] => office::convert(input, &output, &target, on_progress)?,
+        // Texte → PDF : pandoc vers un ODT provisoire, que LibreOffice exporte.
+        [catalog::Engine::Pandoc, catalog::Engine::Office] => {
+            let odt = std::env::temp_dir().join(format!("morph-{}-{}.odt", std::process::id(), output::unique_suffix()));
+            let mut first = |p: f32| on_progress(p * 0.3);
+            let result = pandoc::convert(input, src.ext, &odt, "odt", &mut first)
+                .and_then(|()| office::convert(&odt, &output, &target, &mut |p| on_progress(0.3 + p * 0.7)));
+            let _ = std::fs::remove_file(&odt);
+            result?;
+        }
+        [catalog::Engine::Pandoc] => pandoc::convert(input, src.ext, &output, &target, on_progress)?,
+        _ => ffmpeg::convert(input, &output, &target, on_progress)?,
     }
     Ok(output)
+}
+
+/// Lance un programme externe sans ouvrir de fenêtre de console (Windows).
+pub(crate) fn no_window(cmd: &mut Command) {
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    #[cfg(not(windows))]
+    let _ = cmd;
+}
+
+/// Exécute `work` dans un fil à part. Pendant ce temps, la progression avance de `from`
+/// vers `to` au rythme de la durée `expected` (90 % de l'étape au temps prévu, puis de plus
+/// en plus lentement, sans jamais l'atteindre) : une étape longue et muette (chargement d'un
+/// modèle, LibreOffice…) ne fige pas l'affichage.
+pub(crate) fn ticking<T: Send>(
+    expected: Duration,
+    from: f32,
+    to: f32,
+    on_progress: &mut dyn FnMut(f32),
+    work: impl FnOnce() -> T + Send,
+) -> (T, Duration) {
+    let started = Instant::now();
+    std::thread::scope(|scope| {
+        let handle = scope.spawn(work);
+        while !handle.is_finished() {
+            let x = started.elapsed().as_secs_f32() / expected.as_secs_f32().max(0.1);
+            let done = if x < 1.0 { 0.9 * x } else { 1.0 - 0.1 * (1.0 - x).exp() };
+            on_progress(from + (to - from) * done);
+            std::thread::sleep(Duration::from_millis(100));
+        }
+        let result = handle.join().unwrap_or_else(|e| std::panic::resume_unwind(e));
+        (result, started.elapsed())
+    })
 }
 
 /// `dossier/nom.ext` ; si le fichier existe déjà : `nom (2).ext`, remplacement ou

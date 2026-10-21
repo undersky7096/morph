@@ -6,11 +6,11 @@ import type { Blocked, Kind, TargetGroup, TargetMenu } from "../types";
 /** Pétale du menu : un format cible (grisé avec la raison s'il est indisponible), un
  *  sous-menu, ou une action d'édition. */
 export type Item =
-  | { type: "format"; format: string; kind: Kind; paths: string[]; blocked?: string }
+  | { type: "format"; format: string; kind: Kind; paths: string[]; blocked?: string; link?: string | null }
   | { type: "group"; label: string; kind: Kind; items: Item[]; icon?: ToolId }
   | { type: "action"; tool: ToolId; kind: Kind; paths: string[] };
 
-const GROUP_LABELS: Record<Kind, string> = { image: "Images", audio: "Audio", video: "Vidéos" };
+const GROUP_LABELS: Record<Kind, string> = { image: "Images", audio: "Audio", video: "Vidéos", document: "Documents" };
 
 /** Pétales par anneau au-delà desquels les derniers formats passent dans « Plus › ». */
 const MAX_PETALS = 9;
@@ -27,7 +27,9 @@ function byFavorites(formats: string[], favorites: string[]): string[] {
 function formatItems(formats: string[], paths: string[], favorites: string[], blocked: Blocked[] = []): Item[] {
   return [
     ...byFavorites(formats, favorites).map((format): Item => ({ type: "format", format, kind: kindOf(format), paths })),
-    ...blocked.map((b): Item => ({ type: "format", format: b.format, kind: kindOf(b.format), paths, blocked: b.reason })),
+    ...blocked.map(
+      (b): Item => ({ type: "format", format: b.format, kind: kindOf(b.format), paths, blocked: b.reason, link: b.link }),
+    ),
   ];
 }
 
@@ -76,6 +78,9 @@ export function buildItems(menu: TargetMenu, settings: Settings): Item[] {
     const items = groupItems(group, settings.favorites);
     // Fichier déjà au bon format : accès direct aux actions, sans conversion.
     const actions = actionItems(group.paths);
+    // Plusieurs PDF : les fusionner est le geste attendu, proposé dès le premier niveau.
+    const merge = actions.find((a) => a.type === "action" && a.tool === "merge");
+    if (merge) items.unshift(merge);
     if (actions.length) items.push({ type: "group", label: "Éditer", kind: group.kind, items: actions, icon: "edit" });
     return fit(items, group.kind);
   }

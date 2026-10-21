@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 
 import { basename } from "../formats";
 import { CloseIcon, MinimizeIcon } from "../icons";
-import { countStatus, CUTOUT, formatDuration, type Job, type JobFile, jobProgress, jobRemaining } from "../jobs";
+import { countStatus, CUTOUT, formatDuration, type Job, type JobFile, jobLabel, jobProgress, jobRemaining } from "../jobs";
 // Barre de titre commune avec les fenêtres d'outils.
 import "../tools/tools.css";
 import "./Progress.css";
@@ -128,7 +128,7 @@ function JobCard({ job, now }: { job: Job; now: number }) {
     <>
       <div className="job-head">
         <span className="job-title">
-          {job.target === CUTOUT ? "Détourage" : `→ ${job.target.toUpperCase()}`}{" "}
+          {jobLabel(job.target)}{" "}
           <small>· {total} fichier{total > 1 ? "s" : ""}</small>
         </span>
         <span className="job-status">{status}</span>
@@ -190,7 +190,7 @@ const ICONS: Record<JobFile["status"], string> = {
 
 function FileRow({ id, index, file, single }: { id: number; index: number; file: JobFile; single: boolean }) {
   const [copied, setCopied] = useState(false);
-  const name = basename(file.output ?? file.input);
+  const name = basename(file.output ?? file.input) + (file.output || file.count < 2 ? "" : ` + ${file.count - 1}`);
   const cancellable = file.status === "pending" || file.status === "running";
 
   async function copy() {

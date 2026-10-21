@@ -200,12 +200,7 @@ pub fn null_output() -> &'static Path {
 pub(crate) fn command() -> Command {
     let mut cmd = Command::new(ffmpeg_path());
     cmd.args(["-hide_banner", "-nostdin", "-nostats"]);
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-        cmd.creation_flags(CREATE_NO_WINDOW);
-    }
+    super::no_window(&mut cmd);
     cmd
 }
 

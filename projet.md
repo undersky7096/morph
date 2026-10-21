@@ -428,6 +428,23 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
   (BiRefNet-general, MIT, 970 Mo, ~20 s ; prétraitement ImageNet, sortie en logits).
   Défaut : Efficacité. Un seul modèle en mémoire. RMBG-2.0 écarté (licence non
   commerciale). `morph-cli cutout --best`.
+  Progression continue pendant les étapes muettes (`convert::ticking` : avance au rythme
+  de la durée attendue/mesurée sans jamais atteindre la fin avant le résultat).
+- **11b fait** (2026-10-21) — v1.2.0. Type `document` (ambre), familles Texte / Tableur /
+  Présentation / PDF (`catalog::Family` : une conversion reste dans sa famille, plus le
+  PDF). Routes (`formats::route`) : texte ↔ texte par pandoc (sidecar 3.12.1, GPL) sauf
+  entre formats bureautiques où LibreOffice est préféré s'il est là ; DOC/XLS/PPT,
+  tableurs, présentations et tout → PDF par LibreOffice (`convert/office.rs` : détecté par
+  le registre / Program Files / PATH, recherché de nouveau tant qu'il manque, profil à
+  part dans %TEMP%\morph-libreoffice, une conversion à la fois, délai 3 min) ; MD/HTML/
+  TXT/EPUB → PDF via un ODT provisoire. Sans LibreOffice : pétale grisé « Nécessite
+  LibreOffice », clic = page de téléchargement. PDF (`convert/pdf.rs`) : pages → PNG/JPG
+  par pdfium chromium/7881 (200 dpi ; plusieurs pages → dossier `nom/nom 01.png`),
+  fusion par pdfium (outil « Fusionner », au premier niveau pour plusieurs PDF →
+  `nom Merged.pdf`), images → PDF par lopdf (une page A4 par image ; plusieurs images =
+  un seul PDF, cible « pdf » traitée en lot), compression PDF dans Compresser (images
+  réduites à 2400/1600/1100 px, JPEG 85/72/55). Installeur 83 Mo (pandoc). Non testé :
+  menu sans LibreOffice installé, AppImage.
 - **Décisions M6** (validées par l'utilisateur le 2026-10-20) :
   - Découpage en sous-étapes, un commit + validation chacune :
     **6a** éditeur image, **6b** découpe audio, **6c** éditeur vidéo.

@@ -182,6 +182,13 @@ const LINKS: &[&str] = &[
     "https://pngquant.org/lib/",
     "https://onnxruntime.ai",
     "https://github.com/xuebinqin/DIS",
+    "https://github.com/ZhengPeng7/BiRefNet",
+    "https://pandoc.org",
+    "https://pdfium.googlesource.com/pdfium/",
+    "https://github.com/J-F-Liu/lopdf",
+    "https://github.com/linebender/resvg",
+    "https://www.libreoffice.org",
+    crate::convert::engines::LIBREOFFICE_URL,
 ];
 
 /// Ouvre un lien de la page « À propos » dans le navigateur (ou la messagerie).

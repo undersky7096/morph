@@ -3,7 +3,9 @@
   "bundle": {
     "resources": {
       "onnxruntime/libonnxruntime.so": "onnxruntime/libonnxruntime.so",
-      "onnxruntime/LICENSE-onnxruntime.txt": "licenses/onnxruntime.txt"
+      "onnxruntime/LICENSE-onnxruntime.txt": "licenses/onnxruntime.txt",
+      "pdfium/libpdfium.so": "pdfium/libpdfium.so",
+      "pdfium/LICENSE-pdfium.txt": "licenses/pdfium.txt"
     }
   }
 }

@@ -52,7 +52,13 @@ const COMPONENTS: [string, string, string, string][] = [
   ["oxipng", "Compression PNG sans perte", "MIT", "https://github.com/shssoichiro/oxipng"],
   ["libimagequant", "Compression PNG par palette", "GPL-3.0", "https://pngquant.org/lib/"],
   ["ONNX Runtime", "Exécution du modèle de détourage", "MIT", "https://onnxruntime.ai"],
-  ["IS-Net (DIS)", "Modèle de détourage, téléchargé à la 1re utilisation", "Apache-2.0", "https://github.com/xuebinqin/DIS"],
+  ["IS-Net (DIS)", "Modèle de détourage « Efficacité », téléchargé à la 1re utilisation", "Apache-2.0", "https://github.com/xuebinqin/DIS"],
+  ["BiRefNet", "Modèle de détourage « Qualité », téléchargé à la 1re utilisation", "MIT", "https://github.com/ZhengPeng7/BiRefNet"],
+  ["resvg", "Rendu des images SVG", "Apache-2.0 / MIT", "https://github.com/linebender/resvg"],
+  ["pandoc", "Conversion des documents texte", "GPL-2.0", "https://pandoc.org"],
+  ["PDFium", "Lecture et fusion des PDF", "BSD-3-Clause", "https://pdfium.googlesource.com/pdfium/"],
+  ["lopdf", "Création et compression des PDF", "MIT", "https://github.com/J-F-Liu/lopdf"],
+  ["LibreOffice", "Formats bureautiques et export PDF, s'il est installé", "MPL-2.0", "https://www.libreoffice.org"],
 ];
 
 const DUPLICATES: [Duplicates, string, string][] = [

@@ -56,6 +56,9 @@ html[data-window="radial"] body {
 .petal[data-kind="audio"] {
   --petal: var(--kind-audio);
 }
+.petal[data-kind="document"] {
+  --petal: var(--kind-document);
+}
 
 .petal:hover,
 .petal:focus-visible {

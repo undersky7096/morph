@@ -6,8 +6,8 @@ use std::path::Path;
 use serde::Serialize;
 
 pub use super::catalog::Kind;
-use super::catalog::{self, Format};
-use super::engines;
+use super::catalog::{self, Engine, Family, Format};
+use super::engines::{self, Missing};
 
 /// Format reconnu (et lisible) d'un fichier, d'après son extension.
 pub fn format_of(path: &Path) -> Option<&'static Format> {
@@ -39,7 +39,9 @@ pub fn targets_for(path: &Path) -> Vec<&'static str> {
 }
 
 fn targets_from(src: &Format) -> Vec<&'static str> {
-    let writable = |f: &&Format| f.write.is_some() && f.ext != src.ext;
+    // Un document reste dans sa famille (texte, tableur, présentation), plus le PDF.
+    let related = |f: &Format| src.family == Family::Media || f.family == src.family || f.ext == "pdf";
+    let writable = |f: &&Format| f.write.is_some() && f.ext != src.ext && related(f);
     let mut targets: Vec<&'static str> = Vec::new();
     for (i, kind) in src.kind.reaches().iter().enumerate() {
         let same = catalog::FORMATS.iter().filter(|f| f.kind == *kind).filter(writable).map(|f| f.ext);
@@ -47,25 +49,53 @@ fn targets_from(src: &Format) -> Vec<&'static str> {
         targets.extend(same);
         if i == 0 {
             let at = (start + EXTRA_RANK).min(targets.len());
-            let extra = src.extra.iter().filter_map(|e| catalog::find(e)).filter(writable).map(|f| f.ext);
+            let extra = src.extra.iter().filter_map(|e| catalog::find(e)).filter(|f| f.write.is_some()).map(|f| f.ext);
             targets.splice(at..at, extra);
         }
     }
     targets
 }
 
-/// Raison pour laquelle la conversion de `src` vers `target` est impossible sur cette
-/// machine (moteur absent), ou `None`.
-pub fn blocked_reason(src: &Format, target: &str) -> Option<&'static str> {
-    let to = catalog::find(target)?;
-    src.engines_to(to).find_map(engines::missing)
+/// Moteurs qui font passer de `src` à `to`, dans l'ordre.
+pub fn route(src: &Format, to: &Format) -> Vec<Engine> {
+    let read = src.read.into_iter();
+    if src.ext == "pdf" {
+        // Pages → images.
+        return vec![Engine::Pdf];
+    }
+    if to.ext == "pdf" {
+        return match src.kind {
+            // Images assemblées par Morph lui-même (lopdf).
+            Kind::Image => read.collect(),
+            // Un texte que LibreOffice ne lit pas passe d'abord par pandoc (en ODT).
+            _ if src.office => vec![Engine::Office],
+            _ => vec![Engine::Pandoc, Engine::Office],
+        };
+    }
+    if src.kind == Kind::Document {
+        // Entre deux formats bureautiques, LibreOffice garde mieux la mise en page ;
+        // pandoc prend le relais s'il manque et sait faire.
+        let by_pandoc = src.read == Some(Engine::Pandoc) && to.write == Some(Engine::Pandoc);
+        let office_ok = engines::missing(Engine::Office).is_none();
+        return if src.office && to.office && (office_ok || !by_pandoc) { vec![Engine::Office] } else { vec![Engine::Pandoc] };
+    }
+    read.chain(to.write).collect()
 }
 
-/// Format cible indisponible, affiché grisé avec la raison.
+/// Raison pour laquelle la conversion de `src` vers `target` est impossible sur cette
+/// machine (moteur absent), ou `None`.
+pub fn blocked_reason(src: &Format, target: &str) -> Option<Missing> {
+    let to = catalog::find(target)?;
+    route(src, to).into_iter().find_map(engines::missing)
+}
+
+/// Format cible indisponible, affiché grisé avec la raison (et la page pour obtenir le
+/// moteur qui manque, ouverte au clic).
 #[derive(Debug, Clone, Serialize)]
 pub struct Blocked {
     pub format: &'static str,
     pub reason: &'static str,
+    pub link: Option<&'static str>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -100,7 +130,10 @@ pub fn menu_for(paths: &[&Path]) -> TargetMenu {
             targets_from(src).into_iter().partition(|t| blocked_reason(src, t).is_none());
         let blocked: Vec<Blocked> = blocked
             .into_iter()
-            .map(|format| Blocked { format, reason: blocked_reason(src, format).unwrap_or_default() })
+            .filter_map(|format| {
+                let missing = blocked_reason(src, format)?;
+                Some(Blocked { format, reason: missing.reason, link: missing.link })
+            })
             .collect();
 
         common = Some(match common {
@@ -140,7 +173,7 @@ mod tests {
         assert_eq!(kind_of(Path::new("clip.mov")), Some(Kind::Video));
         assert_eq!(kind_of(Path::new("IMG_0001.HEIC")), Some(Kind::Image));
         assert_eq!(kind_of(Path::new("son.aif")), Some(Kind::Audio));
-        assert_eq!(kind_of(Path::new("notes.txt")), None);
+        assert_eq!(kind_of(Path::new("archive.xyz")), None);
         assert_eq!(ext_of(Path::new("x.TIF")).as_deref(), Some("tiff"));
     }
 
@@ -169,11 +202,34 @@ mod tests {
     }
 
     #[test]
+    fn documents_stay_in_their_family() {
+        let t = targets_for(Path::new("rapport.docx"));
+        assert!(t.contains(&"md") && t.contains(&"odt") && t.contains(&"pdf"));
+        assert!(!t.contains(&"xlsx") && !t.contains(&"doc"));
+        let t = targets_for(Path::new("compta.xls"));
+        assert!(t.contains(&"xlsx") && t.contains(&"csv") && t.contains(&"pdf") && !t.contains(&"docx"));
+        assert_eq!(targets_for(Path::new("scan.pdf")), vec!["png", "jpg"]);
+        assert!(targets_for(Path::new("photo.jpg")).contains(&"pdf"));
+    }
+
+    #[test]
+    fn routes_pick_the_right_engines() {
+        let f = |e| catalog::find(e).unwrap();
+        assert_eq!(route(f("md"), f("pdf")), vec![Engine::Pandoc, Engine::Office]);
+        assert_eq!(route(f("docx"), f("pdf")), vec![Engine::Office]);
+        assert_eq!(route(f("md"), f("docx")), vec![Engine::Pandoc]);
+        assert_eq!(route(f("pdf"), f("png")), vec![Engine::Pdf]);
+        assert_eq!(route(f("heic"), f("pdf")), vec![Engine::Ffmpeg]);
+        assert_eq!(route(f("doc"), f("docx")), vec![Engine::Office]);
+    }
+
+    #[test]
     fn mixed_batch_has_groups() {
-        let menu = menu_for(&[Path::new("a.png"), Path::new("b.mp3"), Path::new("c.txt")]);
-        assert!(menu.common.is_empty());
+        let menu = menu_for(&[Path::new("a.png"), Path::new("b.mp3"), Path::new("c.xyz")]);
+        assert!(menu.common.is_empty(), "{:?}", menu.common);
+        assert!(!targets_for(Path::new("son.mp3")).contains(&"pdf"));
         assert_eq!(menu.groups.len(), 2);
         assert_eq!(menu.groups[1].paths, vec!["b.mp3".to_string()]);
-        assert_eq!(menu.unsupported, vec!["c.txt".to_string()]);
+        assert_eq!(menu.unsupported, vec!["c.xyz".to_string()]);
     }
 }

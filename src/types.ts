@@ -1,11 +1,13 @@
 // Miroir des structures Rust exposées via IPC.
 
-export type Kind = "image" | "audio" | "video";
+export type Kind = "image" | "audio" | "video" | "document";
 
 /** Format cible indisponible sur cette machine (moteur absent), affiché grisé. */
 export interface Blocked {
   format: string;
   reason: string;
+  /** Page pour obtenir le moteur qui manque (LibreOffice), ouverte au clic. */
+  link: string | null;
 }
 
 export interface TargetGroup {

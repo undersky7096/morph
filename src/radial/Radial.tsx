@@ -5,7 +5,7 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 import { chooseOutputDir, getSettings } from "../settings";
 import { comingIn, TOOLS } from "../tools/registry";
-import { CUTOUT, type Job, jobProgress } from "../jobs";
+import { type Job, jobProgress } from "../jobs";
 import type { RadialPayload } from "../types";
 import { actionItems, buildItems, type Item } from "./items";
 import "./Radial.css";
@@ -140,8 +140,13 @@ export default function Radial() {
       setStack((s) => [...s, { label: item.label, items: item.items }]);
       return;
     }
-    if (item.type === "format" && item.blocked) return;
-    if (item.type === "action" && TOOLS[item.tool].direct) return run(item.paths, CUTOUT);
+    // Moteur manquant (LibreOffice) : le clic ouvre la page pour l'installer.
+    if (item.type === "format" && item.blocked) {
+      if (item.link) await invoke("open_link", { url: item.link });
+      return;
+    }
+    const direct = item.type === "action" ? TOOLS[item.tool].direct : undefined;
+    if (item.type === "action" && direct) return run(item.paths, direct);
     if (item.type === "action") {
       if (comingIn(item.tool, item.paths)) return;
       beforeToolRef.current = { paths: item.paths, stack, fileCount };
@@ -184,7 +189,8 @@ export default function Radial() {
     const actions = actionItems(outputs);
     if (!actions.length) return close();
     // Conversion réussie : le menu enchaîne sur les actions d'édition du résultat.
-    setStack([{ label: "", items: actions, done: job.target === CUTOUT ? "Détouré" : "Converti" }]);
+    const done = Object.values(TOOLS).find((t) => t.direct === job.target)?.done ?? "Converti";
+    setStack([{ label: "", items: actions, done }]);
     setPhase({ name: "menu" });
   }
 
