@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { loadCatalog } from "./formats";
 import { initSettings } from "./settings";
 import "./App.css";
 
@@ -31,7 +32,10 @@ const views: Record<string, () => Promise<View>> = {
   main: () => import("./App"),
 };
 
-(views[label] ?? views.main)().then(({ default: View }) =>
+// La table des formats sert à presque toutes les interfaces : chargée avant l'affichage.
+const catalog = loadCatalog().catch(report);
+
+Promise.all([(views[label] ?? views.main)(), catalog]).then(([{ default: View }]) =>
   ReactDOM.createRoot(document.getElementById("root") as HTMLElement, {
     onUncaughtError: (error, info) => report(`${String(error)}${info.componentStack ?? ""}`),
   }).render(

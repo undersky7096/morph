@@ -75,6 +75,7 @@ pub fn run() {
         .manage(updates::State::default())
         .setup(|app| {
             settings::load(app.handle());
+            convert::engines::warm_up();
             if let Ok(dir) = app.path().app_local_data_dir() {
                 edit::cutout::set_models_dir(dir.join("models"));
             }
@@ -99,6 +100,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::get_targets,
+            commands::format_catalog,
             commands::start_conversion,
             commands::list_jobs,
             commands::cancel_job,

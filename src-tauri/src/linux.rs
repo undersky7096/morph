@@ -11,15 +11,11 @@ use std::path::{Path, PathBuf};
 
 const ICON: &[u8] = include_bytes!("../icons/128x128@2x.png");
 
-/// Types de fichiers ouverts par Morph (miroir des formats reconnus, voir `formats.rs`).
-const MIME: &[&str] = &[
-    "image/png", "image/jpeg", "image/webp", "image/bmp", "image/gif", "image/tiff", "image/x-icon",
-    "image/vnd.microsoft.icon", "image/x-tga",
-    "audio/mpeg", "audio/wav", "audio/x-wav", "audio/ogg", "audio/flac", "audio/x-flac", "audio/mp4",
-    "audio/x-m4a", "audio/aac", "audio/opus", "audio/x-ms-wma",
-    "video/mp4", "video/webm", "video/x-matroska", "video/quicktime", "video/x-msvideo", "video/x-ms-wmv",
-    "video/x-flv", "video/mpeg", "video/3gpp", "video/mp2t",
-];
+/// Types de fichiers ouverts par Morph (formats lisibles de la table des formats).
+fn mime_types() -> String {
+    let readable = crate::convert::catalog::FORMATS.iter().filter(|f| f.read.is_some());
+    readable.flat_map(|f| f.mime).copied().collect::<Vec<_>>().join(";")
+}
 
 /// Actions du clic droit : (identifiant, libellé, option de la ligne de commande).
 const ACTIONS: &[(&str, &str, &str)] = &[
@@ -68,7 +64,7 @@ fn desktop_entry(exe: &Path) -> String {
         "[Desktop Entry]\nType=Application\nName=Morph\nGenericName=Convertisseur de fichiers\n\
          Comment=Convertir et retoucher images, sons et vidéos\nExec={exe} %F\nIcon=morph\nTerminal=false\n\
          Categories=Graphics;AudioVideo;Utility;\nMimeType={};\nActions=edit;compress;\n",
-        MIME.join(";")
+        mime_types()
     );
     for (id, label, arg) in &ACTIONS[1..] {
         s += &format!("\n[Desktop Action {id}]\nName={label}\nExec={exe} {arg} %F\n");
@@ -82,7 +78,7 @@ fn service_menu(exe: &Path) -> String {
     let ids: Vec<&str> = ACTIONS.iter().map(|(id, _, _)| *id).collect();
     let mut s = format!(
         "[Desktop Entry]\nType=Service\nMimeType={};\nActions={};\nX-KDE-Submenu=Morph\n",
-        MIME.join(";"),
+        mime_types(),
         ids.join(";")
     );
     for (id, label, arg) in ACTIONS {

@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import { CompressIcon, CropIcon, CutoutIcon, EditIcon } from "../icons";
-import { isCompressible, kindOfPath } from "../formats";
+import { isCompressible, isEditable, kindOfPath } from "../formats";
 import type { Kind } from "../types";
 
 export type ToolId = "crop" | "cutout" | "compress" | "edit";
@@ -21,7 +21,7 @@ export interface ToolInfo {
 }
 
 export const TOOLS: Record<ToolId, ToolInfo> = {
-  crop: { label: "Recadrer", icon: CropIcon, kinds: ["image"], wholeBatch: false },
+  crop: { label: "Recadrer", icon: CropIcon, kinds: ["image"], wholeBatch: false, accepts: isEditable },
   cutout: { label: "Détourer", icon: CutoutIcon, kinds: ["image"], wholeBatch: true, direct: true },
   compress: {
     label: "Compresser",
@@ -35,6 +35,7 @@ export const TOOLS: Record<ToolId, ToolInfo> = {
     icon: EditIcon,
     kinds: ["image", "audio", "video"],
     wholeBatch: false,
+    accepts: isEditable,
   },
 };
 

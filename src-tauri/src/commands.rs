@@ -5,7 +5,7 @@ use tauri::ipc::Response;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::convert::output::{self, Duplicates, Scope};
-use crate::convert::{ConvertError, ErrorInfo, formats};
+use crate::convert::{ConvertError, ErrorInfo, catalog, formats};
 use crate::edit::{self, compress, trim, video};
 use crate::{jobs, progress, radial, settings, tools};
 
@@ -43,6 +43,12 @@ async fn run_tool<T: Send + 'static>(
         jobs::end_task(app, task);
     }
     result
+}
+
+/// Table des formats, pour l'interface (type d'un fichier, couleur des pétales, outils).
+#[tauri::command]
+pub fn format_catalog() -> &'static [catalog::Format] {
+    catalog::FORMATS
 }
 
 #[tauri::command]

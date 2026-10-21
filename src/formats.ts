@@ -1,39 +1,59 @@
+import { invoke } from "@tauri-apps/api/core";
 import type { Kind } from "./types";
 
-const AUDIO = new Set(["mp3", "wav", "ogg", "oga", "flac", "m4a", "aac", "opus", "wma"]);
-const VIDEO = new Set(["mp4", "m4v", "webm", "mkv", "mov", "avi", "wmv", "flv", "mpeg", "mpg", "3gp", "ts"]);
-const IMAGE = new Set(["png", "jpg", "jpeg", "webp", "bmp", "gif", "tif", "tiff", "ico", "tga"]);
+/** Ligne de la table des formats (`src-tauri/src/convert/catalog.rs`, seule source). */
+export interface FormatInfo {
+  ext: string;
+  aliases: string[];
+  kind: Kind;
+  /** Moteur qui le lit / l'écrit (null : sortie seulement / entrée seulement). */
+  read: string | null;
+  write: string | null;
+  /** Compressible tel quel par l'outil Compresser. */
+  compress: boolean;
+  /** Ouvrable dans Recadrer et l'éditeur d'image. */
+  edit: boolean;
+}
 
-export const isAudioFormat = (format: string) => AUDIO.has(format);
+let catalog: FormatInfo[] = [];
+const byExt = new Map<string, FormatInfo>();
+
+/** Charge la table des formats (une fois par fenêtre, avant d'afficher l'interface). */
+export async function loadCatalog() {
+  catalog = await invoke<FormatInfo[]>("format_catalog");
+  for (const f of catalog) for (const ext of [f.ext, ...f.aliases]) byExt.set(ext, f);
+}
+
+const extOf = (path: string) => path.split(".").pop()?.toLowerCase() ?? "";
+
+/** Format (lisible) d'un fichier d'après son extension. */
+const formatOfPath = (path: string) => {
+  const format = byExt.get(extOf(path));
+  return format?.read ? format : undefined;
+};
+
+export const isAudioFormat = (format: string) => byExt.get(format)?.kind === "audio";
 
 /** Type d'un format de sortie (pour la couleur des pétales). Un GIF compte comme image. */
 export function kindOf(format: string): Kind {
-  if (AUDIO.has(format)) return "audio";
-  if (VIDEO.has(format)) return "video";
-  return "image";
+  return byExt.get(format)?.kind ?? "image";
 }
 
 /** Type d'un fichier d'après son extension, ou null s'il n'est pas reconnu. */
 export function kindOfPath(path: string): Kind | null {
-  const ext = path.split(".").pop()?.toLowerCase() ?? "";
-  if (IMAGE.has(ext)) return "image";
-  if (AUDIO.has(ext)) return "audio";
-  if (VIDEO.has(ext)) return "video";
-  return null;
+  return formatOfPath(path)?.kind ?? null;
 }
+
+/** Formats de sortie d'un type, dans l'ordre de la table. */
+export const outputsOf = (kind: Kind) => catalog.filter((f) => f.kind === kind && f.write).map((f) => f.ext);
 
 export const basename = (path: string) => path.split(/[\\/]/).pop() ?? path;
 
-const extOf = (path: string) => path.split(".").pop()?.toLowerCase() ?? "";
+/** BMP, TIFF, WAV… sont à convertir avant de pouvoir être compressés. */
+export const isCompressible = (path: string) => formatOfPath(path)?.compress ?? false;
 
-// Miroir de `edit::compress::supports` : BMP/TIFF/ICO/TGA et WAV sont à convertir d'abord.
-const COMPRESSIBLE_IMAGE = new Set(["png", "jpg", "jpeg", "webp", "gif"]);
-const COMPRESSIBLE_AUDIO = new Set(["mp3", "ogg", "oga", "opus", "m4a", "aac", "flac", "wma"]);
-
-export function isCompressible(path: string): boolean {
-  const ext = extOf(path);
-  return COMPRESSIBLE_IMAGE.has(ext) || COMPRESSIBLE_AUDIO.has(ext) || VIDEO.has(ext);
-}
+/** HEIC, SVG… ne s'affichent pas dans les outils : à convertir d'abord. */
+export const isEditable = (path: string) => formatOfPath(path)?.edit ?? false;
 
 export const isPng = (path: string) => extOf(path) === "png";
 

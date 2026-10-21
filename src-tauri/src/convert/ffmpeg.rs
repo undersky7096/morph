@@ -6,7 +6,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::thread;
 
-use super::ConvertError;
+use image::DynamicImage;
+
+use super::catalog::{self, Kind};
+use super::{ConvertError, formats};
 
 /// Chemin de ffmpeg : sidecar installé à côté de l'exécutable, sinon celui du PATH.
 pub fn ffmpeg_path() -> PathBuf {
@@ -32,6 +35,17 @@ fn codec_args(target: &str) -> Result<Vec<&'static str>, ConvertError> {
             "-c:a", "libopus", "-b:a", "128k",
         ],
         "avi" => &["-c:v", "mpeg4", "-q:v", "3", "-c:a", "libmp3lame", "-q:a", "3"],
+        "wmv" => &["-c:v", "wmv2", "-q:v", "3", "-c:a", "wmav2", "-b:a", "192k"],
+        "flv" => &[
+            "-vf", EVEN, "-c:v", "libx264", "-preset", "medium", "-crf", "23",
+            "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-ar", "44100",
+        ],
+        // Téléphones anciens : H.264 baseline, 720p au plus.
+        "3gp" => &[
+            "-vf", "scale='trunc(min(1280,iw)/2)*2':-2,setsar=1", "-c:v", "libx264",
+            "-profile:v", "baseline", "-crf", "26", "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-b:a", "96k", "-ar", "44100",
+        ],
         "gif" => &[
             "-an", "-vf",
             "fps=15,scale='min(720,iw)':-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse",
@@ -43,19 +57,139 @@ fn codec_args(target: &str) -> Result<Vec<&'static str>, ConvertError> {
         "flac" => &["-vn", "-c:a", "flac"],
         "m4a" => &["-vn", "-c:a", "aac", "-b:a", "192k"],
         "opus" => &["-vn", "-c:a", "libopus", "-b:a", "128k"],
+        "aac" => &["-vn", "-c:a", "aac", "-b:a", "192k"],
+        "wma" => &["-vn", "-c:a", "wmav2", "-b:a", "192k"],
+        "aiff" => &["-vn", "-c:a", "pcm_s16be"],
         other => return Err(ConvertError::Unsupported(other.to_string())),
     };
     Ok(args.to_vec())
 }
 
+/// Son réencodé quand l'image est recopiée telle quelle mais pas le son.
+fn audio_args(target: &str) -> &'static [&'static str] {
+    match target {
+        "webm" => &["-c:a", "libopus", "-b:a", "128k"],
+        _ => &["-c:a", "aac", "-b:a", "192k"],
+    }
+}
+
 /// Conversion audio/vidéo. `on_progress` reçoit une valeur entre 0.0 et 1.0.
+/// Quand le conteneur cible accepte les codecs de la source, les flux sont recopiés sans
+/// réencodage (bien plus rapide, sans perte) ; en cas d'échec, on réencode.
 pub fn convert(
     input: &Path,
     output: &Path,
     target: &str,
     on_progress: &mut dyn FnMut(f32),
 ) -> Result<(), ConvertError> {
+    if let Some(args) = probe(input).ok().and_then(|header| copy_args(input, &header, target)) {
+        match run(input, &args, output, on_progress) {
+            Err(ConvertError::Ffmpeg(_)) => {}
+            result => return result,
+        }
+    }
     run(input, &codec_args(target)?, output, on_progress)
+}
+
+/// Codecs de la vidéo principale et des pistes audio, d'après l'en-tête de `ffmpeg -i`
+/// (les pochettes, « attached pic », ne comptent pas).
+fn stream_codecs(header: &str) -> (Option<&str>, Vec<&str>) {
+    fn codec<'a>(line: &'a str, tag: &str) -> Option<&'a str> {
+        let rest = &line[line.find(tag)? + tag.len()..];
+        rest.split([' ', ',']).next().filter(|c| !c.is_empty())
+    }
+    let streams = header.lines().filter(|l| l.trim_start().starts_with("Stream #"));
+    let mut video = None;
+    let mut audio = Vec::new();
+    for line in streams {
+        if video.is_none() && !line.contains("(attached pic)") {
+            video = codec(line, "Video: ");
+        }
+        audio.extend(codec(line, "Audio: "));
+    }
+    (video, audio)
+}
+
+/// Arguments pour recopier les flux de `input` vers `target` sans les réencoder, si le
+/// conteneur cible les accepte (au moins l'image, pour une vidéo).
+fn copy_args(input: &Path, header: &str, target: &str) -> Option<Vec<&'static str>> {
+    let src = formats::format_of(input)?;
+    let to = catalog::find(target)?;
+    if src.kind == Kind::Image || to.kind == Kind::Image {
+        return None;
+    }
+    let (video, audio) = stream_codecs(header);
+    let audio_ok = audio.iter().all(|c| to.copy_audio.contains(c));
+    let mut args = vec!["-sn", "-dn"];
+    if to.kind == Kind::Audio {
+        if audio.is_empty() || !audio_ok {
+            return None;
+        }
+        args.extend(["-vn", "-c:a", "copy"]);
+    } else {
+        let video = video.filter(|v| to.copy_video.contains(v))?;
+        args.extend(["-c:v", "copy"]);
+        args.extend(if audio_ok { &["-c:a", "copy"][..] } else { audio_args(target) });
+        if matches!(target, "mp4" | "mov") {
+            args.extend(["-movflags", "+faststart"]);
+            // Étiquette attendue par les lecteurs d'Apple pour le HEVC.
+            if video == "hevc" {
+                args.extend(["-tag:v", "hvc1"]);
+            }
+        }
+    }
+    Some(args)
+}
+
+/// Image fixe lue par ffmpeg (HEIC, AVIF) : première image, transparence AVIF comprise
+/// (stockée dans un second flux, recombiné ici). Rotation et tuiles HEIC sont appliquées.
+pub fn decode_still(input: &Path) -> Result<DynamicImage, ConvertError> {
+    let header = probe(input)?;
+    let mut videos = header.lines().filter(|l| l.contains("Video: "));
+    let alpha = videos.nth(1).is_some_and(|l| l.contains("gray"));
+    let mut cmd = command();
+    cmd.args(["-loglevel", "error", "-i"]).arg(input);
+    if alpha {
+        cmd.args(["-filter_complex", "[0:v:0][0:v:1]alphamerge"]);
+    }
+    let out = cmd.args(["-frames:v", "1", "-f", "image2pipe", "-c:v", "png", "-"]).output().map_err(spawn_error)?;
+    if !out.status.success() || out.stdout.is_empty() {
+        return Err(ConvertError::Ffmpeg(String::from_utf8_lossy(&out.stderr).into_owned()));
+    }
+    Ok(image::load_from_memory_with_format(&out.stdout, image::ImageFormat::Png)?)
+}
+
+/// Enregistre une image en AVIF (libaom, image fixe). La transparence, s'il y en a, part
+/// dans un second flux comme le prévoit le format.
+pub fn encode_avif(img: &DynamicImage, output: &Path) -> Result<(), ConvertError> {
+    use std::io::Write;
+    let rgba = img.to_rgba8();
+    let alpha = rgba.pixels().any(|p| p.0[3] < 255);
+    let size = format!("{}x{}", rgba.width(), rgba.height());
+    let mut cmd = command();
+    cmd.args(["-loglevel", "error", "-n", "-f", "rawvideo", "-pix_fmt", "rgba", "-s", &size, "-i", "-"]);
+    if alpha {
+        cmd.args(["-filter_complex", "[0]format=yuva420p,split[c][a];[a]alphaextract[al]", "-map", "[c]", "-map", "[al]"]);
+    } else {
+        cmd.args(["-pix_fmt", "yuv420p"]);
+    }
+    cmd.args(["-c:v", "libaom-av1", "-still-picture", "1", "-crf", "28", "-cpu-used", "6", "-row-mt", "1"])
+        .args(["-f", "avif"])
+        .arg(output)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped());
+    let mut child = cmd.spawn().map_err(spawn_error)?;
+    let mut stdin = child.stdin.take().expect("stdin piped");
+    let writer = thread::spawn(move || stdin.write_all(rgba.as_raw()));
+    let out = child.wait_with_output()?;
+    let written = writer.join().map(|r| r.is_ok()).unwrap_or(false);
+    if out.status.success() && written {
+        Ok(())
+    } else {
+        let _ = std::fs::remove_file(output);
+        Err(ConvertError::Ffmpeg(String::from_utf8_lossy(&out.stderr).into_owned()))
+    }
 }
 
 /// Sortie à jeter (1re passe d'un encodage en deux passes), avec `-f null`.
@@ -233,6 +367,36 @@ mod tests {
         assert!(matches!(result, Err(ConvertError::Cancelled)), "{result:?}");
         assert!(!output.exists());
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn reads_stream_codecs() {
+        let header = [
+            "  Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p, 1920x1080",
+            "  Stream #0:1[0x2](und): Audio: aac (LC) (mp4a / 0x6134706D), 48000 Hz, stereo",
+            "  Stream #0:2: Video: mjpeg (Baseline), yuvj420p, 600x600 (attached pic)",
+        ]
+        .join("\n");
+        assert_eq!(stream_codecs(&header), (Some("h264"), vec!["aac"]));
+        let header = "  Stream #0:0: Video: mjpeg, yuvj420p, 600x600 (attached pic)\n  Stream #0:1: Audio: mp3, 44100 Hz";
+        assert_eq!(stream_codecs(header), (None, vec!["mp3"]));
+    }
+
+    #[test]
+    fn copies_only_what_the_container_accepts() {
+        let has = |args: &[&str], pair: [&str; 2]| args.windows(2).any(|w| w == pair);
+        let h264_aac = "  Stream #0:0: Video: h264 (High), yuv420p\n  Stream #0:1: Audio: aac (LC), 48000 Hz";
+        let args = copy_args(Path::new("a.mkv"), h264_aac, "mp4").unwrap();
+        assert!(has(&args, ["-c:v", "copy"]) && has(&args, ["-c:a", "copy"]));
+        assert!(copy_args(Path::new("a.mp4"), h264_aac, "webm").is_none());
+        assert!(copy_args(Path::new("a.mp4"), h264_aac, "m4a").unwrap().contains(&"-vn"));
+        assert!(copy_args(Path::new("a.mp4"), h264_aac, "mp3").is_none());
+        let vp9_opus = "  Stream #0:0: Video: vp9, yuv420p\n  Stream #0:1: Audio: opus, 48000 Hz";
+        assert!(has(&copy_args(Path::new("a.webm"), vp9_opus, "mkv").unwrap(), ["-c:a", "copy"]));
+        // L'image est recopiée, le son réencodé.
+        let av1_opus = "  Stream #0:0: Video: av1, yuv420p\n  Stream #0:1: Audio: opus, 48000 Hz";
+        let args = copy_args(Path::new("a.webm"), av1_opus, "mp4").unwrap();
+        assert!(has(&args, ["-c:v", "copy"]) && has(&args, ["-c:a", "aac"]));
     }
 
     #[test]

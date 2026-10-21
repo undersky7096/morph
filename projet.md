@@ -396,6 +396,33 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
   particularité du Sandbox, WebView2 étant présent sur Windows 10/11 à jour.
 - **v1.0.0** : tag `v1.0.0` → release brouillon (installeurs, signatures,
   latest.json), à relire et publier ; puis vérifier que la 0.12.0 propose la mise à jour.
+- **M11 — formats v2** (cahier des charges `integration-v2.md`, plan validé par
+  l'utilisateur le 2026-10-21). Version `1.<étape>.0` : **11a** table centrale
+  (`convert/catalog.rs`, exposée au webview par `format_catalog`), audio/vidéo
+  (AAC, WMA, AIFF ; WMV, FLV, 3GP ; copie des flux sans réencodage quand le
+  conteneur l'accepte), images (AVIF via ffmpeg, HEIC/HEIF en lecture, SVG via
+  resvg, ICO multi-résolution), pétale « Plus › » au-delà de 8 formats ;
+  **11b** documents (pandoc embarqué ; LibreOffice **détecté s'il est installé**,
+  sinon pétales grisés + lien libreoffice.org ; PDF : pages → images (pdfium),
+  fusion et compression (lopdf), **images → PDF**) ; **11c** archives (ZIP/7Z en
+  création pour toute sélection, **dossiers acceptés** ; extraction ZIP/7Z/TAR/GZ/
+  **TAR.XZ/TAR.BZ2** ; RAR en lecture seule via `bsdtar` du système — toujours
+  présent sous Windows, sous Linux bsdtar/unrar/7z sinon message avec le paquet à
+  installer). Pas de PDF → DOCX (résultat inutilisable). Moteurs : disponibilité
+  vérifiée au démarrage, route absente du menu ou pétale grisé avec la raison.
+- **11a fait** (2026-10-21) — v1.1.0. `convert/catalog.rs` (une ligne par format :
+  extension, alias, type, moteurs lecture/écriture, sorties particulières, compressible,
+  éditable, MIME Linux, codecs recopiables), `convert/engines.rs` (ffmpeg vérifié au
+  démarrage ; route impossible → pétale grisé avec la raison, erreur `engine-missing`),
+  `formats.rs` interroge la table ; `format_catalog` alimente `src/formats.ts` (chargé
+  avant chaque fenêtre), les favoris des Réglages et les MIME de `linux.rs`. Ajouts : AAC,
+  WMA, AIFF ; WMV, FLV, 3GP ; copie des flux sans réencodage (repli sur le réencodage si
+  ffmpeg refuse) ; AVIF (libaom, transparence en second flux, relue par alphamerge) ;
+  HEIC/HEIF en lecture (ffmpeg 9 : tuiles et rotation OK, profil ICC ignoré) ; SVG via
+  resvg (agrandi à 1024 px sur le grand côté, au plus 8192) ; ICO 16→256 px. Menu : 9
+  pétales au plus par anneau, le reste dans « Plus › » ; sorties particulières (vidéo →
+  GIF) au 5e rang. HEIC/SVG : pas de Recadrer/Éditer (à convertir d'abord), Détourer oui.
+  Mise à jour auto 0.12.0 → 1.0.0 vérifiée (Réglages affichaient 1.0.0).
 - **Décisions M6** (validées par l'utilisateur le 2026-10-20) :
   - Découpage en sous-étapes, un commit + validation chacune :
     **6a** éditeur image, **6b** découpe audio, **6c** éditeur vidéo.

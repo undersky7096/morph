@@ -1,15 +1,19 @@
-//! Moteur de conversion : images via la crate `image`, audio/vidéo via ffmpeg (sidecar).
+//! Moteur de conversion : images via la crate `image` (SVG via `resvg`, AVIF et HEIC via
+//! ffmpeg), audio/vidéo via ffmpeg (sidecar). Formats et routes : [`catalog`].
 
+pub mod catalog;
+pub mod engines;
 pub mod ffmpeg;
 pub mod formats;
 pub mod output;
 pub(crate) mod raster;
+mod svg;
 
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
-use formats::{IMAGE_OUT, Kind};
+use formats::Kind;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ConvertError {
@@ -31,6 +35,8 @@ pub enum ConvertError {
     Edit(String),
     #[error("téléchargement impossible : {0}")]
     Download(String),
+    #[error("{0}")]
+    EngineMissing(&'static str),
     #[error("annulé")]
     Cancelled,
     #[error("le fichier existe déjà : {}", .0.display())]
@@ -69,6 +75,7 @@ impl ConvertError {
                 "download",
                 "Téléchargement du modèle de détourage impossible : vérifie la connexion à internet, puis réessaie.".into(),
             ),
+            ConvertError::EngineMissing(reason) => ("engine-missing", (*reason).into()),
             ConvertError::Cancelled => ("cancelled", "Annulé.".into()),
             ConvertError::Exists(p) => (
                 "exists",
@@ -136,7 +143,7 @@ pub fn convert(
         return Err(ConvertError::NotFound(input.display().to_string()));
     }
     let target = formats::normalize(&target.to_ascii_lowercase()).to_string();
-    let kind = formats::kind_of(input)
+    let src = formats::format_of(input)
         .ok_or_else(|| ConvertError::Unsupported(input.display().to_string()))?;
     if !formats::targets_for(input).contains(&target.as_str()) {
         return Err(ConvertError::NoRoute {
@@ -144,10 +151,14 @@ pub fn convert(
             to: target,
         });
     }
+    if let Some(reason) = formats::blocked_reason(src, &target) {
+        return Err(ConvertError::EngineMissing(reason));
+    }
 
     let output = unique_output(input, &target)?;
     on_progress(0.0);
-    if kind == Kind::Image && IMAGE_OUT.contains(&target.as_str()) {
+    let to_image = catalog::find(&target).is_some_and(|f| f.kind == Kind::Image);
+    if src.kind == Kind::Image && to_image {
         raster::convert(input, &output, &target)?;
         on_progress(1.0);
     } else {

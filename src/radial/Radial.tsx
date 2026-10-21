@@ -140,6 +140,7 @@ export default function Radial() {
       setStack((s) => [...s, { label: item.label, items: item.items }]);
       return;
     }
+    if (item.type === "format" && item.blocked) return;
     if (item.type === "action" && TOOLS[item.tool].direct) return run(item.paths, CUTOUT);
     if (item.type === "action") {
       if (comingIn(item.tool, item.paths)) return;
@@ -253,6 +254,7 @@ export default function Radial() {
               >
                 {items.map((item, i) => {
                   const soon = item.type === "action" ? comingIn(item.tool, item.paths) : undefined;
+                  const disabled = Boolean(soon || (item.type === "format" && item.blocked));
                   const angle = -Math.PI / 2 + (i / items.length) * 2 * Math.PI;
                   const x = Math.cos(angle) * RADIUS;
                   const y = Math.sin(angle) * RADIUS;
@@ -261,13 +263,13 @@ export default function Radial() {
                       key={itemKey(item)}
                       className={`petal petal-${item.type}`}
                       data-kind={item.kind}
-                      aria-disabled={soon ? true : undefined}
+                      aria-disabled={disabled || undefined}
                       title={itemTitle(item)}
                       initial={{ x: 0, y: 0, scale: 0.3, opacity: 0 }}
                       animate={{ x, y, scale: 1, opacity: 1, transition: { ...spring, delay: i * 0.02 } }}
                       exit={{ x: x * 0.35, y: y * 0.35, scale: 0.5, opacity: 0, transition: { duration: 0.11, ease: "easeIn" } }}
-                      whileHover={soon ? undefined : { scale: 1.14 }}
-                      whileTap={soon ? undefined : { scale: 0.94 }}
+                      whileHover={disabled ? undefined : { scale: 1.14 }}
+                      whileTap={disabled ? undefined : { scale: 0.94 }}
                       transition={spring}
                       onClick={() => choose(item)}
                     >
@@ -368,6 +370,7 @@ function itemKey(item: Item) {
 
 function itemTitle(item: Item) {
   if (item.type === "group") return `${item.label} : ${item.items.length} choix`;
+  if (item.type === "format") return item.blocked;
   if (item.type === "action") {
     const label = TOOLS[item.tool].label;
     const soon = comingIn(item.tool, item.paths);

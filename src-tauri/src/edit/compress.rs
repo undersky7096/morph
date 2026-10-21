@@ -13,10 +13,6 @@ use crate::convert::{self, ConvertError, ffmpeg, raster};
 
 const SUFFIX: &str = "Compressed";
 
-/// Images compressibles (extension normalisée). BMP, TIFF, ICO, TGA : à convertir d'abord.
-const IMAGE: &[&str] = &["png", "jpg", "webp", "gif"];
-/// Audio compressible ; le WAV n'a pas de mode compressé (le convertir en FLAC ou MP3).
-const AUDIO: &[&str] = &["mp3", "ogg", "opus", "m4a", "aac", "flac", "wma"];
 /// Conteneurs vidéo conservés ; les autres (wmv, flv, mpeg, 3gp, ts) sont réencodés en MP4.
 const VIDEO_KEPT: &[&str] = &["mp4", "mov", "mkv", "webm", "avi"];
 
@@ -60,14 +56,10 @@ pub enum Outcome {
     NoGain { before: u64 },
 }
 
+/// Formats compressibles tels quels (voir `compress` dans la table des formats) : BMP,
+/// TIFF, WAV… sont à convertir d'abord.
 pub fn supports(path: &Path) -> bool {
-    let ext = formats::ext_of(path).unwrap_or_default();
-    match formats::kind_of(path) {
-        Some(Kind::Image) => IMAGE.contains(&ext.as_str()),
-        Some(Kind::Audio) => AUDIO.contains(&ext.as_str()),
-        Some(Kind::Video) => true,
-        None => false,
-    }
+    formats::format_of(path).is_some_and(|f| f.compress)
 }
 
 pub fn compress(input: &Path, opts: &Options, on_progress: &mut dyn FnMut(f32)) -> Result<Outcome, ConvertError> {

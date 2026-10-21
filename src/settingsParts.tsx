@@ -2,8 +2,9 @@
 
 import { motion } from "motion/react";
 
-import { kindOf } from "./formats";
+import { kindOf, outputsOf } from "./formats";
 import type { Settings, ThemeMode } from "./settings";
+import type { Kind } from "./types";
 
 export const THEMES: [ThemeMode, string][] = [
   ["system", "Système"],
@@ -14,11 +15,11 @@ export const THEMES: [ThemeMode, string][] = [
 export const ACCENTS = ["#2f6bff", "#8b5cf6", "#ec4899", "#ef4444", "#f97316", "#eab308", "#10b981", "#06b6d4"];
 export const BACKGROUNDS = ["#0b0d12", "#16112a", "#0d1f24", "#1f1414", "#f7f3ea", "#eef3ff", "#fdf0f4", "#eefaf3"];
 
-/** Formats de sortie (miroir de `formats.rs`), par type, pour choisir les favoris. */
-const OUTPUTS: [string, string[]][] = [
-  ["Images", ["png", "jpg", "webp", "gif", "bmp", "tiff", "ico", "tga"]],
-  ["Audio", ["mp3", "wav", "ogg", "flac", "m4a", "opus"]],
-  ["Vidéo", ["mp4", "webm", "mkv", "mov", "avi"]],
+/** Formats de sortie par type, pour choisir les favoris. */
+const OUTPUTS: [string, Kind][] = [
+  ["Images", "image"],
+  ["Audio", "audio"],
+  ["Vidéo", "video"],
 ];
 
 /** Glissement de l'indicateur de sélection (navigation, choix du thème). */
@@ -86,11 +87,11 @@ export function FavoritesPicker({ settings, save }: { settings: Settings; save: 
     });
   return (
     <>
-      {OUTPUTS.map(([label, formats]) => (
+      {OUTPUTS.map(([label, kind]) => (
         <div key={label} className="settings-formats">
           <span>{label}</span>
           <div>
-            {formats.map((f) => {
+            {outputsOf(kind).map((f) => {
               const rank = settings.favorites.indexOf(f);
               return (
                 <button

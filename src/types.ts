@@ -2,9 +2,16 @@
 
 export type Kind = "image" | "audio" | "video";
 
+/** Format cible indisponible sur cette machine (moteur absent), affiché grisé. */
+export interface Blocked {
+  format: string;
+  reason: string;
+}
+
 export interface TargetGroup {
   kind: Kind;
   targets: string[];
+  blocked: Blocked[];
   paths: string[];
 }
 
