@@ -462,6 +462,10 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
   (fusion comprise) qui mettra plus de 10 s à atteindre 50 % (estimé d'après le rythme
   après 1 s, ou constaté à 10 s). Un fichier seul reste suivi dans le moyeu du menu. Une
   erreur, un doublon à trancher ou la fermeture du menu l'ouvrent toujours.
+- **v1.3.2** (2026-10-21) — liens vers le site (dépôt séparé `site-morph`) : À propos →
+  « Laisser un avis », « Proposer une idée » ; mise à jour disponible → « Toutes les
+  nouveautés » (`/changelog/`). Après 20 fichiers convertis avec succès, une seule
+  notification invite à laisser un avis (compteur dans `review.json`, à part des réglages).
 - **Décisions M6** (validées par l'utilisateur le 2026-10-20) :
   - Découpage en sous-étapes, un commit + validation chacune :
     **6a** éditeur image, **6b** découpe audio, **6c** éditeur vidéo.

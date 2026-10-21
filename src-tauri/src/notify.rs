@@ -1,8 +1,10 @@
 //! Notification système à la fin d'une conversion longue ; un clic ouvre le dossier.
+//! Après quelques dizaines de conversions réussies, une seule invitation à laisser un avis.
 
 use std::path::PathBuf;
 
-use tauri::AppHandle;
+use serde::{Deserialize, Serialize};
+use tauri::{AppHandle, Manager};
 
 use crate::jobs::{Job, Status};
 
@@ -40,6 +42,8 @@ enum OnClick {
     Reveal(PathBuf),
     /// Ouvre les Réglages sur « À propos » (mise à jour).
     Updates,
+    /// Ouvre une page du site dans le navigateur.
+    Url(&'static str),
 }
 
 fn activate(app: &AppHandle, click: &OnClick) {
@@ -49,6 +53,9 @@ fn activate(app: &AppHandle, click: &OnClick) {
         }
         OnClick::Updates => {
             let _ = crate::tray::show_settings_at(app, Some("about"));
+        }
+        OnClick::Url(url) => {
+            let _ = tauri_plugin_opener::open_url(*url, None::<&str>);
         }
     }
 }
@@ -60,6 +67,51 @@ pub fn update_available(app: &AppHandle, version: &str) {
         "Clique pour voir les nouveautés et installer la mise à jour.",
         Some(OnClick::Updates),
     );
+}
+
+/// Nombre de fichiers convertis avec succès avant d'inviter à laisser un avis.
+const REVIEW_AFTER: u64 = 20;
+pub const REVIEW_URL: &str = "https://morph.underskydev.com/reviews/#write";
+
+/// Compteur gardé à part des réglages (`review.json`), pour ne jamais les toucher.
+#[derive(Default, Serialize, Deserialize)]
+#[serde(default)]
+struct ReviewState {
+    converted: u64,
+    asked: bool,
+}
+
+/// Compte les fichiers convertis ; au seuil atteint, une seule notification « laisse un avis ».
+pub fn count_success(app: &AppHandle, done: usize, after_notification: bool) {
+    if done == 0 {
+        return;
+    }
+    let Ok(dir) = app.path().app_config_dir() else { return };
+    let path = dir.join("review.json");
+    let mut state: ReviewState = std::fs::read_to_string(&path).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default();
+    if state.asked {
+        return;
+    }
+    state.converted += done as u64;
+    let ask = state.converted >= REVIEW_AFTER;
+    state.asked = ask;
+    let _ = std::fs::create_dir_all(&dir);
+    let _ = std::fs::write(&path, serde_json::to_string(&state).unwrap_or_default());
+    if ask {
+        let app = app.clone();
+        std::thread::spawn(move || {
+            // Laisse d'abord passer la notification de fin de conversion.
+            if after_notification {
+                std::thread::sleep(std::time::Duration::from_secs(8));
+            }
+            show(
+                &app,
+                "Morph te rend service ?",
+                "Clique pour laisser un avis en 30 secondes : ça aide beaucoup Morph à se faire connaître.",
+                Some(OnClick::Url(REVIEW_URL)),
+            );
+        });
+    }
 }
 
 pub fn job_finished(app: &AppHandle, job: &Job) {
@@ -106,6 +158,9 @@ fn show(app: &AppHandle, title: &str, body: &str, click: Option<OnClick>) {
             }
             Some(OnClick::Updates) => {
                 n.action("default", "Voir la mise à jour");
+            }
+            Some(OnClick::Url(_)) => {
+                n.action("default", "Ouvrir");
             }
             None => {}
         }

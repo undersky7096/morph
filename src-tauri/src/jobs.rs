@@ -308,6 +308,8 @@ fn work(app: &AppHandle, id: u64) {
     if job.detached {
         notify::job_finished(app, &job);
     }
+    let done = job.files.iter().filter(|f| f.status == Status::Done).count();
+    notify::count_success(app, done, job.detached);
 }
 
 pub fn cancel(app: &AppHandle, id: u64, index: Option<usize>) {

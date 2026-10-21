@@ -171,6 +171,9 @@ pub fn reveal_settings(app: AppHandle) -> Result<(), String> {
 /// Liens de la page « À propos » : seules ces adresses peuvent être ouvertes.
 const LINKS: &[&str] = &[
     "https://morph.underskydev.com",
+    "https://morph.underskydev.com/reviews/#write",
+    "https://morph.underskydev.com/changelog/",
+    "https://morph.underskydev.com/roadmap/",
     "mailto:contact@underskydev.com",
     "https://ffmpeg.org",
     "https://tauri.app",

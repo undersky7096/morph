@@ -371,6 +371,12 @@ function AboutSection({ version }: { version: string }) {
             <button className="settings-button" onClick={() => open(SITE)}>
               Site de présentation ↗
             </button>
+            <button className="settings-button" onClick={() => open(`${SITE}/reviews/#write`)}>
+              Laisser un avis ↗
+            </button>
+            <button className="settings-button" onClick={() => open(`${SITE}/roadmap/`)}>
+              Proposer une idée ↗
+            </button>
             <button className="settings-button" onClick={() => open(`mailto:${CONTACT}`)}>
               Contact : {CONTACT}
             </button>
@@ -455,9 +461,14 @@ function UpdatesGroup() {
             <strong>Morph {available.version} est disponible.</strong>
           </p>
           {available.notes && <p className="about-notes">{available.notes}</p>}
-          <button className="settings-button is-primary" onClick={install}>
-            Installer et redémarrer
-          </button>
+          <div className="about-links">
+            <button className="settings-button is-primary" onClick={install}>
+              Installer et redémarrer
+            </button>
+            <button className="settings-button" onClick={() => invoke("open_link", { url: `${SITE}/changelog/` })}>
+              Toutes les nouveautés ↗
+            </button>
+          </div>
         </div>
       ) : (
         <div className="about-update">
