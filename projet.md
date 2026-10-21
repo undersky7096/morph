@@ -466,6 +466,13 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
   « Laisser un avis », « Proposer une idée » ; mise à jour disponible → « Toutes les
   nouveautés » (`/changelog/`). Après 20 fichiers convertis avec succès, une seule
   notification invite à laisser un avis (compteur dans `review.json`, à part des réglages).
+- **v1.4.0** (2026-10-21) — interface en anglais. Front : `src/i18n.ts`, textes en paires
+  `t("fr", "en")` ; réglage `language` (system / fr / en) dans Apparence et sur l'accueil.
+  Cœur : `src-tauri/src/i18n.rs` (`tr`, langue globale mise à jour avec les réglages,
+  système via `sys-locale`) pour notifications, menu de l'icône, titres, messages d'erreur,
+  raisons des pétales grisés, clic droit Linux ; les détails techniques restent en français.
+  Installeur Windows : français + anglais avec sélecteur ; le hook POSTINSTALL écrit
+  `%APPDATA%\com.underskydev.morph\installer-language`, adopté au premier lancement puis supprimé.
 - **Décisions M6** (validées par l'utilisateur le 2026-10-20) :
   - Découpage en sous-étapes, un commit + validation chacune :
     **6a** éditeur image, **6b** découpe audio, **6c** éditeur vidéo.
