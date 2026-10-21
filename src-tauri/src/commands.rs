@@ -253,8 +253,9 @@ pub async fn crop_image(
 #[tauri::command]
 pub async fn cutout_image(app: AppHandle, path: String, run: Option<RunOptions>) -> Result<Response, ConvertError> {
     let handle = app.clone();
+    let quality = settings::get(&app).cutout;
     run_tool(&app, run, move || {
-        edit::cutout::cutout_png(Path::new(&path), &mut |p| {
+        edit::cutout::cutout_png(Path::new(&path), quality, &mut |p| {
             let _ = handle.emit("cutout-progress", p);
         })
     })
@@ -262,10 +263,11 @@ pub async fn cutout_image(app: AppHandle, path: String, run: Option<RunOptions>)
     .map(Response::new)
 }
 
-/// Le modèle de détourage est déjà téléchargé.
+/// Poids du modèle de détourage choisi s'il reste à télécharger (« 970 Mo »), sinon rien.
 #[tauri::command]
-pub fn cutout_ready() -> bool {
-    edit::cutout::model_ready()
+pub fn cutout_download(app: AppHandle) -> Option<&'static str> {
+    let quality = settings::get(&app).cutout;
+    (!edit::cutout::model_ready(quality)).then(|| quality.download_size())
 }
 
 /// Enregistre le rendu de l'éditeur image (PNG brut dans le corps de la requête,

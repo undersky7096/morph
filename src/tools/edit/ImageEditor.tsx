@@ -91,7 +91,7 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
   const originalRef = useRef<HTMLImageElement | null>(null);
   const [cutoutImg, setCutoutImg] = useState<HTMLImageElement | null>(null);
   /** Détourage en cours : avancement, et premier détourage (téléchargement du modèle). */
-  const [cutting, setCutting] = useState<{ progress: number; first: boolean; task: string } | null>(null);
+  const [cutting, setCutting] = useState<{ progress: number; download: string | null; task: string } | null>(null);
   /** Image chargée dans le moteur de rendu (change quand on retire / remet le fond). */
   const [source, setSource] = useState(0);
 
@@ -153,8 +153,8 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
     if (cutting) return;
     if (cutoutImg) return update((s) => ({ ...s, cutout: !s.cutout }));
     const task = newTask();
-    const first = !(await invoke<boolean>("cutout_ready"));
-    setCutting({ progress: 0, first, task });
+    const download = await invoke<string | null>("cutout_download");
+    setCutting({ progress: 0, download, task });
     setError(null);
     const unlisten = await listen<number>("cutout-progress", ({ payload }) =>
       setCutting((c) => c && { ...c, progress: payload }),
@@ -382,8 +382,8 @@ export default function ImageEditor({ path, onSaved, footerExtra }: Props) {
                     <span style={{ transform: `scaleX(${cutting.progress})` }} />
                   </div>
                   <span>
-                    {cutting.first && cutting.progress < 0.85
-                      ? `Téléchargement du modèle (170 Mo, une seule fois)… ${Math.round(cutting.progress * 100)} %`
+                    {cutting.download && cutting.progress < 0.85
+                      ? `Téléchargement du modèle (${cutting.download}, une seule fois)… ${Math.round(cutting.progress * 100)} %`
                       : "Détourage…"}
                   </span>
                   <button className="link" onClick={() => invoke("cancel_task", { task: cutting.task })}>

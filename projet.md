@@ -423,6 +423,11 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
   pétales au plus par anneau, le reste dans « Plus › » ; sorties particulières (vidéo →
   GIF) au 5e rang. HEIC/SVG : pas de Recadrer/Éditer (à convertir d'abord), Détourer oui.
   Mise à jour auto 0.12.0 → 1.0.0 vérifiée (Réglages affichaient 1.0.0).
+- **Détourage « Qualité »** (2026-10-21, demandé après 11a : IS-Net jugé pas assez bon) :
+  réglage Outils → Détourer « Efficacité » (IS-Net, 170 Mo, ~1-2 s) / « Qualité »
+  (BiRefNet-general, MIT, 970 Mo, ~20 s ; prétraitement ImageNet, sortie en logits).
+  Défaut : Efficacité. Un seul modèle en mémoire. RMBG-2.0 écarté (licence non
+  commerciale). `morph-cli cutout --best`.
 - **Décisions M6** (validées par l'utilisateur le 2026-10-20) :
   - Découpage en sous-étapes, un commit + validation chacune :
     **6a** éditeur image, **6b** découpe audio, **6c** éditeur vidéo.

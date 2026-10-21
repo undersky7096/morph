@@ -3,7 +3,8 @@
 //!   morph-cli <format> <fichiers…>  convertit chaque fichier vers <format>
 //!   morph-cli compress <light|medium|strong> [--colors] [--target <Mo>] <fichiers…>
 //!   morph-cli trim <début-fin,début-fin…> <fichiers…>  garde ces passages (en secondes)
-//!   morph-cli cutout <images…>       retire le fond (télécharge le modèle la première fois)
+//!   morph-cli cutout [--best] <images…>  retire le fond (télécharge le modèle la première
+//!                                        fois ; --best : modèle « qualité »)
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -32,6 +33,10 @@ fn cutout_cmd(files: &[String]) -> ExitCode {
     let beside_exe = std::env::current_exe().ok().and_then(|e| e.parent().map(|d| d.join(cutout::RUNTIME_LIB)));
     let dev = Path::new(env!("CARGO_MANIFEST_DIR")).join("onnxruntime").join(Path::new(cutout::RUNTIME_LIB).file_name().unwrap());
     cutout::set_runtime(beside_exe.filter(|p| p.exists()).unwrap_or(dev));
+    let (quality, files) = match files.split_first() {
+        Some((flag, rest)) if flag == "--best" => (cutout::Quality::Best, rest),
+        _ => (cutout::Quality::Fast, files),
+    };
 
     let mut failed = false;
     for file in files {
@@ -44,7 +49,7 @@ fn cutout_cmd(files: &[String]) -> ExitCode {
                 let _ = std::io::stdout().flush();
             }
         };
-        match cutout::remove_background(Path::new(file), &mut report) {
+        match cutout::remove_background(Path::new(file), quality, &mut report) {
             Ok(out) => println!("\r{file} → {} ✓", out.display()),
             Err(e) => {
                 failed = true;

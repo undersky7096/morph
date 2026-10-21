@@ -130,7 +130,7 @@ pub fn run() {
             commands::file_sizes,
             commands::save_edited,
             commands::cutout_image,
-            commands::cutout_ready,
+            commands::cutout_download,
             commands::read_media,
             commands::audio_peaks,
             commands::audio_preview,

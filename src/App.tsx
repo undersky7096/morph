@@ -21,12 +21,13 @@ import { ACCENTS, BACKGROUNDS, ColorChoice, FavoritesPicker, PILL, ThemePicker }
 import Logo from "./Logo";
 import "./Settings.css";
 
-type Section = "appearance" | "menu" | "save" | "system" | "about";
+type Section = "appearance" | "menu" | "save" | "tools" | "system" | "about";
 
 const SECTIONS: [Section, string][] = [
   ["appearance", "Apparence"],
   ["menu", "Menu des formats"],
   ["save", "Enregistrement"],
+  ["tools", "Outils"],
   ["system", "Système"],
   ["about", "À propos"],
 ];
@@ -150,6 +151,7 @@ function App() {
             <DuplicatesSection settings={settings} save={save} />
           </>
         )}
+        {section === "tools" && <ToolsSection settings={settings} save={save} />}
         {section === "system" && <SystemSection settings={settings} save={save} />}
         {section === "about" && <AboutSection version={version} />}
         {error && <p className="settings-error">{error}</p>}
@@ -290,6 +292,27 @@ function DuplicatesSection({ settings, save }: SectionProps) {
         {DUPLICATES.map(([id, title, hint]) => (
           <Option key={id} checked={settings.duplicates === id} onChange={() => save({ duplicates: id })} title={title} hint={hint} />
         ))}
+      </div>
+    </Group>
+  );
+}
+
+function ToolsSection({ settings, save }: SectionProps) {
+  return (
+    <Group title="Détourer" hint="Modèle utilisé pour retirer le fond des images. Tout reste sur ton ordinateur.">
+      <div className="settings-options">
+        <Option
+          checked={settings.cutout === "fast"}
+          onChange={() => save({ cutout: "fast" })}
+          title="Efficacité"
+          hint="Quelques secondes par image. Modèle de 170 Mo."
+        />
+        <Option
+          checked={settings.cutout === "best"}
+          onChange={() => save({ cutout: "best" })}
+          title="Qualité"
+          hint="Contours bien plus fins (cheveux, objets détaillés), mais plus lent. Modèle de 970 Mo, téléchargé au premier détourage."
+        />
       </div>
     </Group>
   );

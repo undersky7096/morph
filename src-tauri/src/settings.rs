@@ -9,6 +9,7 @@ use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_autostart::ManagerExt;
 
 use crate::convert::output::Duplicates;
+use crate::edit::cutout;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -58,6 +59,8 @@ pub struct Settings {
     pub save_folder: Option<String>,
     /// Fichier de sortie déjà présent : garder les deux, remplacer, ou demander.
     pub duplicates: Duplicates,
+    /// Modèle du détourage : efficacité (IS-Net) ou qualité (BiRefNet).
+    pub cutout: cutout::Quality,
     /// Lancement à l'ouverture de session (reflète l'état réel du système).
     pub autostart: bool,
     /// Écran d'accueil déjà vu (ou passé).
@@ -76,6 +79,7 @@ impl Default for Settings {
             save_mode: SaveMode::Beside,
             save_folder: None,
             duplicates: Duplicates::Keep,
+            cutout: cutout::Quality::Fast,
             autostart: false,
             onboarded: false,
         }

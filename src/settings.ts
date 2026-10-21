@@ -11,6 +11,8 @@ export type MixedBatch = "groups" | "common";
 export type SaveMode = "beside" | "folder" | "ask";
 export type Duplicates = "keep" | "replace" | "ask";
 
+export type CutoutQuality = "fast" | "best";
+
 export interface Settings {
   theme: ThemeMode;
   accent: string | null;
@@ -21,6 +23,8 @@ export interface Settings {
   saveMode: SaveMode;
   saveFolder: string | null;
   duplicates: Duplicates;
+  /** Modèle du détourage : efficacité (rapide) ou qualité (plus lent, plus précis). */
+  cutout: CutoutQuality;
   autostart: boolean;
   /** Écran d'accueil déjà vu (ou passé). */
   onboarded: boolean;
@@ -36,6 +40,7 @@ export const DEFAULT_SETTINGS: Settings = {
   saveMode: "beside",
   saveFolder: null,
   duplicates: "keep",
+  cutout: "fast",
   autostart: false,
   onboarded: true,
 };

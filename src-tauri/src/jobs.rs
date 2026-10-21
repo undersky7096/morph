@@ -18,7 +18,7 @@ use tauri::{AppHandle, Emitter, Manager};
 use crate::convert::output::{self, Duplicates, Scope};
 use crate::convert::{self, ErrorInfo};
 use crate::edit::cutout;
-use crate::{notify, progress};
+use crate::{notify, progress, settings};
 
 /// Cible spéciale : retirer le fond (PNG transparent) au lieu de convertir.
 pub const CUTOUT: &str = "cutout";
@@ -115,8 +115,10 @@ pub fn list(app: &AppHandle) -> Vec<Job> {
 /// Démarre la conversion de `paths` vers `target` ; renvoie son premier instantané.
 pub fn start(app: &AppHandle, paths: Vec<String>, target: String, out_dir: Option<PathBuf>, duplicates: Duplicates) -> Job {
     let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
-    let note = (target == CUTOUT && !cutout::model_ready())
-        .then(|| "Premier détourage : téléchargement du modèle (170 Mo, une seule fois).".to_string());
+    let quality = settings::get(app).cutout;
+    let note = (target == CUTOUT && !cutout::model_ready(quality)).then(|| {
+        format!("Premier détourage : téléchargement du modèle ({}, une seule fois).", quality.download_size())
+    });
     let job = Job {
         id,
         target,
@@ -213,7 +215,7 @@ fn work(app: &AppHandle, id: u64) {
         };
         let result = output::scoped(scope, || {
             if target == CUTOUT {
-                cutout::remove_background(Path::new(&input), &mut report)
+                cutout::remove_background(Path::new(&input), settings::get(app).cutout, &mut report)
             } else {
                 convert::convert(Path::new(&input), &target, &mut report)
             }
