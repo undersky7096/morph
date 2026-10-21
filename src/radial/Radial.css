@@ -59,6 +59,9 @@ html[data-window="radial"] body {
 .petal[data-kind="document"] {
   --petal: var(--kind-document);
 }
+.petal[data-kind="archive"] {
+  --petal: var(--kind-archive);
+}
 
 .petal:hover,
 .petal:focus-visible {

@@ -91,11 +91,17 @@ pub(super) fn unique_suffix() -> u32 {
     N.fetch_add(1, Ordering::Relaxed)
 }
 
+/// Dossier où écrire les résultats issus de `input` : le dossier de sortie du contexte, ou
+/// celui de l'original.
+pub(super) fn out_dir(input: &Path) -> PathBuf {
+    let dir = CONTEXT.with(|c| c.borrow().as_ref().and_then(|ctx| ctx.scope.dir.clone()));
+    dir.unwrap_or_else(|| input.parent().unwrap_or(Path::new(".")).to_path_buf())
+}
+
 /// Nouveau dossier `stem` pour des résultats issus de `input` (pages d'un PDF…), à côté de
 /// l'original ou dans le dossier de sortie ; « (2) » s'il existe déjà (jamais remplacé).
 pub(super) fn unique_dir(input: &Path, stem: &str) -> Result<PathBuf, ConvertError> {
-    let dir = CONTEXT.with(|c| c.borrow().as_ref().and_then(|ctx| ctx.scope.dir.clone()));
-    let parent = dir.unwrap_or_else(|| input.parent().unwrap_or(Path::new(".")).to_path_buf());
+    let parent = out_dir(input);
     let mut target = parent.join(stem);
     let mut n = 2;
     while target.exists() {

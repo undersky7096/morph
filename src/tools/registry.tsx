@@ -1,10 +1,10 @@
 import type { ReactElement } from "react";
-import { CompressIcon, CropIcon, CutoutIcon, EditIcon, MergeIcon } from "../icons";
+import { CompressIcon, CropIcon, CutoutIcon, EditIcon, ExtractIcon, MergeIcon } from "../icons";
 import { isCompressible, isEditable, isPdf, kindOfPath } from "../formats";
-import { CUTOUT, MERGE } from "../jobs";
+import { CUTOUT, EXTRACT, MERGE } from "../jobs";
 import type { Kind } from "../types";
 
-export type ToolId = "crop" | "cutout" | "compress" | "merge" | "edit";
+export type ToolId = "crop" | "cutout" | "compress" | "merge" | "extract" | "edit";
 
 export interface ToolInfo {
   label: string;
@@ -20,6 +20,9 @@ export interface ToolInfo {
   minFiles?: number;
   /** Légende du ✓ quand le traitement direct a réussi. */
   done?: string;
+  /** Geste attendu pour ces fichiers : proposé dès le premier niveau du menu (en plus
+   *  de « Éditer › »). */
+  primary?: boolean;
   /** Filtre plus fin que le type (formats réellement pris en charge). */
   accepts?: (path: string) => boolean;
   /** Milestone où l'outil arrive pour un type, tant qu'il n'est pas disponible. */
@@ -38,6 +41,16 @@ export const TOOLS: Record<ToolId, ToolInfo> = {
     minFiles: 2,
     accepts: isPdf,
     done: "Fusionné",
+    primary: true,
+  },
+  extract: {
+    label: "Extraire",
+    icon: ExtractIcon,
+    kinds: ["archive"],
+    wholeBatch: true,
+    direct: EXTRACT,
+    done: "Extrait",
+    primary: true,
   },
   compress: {
     label: "Compresser",

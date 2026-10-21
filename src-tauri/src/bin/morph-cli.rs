@@ -5,6 +5,8 @@
 //!   morph-cli trim <début-fin,début-fin…> <fichiers…>  garde ces passages (en secondes)
 //!   morph-cli merge <pdf…>           fusionne des PDF (nom Merged.pdf)
 //!   morph-cli pdf <images…>          assemble plusieurs images en un PDF
+//!   morph-cli archive-zip|archive-7z <fichiers ou dossiers…>  archive la sélection
+//!   morph-cli extract <archives…>    extrait chaque archive
 //!   morph-cli cutout [--best] <images…>  retire le fond (télécharge le modèle la première
 //!                                        fois ; --best : modèle « qualité »)
 
@@ -92,9 +94,22 @@ fn main() -> ExitCode {
     if command == "cutout" {
         return cutout_cmd(files);
     }
-    if convert::pdf::is_batch(command, files) {
+    if command == convert::archive::EXTRACT {
+        let mut failed = false;
+        for file in files {
+            match convert::archive::extract(Path::new(file), &mut |_| {}) {
+                Ok(out) => println!("{file} → {} ✓", out.display()),
+                Err(e) => {
+                    failed = true;
+                    println!("{file} ✗\n{e}");
+                }
+            }
+        }
+        return if failed { ExitCode::FAILURE } else { ExitCode::SUCCESS };
+    }
+    if convert::is_batch(command, files) {
         let inputs: Vec<PathBuf> = files.iter().map(PathBuf::from).collect();
-        return match convert::pdf::batch(&inputs, command, &mut |_| {}) {
+        return match convert::run_batch(&inputs, command, &mut |_| {}) {
             Ok(out) => {
                 println!("{} fichiers → {} ✓", files.len(), out.display());
                 ExitCode::SUCCESS

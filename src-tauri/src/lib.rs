@@ -30,7 +30,8 @@ fn handle_args(app: &AppHandle, args: &[String]) -> tauri::Result<()> {
         "--compress" => Some("compress"),
         _ => None,
     });
-    let files: Vec<String> = args.iter().filter(|a| std::path::Path::new(a).is_file()).cloned().collect();
+    // Fichiers et dossiers (un dossier peut être archivé).
+    let files: Vec<String> = args.iter().filter(|a| std::path::Path::new(a).exists()).cloned().collect();
     if !files.is_empty() {
         match tool {
             Some(tool) => tools::open(app, tool.to_string(), files),

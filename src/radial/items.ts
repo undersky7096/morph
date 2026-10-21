@@ -1,16 +1,42 @@
 import { isAudioFormat, kindOf, kindOfPath } from "../formats";
+import { ARCHIVE_7Z, ARCHIVE_ZIP } from "../jobs";
 import type { Settings } from "../settings";
-import { type ToolId, toolsFor } from "../tools/registry";
+import { TOOLS, type ToolId, toolsFor } from "../tools/registry";
 import type { Blocked, Kind, TargetGroup, TargetMenu } from "../types";
 
 /** Pétale du menu : un format cible (grisé avec la raison s'il est indisponible), un
  *  sous-menu, ou une action d'édition. */
 export type Item =
-  | { type: "format"; format: string; kind: Kind; paths: string[]; blocked?: string; link?: string | null }
+  | {
+      type: "format";
+      format: string;
+      kind: Kind;
+      paths: string[];
+      blocked?: string;
+      link?: string | null;
+      /** Cible envoyée au moteur, si ce n'est pas le format (archiver la sélection). */
+      target?: string;
+    }
   | { type: "group"; label: string; kind: Kind; items: Item[]; icon?: ToolId }
   | { type: "action"; tool: ToolId; kind: Kind; paths: string[] };
 
-const GROUP_LABELS: Record<Kind, string> = { image: "Images", audio: "Audio", video: "Vidéos", document: "Documents" };
+const GROUP_LABELS: Record<Kind, string> = {
+  image: "Images",
+  audio: "Audio",
+  video: "Vidéos",
+  document: "Documents",
+  archive: "Archives",
+};
+
+/** « Archiver › » : une archive ZIP ou 7Z de toute la sélection (fichiers et dossiers). */
+function archiveItems(paths: string[]): Item[] {
+  return [
+    { type: "format", format: "zip", target: ARCHIVE_ZIP, kind: "archive", paths },
+    { type: "format", format: "7z", target: ARCHIVE_7Z, kind: "archive", paths },
+  ];
+}
+
+const archiveGroup = (paths: string[]): Item => ({ type: "group", label: "Archiver", kind: "archive", items: archiveItems(paths) });
 
 /** Pétales par anneau au-delà desquels les derniers formats passent dans « Plus › ». */
 const MAX_PETALS = 9;
@@ -70,29 +96,36 @@ export function actionItems(paths: string[]): Item[] {
 }
 
 export function buildItems(menu: TargetMenu, settings: Settings): Item[] {
-  const { groups, common } = menu;
-  if (groups.length === 0) return [];
+  const { groups, common, folders } = menu;
+  // Dossiers seuls : ils s'archivent, directement au premier niveau.
+  if (groups.length === 0) return folders.length ? archiveItems(folders) : [];
 
-  if (groups.length === 1) {
+  if (groups.length === 1 && folders.length === 0) {
     const [group] = groups;
     const items = groupItems(group, settings.favorites);
     // Fichier déjà au bon format : accès direct aux actions, sans conversion.
     const actions = actionItems(group.paths);
-    // Plusieurs PDF : les fusionner est le geste attendu, proposé dès le premier niveau.
-    const merge = actions.find((a) => a.type === "action" && a.tool === "merge");
-    if (merge) items.unshift(merge);
+    // Geste attendu (fusionner des PDF, extraire une archive) : dès le premier niveau.
+    items.unshift(...actions.filter((a) => a.type === "action" && TOOLS[a.tool].primary));
     if (actions.length) items.push({ type: "group", label: "Éditer", kind: group.kind, items: actions, icon: "edit" });
+    // Toute sélection s'archive (sauf des archives, qui changent plutôt de format).
+    if (group.kind !== "archive") items.push(archiveGroup(group.paths));
     return fit(items, group.kind);
   }
 
-  // Lot mixte : formats communs à tous + un sous-menu par type détecté
-  // (ou, selon les réglages, les formats communs seulement quand il y en a).
+  // Lot mixte (ou fichiers et dossiers) : formats communs à tous + un sous-menu par type
+  // détecté (ou, selon les réglages, les formats communs seulement quand il y en a), et
+  // « Archiver › » pour tout le lot.
   const allPaths = groups.flatMap((g) => g.paths);
-  if (settings.mixedBatch === "common" && common.length) return formatItems(common, allPaths, settings.favorites);
+  if (settings.mixedBatch === "common" && common.length && !folders.length) {
+    return formatItems(common, allPaths, settings.favorites);
+  }
   const kind = groups[0].kind;
+  // Un dossier ne se convertit pas : aucun format n'est commun à tout le lot.
+  const shared = folders.length ? [] : common;
   return fit(
     [
-      ...formatItems(common, allPaths, settings.favorites),
+      ...formatItems(shared, allPaths, settings.favorites),
       ...groups.map(
         (g): Item => ({
           type: "group",
@@ -101,6 +134,7 @@ export function buildItems(menu: TargetMenu, settings: Settings): Item[] {
           items: fit(groupItems(g, settings.favorites), g.kind),
         }),
       ),
+      archiveGroup([...allPaths, ...folders]),
     ],
     kind,
   );

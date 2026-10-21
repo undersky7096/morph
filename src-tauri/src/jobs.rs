@@ -22,7 +22,8 @@ use crate::{notify, progress, settings};
 
 /// Cible spéciale : retirer le fond (PNG transparent) au lieu de convertir.
 pub const CUTOUT: &str = "cutout";
-/// Cible spéciale : fusionner des PDF.
+/// Cibles spéciales : fusionner des PDF, archiver la sélection, extraire une archive.
+pub use crate::convert::archive::{ARCHIVE_7Z, ARCHIVE_ZIP, EXTRACT};
 pub use crate::convert::pdf::MERGE;
 
 /// Au-delà, la conversion passe dans la mini-fenêtre.
@@ -127,7 +128,7 @@ pub fn start(app: &AppHandle, paths: Vec<String>, target: String, out_dir: Optio
         format!("Premier détourage : téléchargement du modèle ({}, une seule fois).", quality.download_size())
     });
     // Fusion, images → PDF : un seul fichier produit pour tout le lot.
-    let groups: Vec<Vec<String>> = if convert::pdf::is_batch(&target, &paths) {
+    let groups: Vec<Vec<String>> = if convert::is_batch(&target, &paths) {
         vec![paths]
     } else {
         paths.into_iter().map(|p| vec![p]).collect()
@@ -232,9 +233,11 @@ fn work(app: &AppHandle, id: u64) {
         let result = output::scoped(scope, || {
             if target == CUTOUT {
                 cutout::remove_background(Path::new(&input), settings::get(app).cutout, &mut report)
-            } else if inputs.len() > 1 || target == MERGE {
+            } else if target == EXTRACT {
+                convert::archive::extract(Path::new(&input), &mut report)
+            } else if inputs.len() > 1 || convert::is_batch(&target, &inputs) {
                 let inputs: Vec<PathBuf> = inputs.iter().map(PathBuf::from).collect();
-                convert::pdf::batch(&inputs, &target, &mut report)
+                convert::run_batch(&inputs, &target, &mut report)
             } else {
                 convert::convert(Path::new(&input), &target, &mut report)
             }

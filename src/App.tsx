@@ -59,6 +59,7 @@ const COMPONENTS: [string, string, string, string][] = [
   ["PDFium", "Lecture et fusion des PDF", "BSD-3-Clause", "https://pdfium.googlesource.com/pdfium/"],
   ["lopdf", "Création et compression des PDF", "MIT", "https://github.com/J-F-Liu/lopdf"],
   ["LibreOffice", "Formats bureautiques et export PDF, s'il est installé", "MPL-2.0", "https://www.libreoffice.org"],
+  ["zip / sevenz-rust2", "Archives ZIP et 7Z (TAR, GZ, BZ2, XZ en lecture)", "MIT / Apache-2.0", "https://github.com/zip-rs/zip2"],
 ];
 
 const DUPLICATES: [Duplicates, string, string][] = [

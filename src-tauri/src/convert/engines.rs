@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 
 use super::catalog::Engine;
-use super::{ffmpeg, office, pandoc, pdf};
+use super::{archive, ffmpeg, office, pandoc, pdf};
 
 /// Moteur indisponible : le message à montrer, et une page pour l'obtenir.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -24,10 +24,16 @@ pub const LIBREOFFICE_MISSING: Missing = Missing {
     link: Some(LIBREOFFICE_URL),
 };
 
+pub const RAR_MISSING: Missing = Missing {
+    reason: "Pour ouvrir les RAR, installe bsdtar (paquet libarchive-tools), unrar ou 7-Zip, puis réessaie.",
+    link: None,
+};
+
 fn check(engine: Engine) -> Option<Missing> {
     let missing = |reason, link| Some(Missing { reason, link });
     match engine {
-        Engine::Image | Engine::Svg => None,
+        Engine::Image | Engine::Svg | Engine::Archive => None,
+        Engine::Rar => archive::rar_tool().is_none().then_some(RAR_MISSING),
         Engine::Ffmpeg => {
             let ok = ffmpeg::command().arg("-version").output().is_ok_and(|o| o.status.success());
             if ok { None } else { missing("Le moteur de conversion (ffmpeg) est introuvable : réinstalle Morph.", REINSTALL) }
@@ -72,7 +78,10 @@ fn office_status() -> Option<Missing> {
 /// Raison pour laquelle `engine` est indisponible, ou `None` s'il fonctionne.
 pub fn missing(engine: Engine) -> Option<Missing> {
     match engine {
-        Engine::Image | Engine::Svg => None,
+        Engine::Image | Engine::Svg | Engine::Archive => None,
+        // Programme du système : recherché à chaque fois (rapide), il peut être installé
+        // pendant que Morph tourne.
+        Engine::Rar => check(Engine::Rar),
         Engine::Office => office_status(),
         _ => table().get(&engine).copied().flatten(),
     }

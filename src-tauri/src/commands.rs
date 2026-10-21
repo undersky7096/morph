@@ -188,6 +188,7 @@ const LINKS: &[&str] = &[
     "https://github.com/J-F-Liu/lopdf",
     "https://github.com/linebender/resvg",
     "https://www.libreoffice.org",
+    "https://github.com/zip-rs/zip2",
     crate::convert::engines::LIBREOFFICE_URL,
 ];
 

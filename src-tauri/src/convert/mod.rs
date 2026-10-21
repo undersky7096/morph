@@ -2,6 +2,7 @@
 //! ffmpeg), audio/vidéo via ffmpeg (sidecar), documents via pandoc (sidecar) et LibreOffice
 //! (s'il est installé), PDF via pdfium et lopdf. Formats et routes : [`catalog`], [`formats`].
 
+pub mod archive;
 pub mod catalog;
 pub mod engines;
 pub mod ffmpeg;
@@ -45,6 +46,8 @@ pub enum ConvertError {
     EngineMissing(&'static str),
     #[error("document : {0}")]
     Document(String),
+    #[error("archive : {0}")]
+    Archive(String),
     #[error("annulé")]
     Cancelled,
     #[error("le fichier existe déjà : {}", .0.display())]
@@ -85,6 +88,7 @@ impl ConvertError {
             ),
             ConvertError::EngineMissing(reason) => ("engine-missing", (*reason).into()),
             ConvertError::Document(log) => document_message(log),
+            ConvertError::Archive(log) => archive_message(log),
             ConvertError::Cancelled => ("cancelled", "Annulé.".into()),
             ConvertError::Exists(p) => (
                 "exists",
@@ -112,6 +116,18 @@ fn io_message(e: &std::io::Error) -> (&'static str, String) {
         ErrorKind::StorageFull => ("disk-full", DISK_FULL.into()),
         ErrorKind::NotFound => ("not-found", "Fichier ou dossier introuvable.".into()),
         _ => ("io", "Erreur de lecture ou d'écriture du fichier.".into()),
+    }
+}
+
+/// Cause probable d'un échec d'archive.
+fn archive_message(log: &str) -> (&'static str, String) {
+    let l = log.to_lowercase();
+    if ["password", "encrypted", "mot de passe", "chiffr"].iter().any(|w| l.contains(w)) {
+        ("protected", "Archive protégée par un mot de passe : non prise en charge.".into())
+    } else if l.contains("archive vide") {
+        ("unsupported", "Archive vide : rien à extraire.".into())
+    } else {
+        ("unreadable", "Archive illisible ou endommagée.".into())
     }
 }
 
@@ -183,7 +199,12 @@ pub fn convert(
     if src.ext == "pdf" {
         return pdf::render_pages(input, &target, on_progress);
     }
-    let output = unique_output(input, &target)?;
+    let output = if src.kind == Kind::Archive {
+        // `photos.tar.gz` → `photos.zip`, pas `photos.tar.zip`.
+        output::unique_in_dir(input, &archive::base_name(input), &target)?
+    } else {
+        unique_output(input, &target)?
+    };
     match formats::route(src, to).as_slice() {
         _ if src.kind == Kind::Image && to.ext == "pdf" => {
             pdf::images_to_pdf(&[input.to_path_buf()], &output, on_progress)?;
@@ -203,9 +224,25 @@ pub fn convert(
             result?;
         }
         [catalog::Engine::Pandoc] => pandoc::convert(input, src.ext, &output, &target, on_progress)?,
+        _ if src.kind == Kind::Archive => archive::repack(input, &output, &target, on_progress)?,
         _ => ffmpeg::convert(input, &output, &target, on_progress)?,
     }
     Ok(output)
+}
+
+/// Le lot `paths` vers `target` produit un seul fichier : fusion de PDF, images → PDF,
+/// archive de la sélection.
+pub fn is_batch(target: &str, paths: &[String]) -> bool {
+    target == archive::ARCHIVE_ZIP || target == archive::ARCHIVE_7Z || pdf::is_batch(target, paths)
+}
+
+/// Opération sur tout un lot (voir [`is_batch`]) ; renvoie le fichier produit.
+pub fn run_batch(inputs: &[PathBuf], target: &str, on_progress: &mut dyn FnMut(f32)) -> Result<PathBuf, ConvertError> {
+    match target {
+        archive::ARCHIVE_ZIP => archive::create(inputs, "zip", on_progress),
+        archive::ARCHIVE_7Z => archive::create(inputs, "7z", on_progress),
+        _ => pdf::batch(inputs, target, on_progress),
+    }
 }
 
 /// Lance un programme externe sans ouvrir de fenêtre de console (Windows).

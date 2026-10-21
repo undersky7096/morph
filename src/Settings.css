@@ -323,6 +323,9 @@ kbd {
 .settings-format.kind-document {
   --kind: var(--kind-document);
 }
+.settings-format.kind-archive {
+  --kind: var(--kind-archive);
+}
 .settings-format.kind-video {
   --kind: var(--kind-video);
 }

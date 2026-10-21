@@ -113,6 +113,8 @@ pub struct TargetGroup {
 pub struct TargetMenu {
     pub common: Vec<&'static str>,
     pub groups: Vec<TargetGroup>,
+    /// Dossiers déposés : ils ne se convertissent pas, mais s'archivent.
+    pub folders: Vec<String>,
     pub unsupported: Vec<String>,
 }
 
@@ -120,8 +122,13 @@ pub fn menu_for(paths: &[&Path]) -> TargetMenu {
     let mut common: Option<Vec<&'static str>> = None;
     let mut groups: Vec<TargetGroup> = Vec::new();
     let mut unsupported = Vec::new();
+    let mut folders = Vec::new();
 
     for path in paths {
+        if path.is_dir() {
+            folders.push(path.display().to_string());
+            continue;
+        }
         let Some(src) = format_of(path) else {
             unsupported.push(path.display().to_string());
             continue;
@@ -160,7 +167,7 @@ pub fn menu_for(paths: &[&Path]) -> TargetMenu {
         }
     }
 
-    TargetMenu { common: common.unwrap_or_default(), groups, unsupported }
+    TargetMenu { common: common.unwrap_or_default(), groups, folders, unsupported }
 }
 
 #[cfg(test)]

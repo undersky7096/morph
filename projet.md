@@ -445,6 +445,18 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
   un seul PDF, cible « pdf » traitée en lot), compression PDF dans Compresser (images
   réduites à 2400/1600/1100 px, JPEG 85/72/55). Installeur 83 Mo (pandoc). Non testé :
   menu sans LibreOffice installé, AppImage.
+- **11c fait** (2026-10-21) — v1.3.0. Type `archive` (rose). `convert/archive.rs` :
+  extraction ZIP (zip), 7Z (sevenz-rust2), TAR/TAR.GZ/TGZ/TAR.BZ2/TAR.XZ (tar + flate2,
+  bzip2, lzma-rust2), fichier seul compressé (`notes.txt.gz` → `notes.txt`), RAR en lecture
+  par bsdtar (System32	ar.exe sous Windows ; Linux : bsdtar, unrar ou 7z, sinon pétale
+  grisé avec le paquet à installer). Chemins qui sortiraient du dossier refusés. Passage
+  par un dossier provisoire : un seul élément dans l'archive → sorti tel quel, sinon
+  dossier `nom/`. Outil « Extraire » (direct, au premier niveau pour une archive). Archive
+  → ZIP/7Z (`photos.tar.gz` → `photos.zip`). « Archiver › » (ZIP, 7Z solide) pour toute
+  sélection sauf des archives, dossiers acceptés (Shift + glisser et ligne de commande) :
+  une archive pour le lot, nommée d'après le premier élément. Dossiers seuls → ZIP/7Z au
+  premier niveau. Archives créées relues par le tar de Windows. Non testé : clic sur
+  Extraire depuis le menu (refusé pendant que l'utilisateur utilisait le PC), AppImage.
 - **Décisions M6** (validées par l'utilisateur le 2026-10-20) :
   - Découpage en sous-étapes, un commit + validation chacune :
     **6a** éditeur image, **6b** découpe audio, **6c** éditeur vidéo.

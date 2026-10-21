@@ -19,9 +19,21 @@ export const CUTOUT = "cutout";
 /** Cible spéciale : fusionner des PDF (voir `pdf::MERGE`). */
 export const MERGE = "merge";
 
+/** Cibles spéciales : archiver la sélection, extraire une archive (voir `archive.rs`). */
+export const ARCHIVE_ZIP = "archive-zip";
+export const ARCHIVE_7Z = "archive-7z";
+export const EXTRACT = "extract";
+
+const LABELS: Record<string, string> = {
+  [CUTOUT]: "Détourage",
+  [MERGE]: "Fusion",
+  [EXTRACT]: "Extraction",
+  [ARCHIVE_ZIP]: "Archive ZIP",
+  [ARCHIVE_7Z]: "Archive 7Z",
+};
+
 /** Nom d'un traitement : « Détourage », « Fusion », « → WEBP ». */
-export const jobLabel = (target: string) =>
-  target === CUTOUT ? "Détourage" : target === MERGE ? "Fusion" : `→ ${target.toUpperCase()}`;
+export const jobLabel = (target: string) => LABELS[target] ?? `→ ${target.toUpperCase()}`;
 
 export interface Job {
   id: number;

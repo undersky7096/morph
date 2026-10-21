@@ -47,6 +47,12 @@ export const MergeIcon = () => (
   </svg>
 );
 
+export const ExtractIcon = () => (
+  <svg {...base}>
+    <path d="M21 8v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8M1 3h22v5H1zM12 11v7M9 15l3 3 3-3" />
+  </svg>
+);
+
 export const CloseIcon = () => (
   <svg {...base} width={16} height={16}>
     <path d="M6 6l12 12M18 6 6 18" />

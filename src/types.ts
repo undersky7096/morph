@@ -1,6 +1,6 @@
 // Miroir des structures Rust exposées via IPC.
 
-export type Kind = "image" | "audio" | "video" | "document";
+export type Kind = "image" | "audio" | "video" | "document" | "archive";
 
 /** Format cible indisponible sur cette machine (moteur absent), affiché grisé. */
 export interface Blocked {
@@ -20,6 +20,8 @@ export interface TargetGroup {
 export interface TargetMenu {
   common: string[];
   groups: TargetGroup[];
+  /** Dossiers déposés : ils s'archivent (ZIP, 7Z). */
+  folders: string[];
   unsupported: string[];
 }
 

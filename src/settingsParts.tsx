@@ -21,6 +21,7 @@ const OUTPUTS: [string, Kind][] = [
   ["Audio", "audio"],
   ["Vidéo", "video"],
   ["Documents", "document"],
+  ["Archives", "archive"],
 ];
 
 /** Glissement de l'indicateur de sélection (navigation, choix du thème). */

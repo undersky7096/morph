@@ -13,6 +13,8 @@ propose les formats et les outils. Windows et Linux. Site : [morph.underskydev.c
   (XLSX, ODS, CSV) et présentations (PPTX, ODP), tout document en PDF, pages d'un PDF en
   images, images en un PDF. Formats favoris en premier, lots de fichiers mélangés.
 - **PDF** : fusionner plusieurs PDF, compresser un PDF.
+- **Archives** : créer une archive ZIP ou 7Z de fichiers et de dossiers ; extraire ZIP, 7Z,
+  TAR (GZ, BZ2, XZ) et RAR ; changer le format d'une archive (RAR → ZIP…).
 - **Recadrer** une image, **Détourer** (retirer le fond, en local), **Compresser** (images,
   audio, vidéo, taille cible), **Éditer** : retouches et annotations d'image, découpe et
   volume audio, montage léger de vidéo (découpe, cadrage, vitesse, effets, son).
@@ -69,6 +71,8 @@ cargo run --bin morph-cli -- targets photo.png clip.mov             # formats pr
 cargo run --bin morph-cli -- webp photo.png                         # convertit à côté de l'original
 cargo run --bin morph-cli -- compress medium --target 20 clip.mp4   # compresse
 cargo run --bin morph-cli -- merge a.pdf b.pdf                      # fusionne des PDF
+cargo run --bin morph-cli -- archive-zip Dossier photo.jpg           # archive la sélection
+cargo run --bin morph-cli -- extract photos.tar.gz                  # extrait
 cargo test                                                          # tests
 ```
 

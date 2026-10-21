@@ -5,7 +5,7 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 import { chooseOutputDir, getSettings } from "../settings";
 import { comingIn, TOOLS } from "../tools/registry";
-import { type Job, jobProgress } from "../jobs";
+import { ARCHIVE_7Z, ARCHIVE_ZIP, type Job, jobProgress } from "../jobs";
 import type { RadialPayload } from "../types";
 import { actionItems, buildItems, type Item } from "./items";
 import "./Radial.css";
@@ -154,7 +154,7 @@ export default function Radial() {
       close();
       return;
     }
-    return run(item.paths, item.format);
+    return run(item.paths, item.target ?? item.format);
   }
 
   /** Conversion (ou détourage) en arrière-plan, suivie dans le moyeu. */
@@ -187,7 +187,8 @@ export default function Radial() {
     jobRef.current = null;
     const outputs = job.files.flatMap((f) => (f.output ? [f.output] : []));
     const actions = actionItems(outputs);
-    if (!actions.length) return close();
+    // Archive tout juste créée : rien à enchaîner (l'extraire n'aurait pas de sens).
+    if (!actions.length || job.target === ARCHIVE_ZIP || job.target === ARCHIVE_7Z) return close();
     // Conversion réussie : le menu enchaîne sur les actions d'édition du résultat.
     const done = Object.values(TOOLS).find((t) => t.direct === job.target)?.done ?? "Converti";
     setStack([{ label: "", items: actions, done }]);
@@ -369,7 +370,7 @@ function hubKey(phase: Phase, level?: Level) {
 const sameFiles = (a: string[], b: string[]) => a.length === b.length && a.every((p, i) => p === b[i]);
 
 function itemKey(item: Item) {
-  if (item.type === "format") return item.format;
+  if (item.type === "format") return item.target ?? item.format;
   if (item.type === "action") return item.tool;
   return item.label;
 }

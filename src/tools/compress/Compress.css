@@ -105,6 +105,9 @@
 .compress-list li.kind-document::before {
   background: var(--kind-document);
 }
+.compress-list li.kind-archive::before {
+  background: var(--kind-archive);
+}
 .compress-list li.kind-video::before {
   background: var(--kind-video);
 }

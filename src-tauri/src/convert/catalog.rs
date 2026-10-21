@@ -11,6 +11,7 @@ pub enum Kind {
     Audio,
     Video,
     Document,
+    Archive,
 }
 
 impl Kind {
@@ -22,6 +23,8 @@ impl Kind {
             // Une vidéo peut perdre son image : extraction du son.
             Kind::Video => &[Kind::Video, Kind::Audio],
             Kind::Document => &[Kind::Document],
+            // Une archive peut changer de format (RAR → ZIP) ; « Extraire » est un outil.
+            Kind::Archive => &[Kind::Archive],
         }
     }
 }
@@ -55,6 +58,11 @@ pub enum Engine {
     Office,
     /// pdfium (bibliothèque embarquée) et lopdf : lire, assembler, fusionner des PDF.
     Pdf,
+    /// Archives ZIP, 7Z, TAR, GZ, BZ2, XZ : crates intégrées.
+    Archive,
+    /// RAR, en lecture seule : bsdtar du système (toujours présent sous Windows), ou unrar
+    /// ou 7z sous Linux. Le format RAR ne peut pas être écrit (licence).
+    Rar,
 }
 
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -129,6 +137,14 @@ const TEXT: Format = Format {
 };
 /// Document bureautique converti par LibreOffice.
 const OFFICE: Format = Format { office: true, read: Some(Engine::Office), write: Some(Engine::Office), ..TEXT };
+/// Archive lue (et écrite, pour ZIP et 7Z) par Morph.
+const ARCHIVE: Format = Format {
+    kind: Kind::Archive,
+    family: Family::Media,
+    read: Some(Engine::Archive),
+    write: None,
+    ..TEXT
+};
 
 /// Tous les formats, dans l'ordre des pétales (les plus courants d'abord).
 pub const FORMATS: &[Format] = &[
@@ -263,6 +279,15 @@ pub const FORMATS: &[Format] = &[
     },
     Format { ext: "odp", mime: &["application/vnd.oasis.opendocument.presentation"], family: Family::Slides, ..OFFICE },
     Format { ext: "ppt", mime: &["application/vnd.ms-powerpoint"], family: Family::Slides, write: None, ..OFFICE },
+    // Archives. Une archive compressée d'un seul bloc (`.tar.gz`, `.tgz`…) est reconnue par
+    // sa dernière extension ; « .tar » devant indique qu'elle contient un dossier.
+    Format { ext: "zip", mime: &["application/zip", "application/x-zip-compressed"], write: Some(Engine::Archive), ..ARCHIVE },
+    Format { ext: "7z", mime: &["application/x-7z-compressed"], write: Some(Engine::Archive), ..ARCHIVE },
+    Format { ext: "rar", mime: &["application/vnd.rar", "application/x-rar-compressed"], read: Some(Engine::Rar), ..ARCHIVE },
+    Format { ext: "tar", mime: &["application/x-tar"], ..ARCHIVE },
+    Format { ext: "gz", aliases: &["tgz"], mime: &["application/gzip", "application/x-compressed-tar"], ..ARCHIVE },
+    Format { ext: "bz2", aliases: &["tbz2", "tbz"], mime: &["application/x-bzip2", "application/x-bzip-compressed-tar"], ..ARCHIVE },
+    Format { ext: "xz", aliases: &["txz"], mime: &["application/x-xz", "application/x-xz-compressed-tar"], ..ARCHIVE },
 ];
 
 /// Format d'une extension (alias compris, sans tenir compte de la casse).
