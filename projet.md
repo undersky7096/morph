@@ -457,6 +457,11 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
   une archive pour le lot, nommée d'après le premier élément. Dossiers seuls → ZIP/7Z au
   premier niveau. Archives créées relues par le tar de Windows. Non testé : clic sur
   Extraire depuis le menu (refusé pendant que l'utilisateur utilisait le PC), AppImage.
+- **Mini-fenêtre de progression** (2026-10-21, demande de l'utilisateur) : elle ne s'ouvre
+  plus après 2 s pour tout traitement, mais seulement pour un lot de plusieurs fichiers
+  (fusion comprise) qui mettra plus de 10 s à atteindre 50 % (estimé d'après le rythme
+  après 1 s, ou constaté à 10 s). Un fichier seul reste suivi dans le moyeu du menu. Une
+  erreur, un doublon à trancher ou la fermeture du menu l'ouvrent toujours.
 - **Décisions M6** (validées par l'utilisateur le 2026-10-20) :
   - Découpage en sous-étapes, un commit + validation chacune :
     **6a** éditeur image, **6b** découpe audio, **6c** éditeur vidéo.

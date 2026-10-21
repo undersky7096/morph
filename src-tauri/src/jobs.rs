@@ -3,8 +3,9 @@
 //! [`CUTOUT`]) passe par le même chemin.
 //!
 //! Chaque changement est diffusé par l'événement `job-update` (instantané complet). Le
-//! menu suit sa conversion dans le moyeu ; si elle dure (ou se passe mal), elle est
-//! « détachée » : le menu se ferme et la mini-fenêtre de progression prend le relais.
+//! menu suit sa conversion dans le moyeu ; si elle porte sur plusieurs fichiers et s'annonce
+//! longue (ou se passe mal), elle est « détachée » : le menu se ferme et la mini-fenêtre de
+//! progression prend le relais. Un fichier seul reste suivi dans le moyeu.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -26,8 +27,10 @@ pub const CUTOUT: &str = "cutout";
 pub use crate::convert::archive::{ARCHIVE_7Z, ARCHIVE_ZIP, EXTRACT};
 pub use crate::convert::pdf::MERGE;
 
-/// Au-delà, la conversion passe dans la mini-fenêtre.
-const DETACH_AFTER: Duration = Duration::from_secs(2);
+/// Un lot qui mettra plus que ça à atteindre la moitié passe dans la mini-fenêtre.
+const HALFWAY_LIMIT: f32 = 10.0;
+/// Temps d'observation avant d'estimer la durée (les premières mesures sont trompeuses).
+const ESTIMATE_AFTER: f32 = 1.0;
 /// Intervalle minimal entre deux instantanés de progression.
 const THROTTLE: Duration = Duration::from_millis(100);
 
@@ -179,6 +182,30 @@ fn spawn(app: &AppHandle, id: u64) {
     }
 }
 
+/// Lot de plusieurs fichiers qui mettra plus de [`HALFWAY_LIMIT`] secondes à atteindre 50 %,
+/// d'après le rythme depuis le début. Un fichier seul n'est jamais détaché (sauf erreur).
+fn long_batch(job: &Job) -> bool {
+    let inputs: usize = job.files.iter().map(|f| f.count).sum();
+    if inputs < 2 {
+        return false;
+    }
+    let kept: Vec<&FileState> = job.files.iter().filter(|f| !matches!(f.status, Status::Cancelled | Status::Skipped)).collect();
+    let done: f32 = kept
+        .iter()
+        .map(|f| match f.status {
+            Status::Running => f.progress,
+            Status::Pending => 0.0,
+            _ => 1.0,
+        })
+        .sum();
+    let progress = done / kept.len().max(1) as f32;
+    let elapsed = job.started.elapsed().as_secs_f32();
+    if progress >= 0.5 {
+        return false;
+    }
+    elapsed >= HALFWAY_LIMIT || (elapsed >= ESTIMATE_AFTER && progress > 0.0 && elapsed * 0.5 / progress > HALFWAY_LIMIT)
+}
+
 /// Passe la conversion dans la mini-fenêtre (une seule fois).
 pub fn detach(app: &AppHandle, id: u64) {
     if with_job(app, id, |j| std::mem::replace(&mut j.detached, true)) == Some(false) {
@@ -220,7 +247,7 @@ fn work(app: &AppHandle, id: u64) {
         let mut report = |p: f32| {
             let detach_now = with_job(app, id, |j| {
                 j.files[index].progress = p;
-                !j.detached && j.started.elapsed() > DETACH_AFTER
+                !j.detached && long_batch(j)
             });
             if detach_now == Some(true) {
                 detach(app, id);
@@ -365,4 +392,58 @@ pub fn cancel_task(app: &AppHandle, id: &str) {
 
 pub fn end_task(app: &AppHandle, id: &str) {
     app.state::<Tasks>().0.lock().unwrap().remove(id);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn job(files: &[(Status, f32, usize)], elapsed_secs: f32) -> Job {
+        Job {
+            id: 1,
+            target: "webp".into(),
+            files: files
+                .iter()
+                .map(|&(status, progress, count)| FileState {
+                    input: "a.png".into(),
+                    count,
+                    inputs: vec!["a.png".into(); count],
+                    status,
+                    progress,
+                    output: None,
+                    error: None,
+                    cancel: Arc::default(),
+                    duplicates: None,
+                })
+                .collect(),
+            note: None,
+            started_ms: 0,
+            finished: false,
+            detached: false,
+            started: Instant::now() - Duration::from_secs_f32(elapsed_secs),
+            cancel: Arc::default(),
+            out_dir: None,
+            duplicates: Duplicates::Keep,
+            running: true,
+        }
+    }
+
+    #[test]
+    fn only_long_batches_are_detached() {
+        use Status::*;
+        // Un fichier seul, même long : reste dans le moyeu.
+        assert!(!long_batch(&job(&[(Running, 0.1, 1)], 30.0)));
+        // Lot rapide : 40 % en 2 s, la moitié vers 2,5 s.
+        assert!(!long_batch(&job(&[(Done, 0.0, 1), (Running, 0.6, 1), (Pending, 0.0, 1)], 4.0)));
+        // Lot lent : 10 % en 3 s, la moitié vers 15 s.
+        assert!(long_batch(&job(&[(Running, 0.2, 1), (Pending, 0.0, 1)], 3.0)));
+        // Trop tôt pour estimer.
+        assert!(!long_batch(&job(&[(Running, 0.01, 1), (Pending, 0.0, 1)], 0.5)));
+        // Plus de 10 s sans atteindre la moitié.
+        assert!(long_batch(&job(&[(Running, 0.0, 1), (Pending, 0.0, 1)], 11.0)));
+        // Moitié passée : plus de détachement.
+        assert!(!long_batch(&job(&[(Done, 0.0, 1), (Running, 0.1, 1)], 30.0)));
+        // Fusion de plusieurs PDF : un seul résultat, mais plusieurs fichiers.
+        assert!(long_batch(&job(&[(Running, 0.05, 3)], 2.0)));
+    }
 }
