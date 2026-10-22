@@ -488,6 +488,11 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
   lancement (`GPU_FAILED` par modèle). Mesures RTX 3050 portable 4 Go : IS-Net 0,14 s par
   image contre 1,27 s ; BiRefNet manque de mémoire vidéo (8007000E) → processeur. Vidéo
   de test 90 images : 21 s contre 1 min 54. `morph-cli cutout --cpu` pour comparer.
+  Qualité avec la carte graphique : BiRefNet converti en float16 (`onnxconverter-common`,
+  `keep_io_types`), 490 Mo, publié dans la release `models-1` du dépôt (fichier
+  `birefnet-general-fp16.onnx`) ; 3,6 s par image sur la RTX 3050 contre 14,5 s, écart
+  moyen des masques ~1/255. Choisi dès que la carte est demandée (il tourne aussi sur le
+  processeur, ~25 % plus lent, si elle échoue) ; sans carte : BiRefNet float32 d'origine.
 - **Décisions M6** (validées par l'utilisateur le 2026-10-20) :
   - Découpage en sous-étapes, un commit + validation chacune :
     **6a** éditeur image, **6b** découpe audio, **6c** éditeur vidéo.

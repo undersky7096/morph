@@ -357,8 +357,8 @@ function ToolsSection({ settings, save }: SectionProps) {
             onChange={() => save({ cutout: "best" })}
             title={t("Qualité", "Quality")}
             hint={t(
-              "Contours bien plus fins (cheveux, objets détaillés), mais plus lent : environ 15 s par image sur le processeur, à réserver aux vidéos très courtes. Modèle de 970 Mo, téléchargé au premier détourage.",
-              "Much finer edges (hair, detailed objects), but slower: about 15 s per frame on the processor, best kept for very short videos. 970 MB model, downloaded on first use.",
+              "Contours bien plus fins (cheveux, objets détaillés), mais plus lent : environ 4 s par image avec la carte graphique, 15 s sans. Modèle de 490 Mo avec la carte graphique, 970 Mo sans, téléchargé au premier détourage.",
+              "Much finer edges (hair, detailed objects), but slower: about 4 s per frame with the graphics card, 15 s without. 490 MB model with the graphics card, 970 MB without, downloaded on first use.",
             )}
           />
         </div>
@@ -371,8 +371,8 @@ function ToolsSection({ settings, save }: SectionProps) {
               <strong>{t("Utiliser la carte graphique", "Use the graphics card")}</strong>
               <small>
                 {t(
-                  "Détourage jusqu'à 10 fois plus rapide (DirectX 12). Si la carte n'y arrive pas (mémoire vidéo insuffisante pour le modèle Qualité…), Morph passe tout seul au processeur.",
-                  "Background removal up to 10 times faster (DirectX 12). If the card can't handle it (not enough video memory for the Quality model…), Morph switches to the processor by itself.",
+                  "Détourage jusqu'à 10 fois plus rapide (DirectX 12). Si la carte n'y arrive pas (pilote, mémoire vidéo insuffisante…), Morph passe tout seul au processeur.",
+                  "Background removal up to 10 times faster (DirectX 12). If the card can't handle it (driver, not enough video memory…), Morph switches to the processor by itself.",
                 )}
               </small>
             </span>

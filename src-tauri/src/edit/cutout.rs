@@ -1,6 +1,8 @@
 //! Détourage (retirer le fond) exécuté en local par ONNX Runtime, au choix (Réglages) :
 //! « Efficacité », IS-Net (DIS, Apache-2.0, 170 Mo, quelques secondes) ou « Qualité »,
-//! BiRefNet (MIT, 970 Mo, plus lent mais bien plus précis sur les cheveux et les bords).
+//! BiRefNet (MIT, 970 Mo, plus lent mais bien plus précis sur les cheveux et les bords ;
+//! avec la carte graphique, sa version en demi-précision : 490 Mo, deux fois moins de
+//! mémoire vidéo, environ 4 fois plus rapide).
 //! Le modèle est téléchargé à sa première utilisation, vérifié par son empreinte, puis
 //! gardé dans les données de l'application ; rien n'est envoyé.
 //! ONNX Runtime (bibliothèque officielle embarquée à côté de l'application) n'est chargé
@@ -76,6 +78,19 @@ const BEST: Model = Model {
     run_ms: 14_000,
 };
 
+/// BiRefNet converti en demi-précision (float16, entrée et sortie gardées en float32) pour
+/// la carte graphique : tient dans 4 Go de mémoire vidéo, masques quasi identiques (écart
+/// moyen d'environ 1/255). Converti avec `onnxconverter-common` depuis le fichier de
+/// rembg, publié dans les releases de Morph.
+const BEST_GPU: Model = Model {
+    url: "https://github.com/undersky7096/morph/releases/download/models-1/birefnet-general-fp16.onnx",
+    file: "birefnet-general-fp16.onnx",
+    size: 489_666_838,
+    sha256: "323232ec73a04ac4d0ef8c325a75aa8d69ed7062235a7cf9941769fae4c9709f",
+    load_ms: 3_000,
+    ..BEST
+};
+
 /// Durées mesurées au dernier détourage (0 : pas encore), par modèle et par moteur
 /// (processeur, carte graphique) : [chargement, calcul].
 static MEASURED: [[AtomicU64; 2]; 4] = [const { [AtomicU64::new(0), AtomicU64::new(0)] }; 4];
@@ -104,7 +119,7 @@ impl Quality {
 
     /// Calcul sur la carte graphique : demandé, et ce modèle n'y a pas échoué.
     fn gpu(self) -> bool {
-        cfg!(windows) && GPU.load(Ordering::Relaxed) && !GPU_FAILED[self as usize].load(Ordering::Relaxed)
+        gpu_wanted() && !GPU_FAILED[self as usize].load(Ordering::Relaxed)
     }
 
     /// La carte graphique a échoué avec ce modèle (mémoire insuffisante…) : processeur
@@ -114,9 +129,12 @@ impl Quality {
         GPU_FAILED[self as usize].store(true, Ordering::Relaxed);
     }
 
+    /// Modèle à utiliser : celui de la carte graphique si elle est demandée (même si elle
+    /// a échoué : ce fichier tourne aussi, un peu plus lentement, sur le processeur).
     fn model(self) -> &'static Model {
         match self {
             Quality::Fast => &FAST,
+            Quality::Best if gpu_wanted() => &BEST_GPU,
             Quality::Best => &BEST,
         }
     }
@@ -125,6 +143,7 @@ impl Quality {
     pub fn download_size(self) -> &'static str {
         match self {
             Quality::Fast => "170 Mo",
+            Quality::Best if gpu_wanted() => "490 Mo",
             Quality::Best => "970 Mo",
         }
     }
@@ -156,6 +175,11 @@ static GPU_FAILED: [AtomicBool; 2] = [const { AtomicBool::new(false) }; 2];
 /// Calcul sur la carte graphique (Windows : DirectML), selon les Réglages.
 pub fn set_gpu(enabled: bool) {
     GPU.store(enabled, Ordering::Relaxed);
+}
+
+/// Carte graphique demandée, sur un système où elle est prise en charge.
+fn gpu_wanted() -> bool {
+    cfg!(windows) && GPU.load(Ordering::Relaxed)
 }
 
 /// Dossier des modèles (données locales de l'application), fixé au démarrage.
@@ -702,5 +726,6 @@ mod tests {
         assert_eq!(out.get_pixel(1, 0)[3], 0);
     }
 }
+
 
 
