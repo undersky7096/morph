@@ -29,6 +29,8 @@ export interface Settings {
   duplicates: Duplicates;
   /** Modèle du détourage : efficacité (rapide) ou qualité (plus lent, plus précis). */
   cutout: CutoutQuality;
+  /** Détourage calculé par la carte graphique (Windows), quand c'est possible. */
+  gpu: boolean;
   autostart: boolean;
   /** Écran d'accueil déjà vu (ou passé). */
   onboarded: boolean;
@@ -46,6 +48,7 @@ export const DEFAULT_SETTINGS: Settings = {
   saveFolder: null,
   duplicates: "keep",
   cutout: "fast",
+  gpu: true,
   autostart: false,
   onboarded: true,
 };

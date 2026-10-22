@@ -32,7 +32,7 @@ png = "0.18"
 # Détourage : modèle IS-Net (téléchargé à la première utilisation puis vérifié) exécuté
 # par ONNX Runtime, chargé à la demande depuis la bibliothèque officielle embarquée
 # (npm run fetch:onnxruntime) : l'exécutable n'en dépend pas pour démarrer.
-ort = { version = "=2.0.0-rc.15", default-features = false, features = ["std", "load-dynamic", "api-17"] }
+ort = { version = "=2.0.0-rc.15", default-features = false, features = ["std", "load-dynamic", "api-17", "directml"] }
 ureq = "3"
 sha2 = "0.11"
 tauri-plugin-single-instance = "2"

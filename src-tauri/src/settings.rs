@@ -72,6 +72,8 @@ pub struct Settings {
     pub duplicates: Duplicates,
     /// Modèle du détourage : efficacité (IS-Net) ou qualité (BiRefNet).
     pub cutout: cutout::Quality,
+    /// Détourage calculé par la carte graphique (Windows : DirectML), quand c'est possible.
+    pub gpu: bool,
     /// Lancement à l'ouverture de session (reflète l'état réel du système).
     pub autostart: bool,
     /// Écran d'accueil déjà vu (ou passé).
@@ -92,6 +94,7 @@ impl Default for Settings {
             save_folder: None,
             duplicates: Duplicates::Keep,
             cutout: cutout::Quality::Fast,
+            gpu: true,
             autostart: false,
             onboarded: false,
         }
@@ -212,6 +215,7 @@ pub fn get(app: &AppHandle) -> Settings {
     slot.get_or_insert_with(|| {
         let s = read_from_disk(app);
         crate::i18n::apply(s.language);
+        cutout::set_gpu(s.gpu);
         s
     })
     .clone()
@@ -234,6 +238,7 @@ pub fn set(app: &AppHandle, new: Settings) -> Result<Settings, String> {
         std::fs::write(&path, json).map_err(|e| e.to_string())?;
     }
     crate::i18n::apply(new.language);
+    cutout::set_gpu(new.gpu);
     *app.state::<State>().0.write().unwrap() = Some(new.clone());
     let _ = app.emit("settings-changed", &new);
     if new.language != old.language {

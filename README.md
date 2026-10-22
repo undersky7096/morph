@@ -108,6 +108,7 @@ publiée), en secrets du dépôt `TAURI_SIGNING_PRIVATE_KEY` et
 ## Licence
 
 GPL-3.0-or-later (voir [LICENSE](LICENSE)). Composants : ffmpeg (sidecar, build GPL de
-BtbN), ONNX Runtime (MIT, embarqué), modèle de détourage IS-Net (Apache-2.0, téléchargé au
+BtbN), ONNX Runtime (MIT, embarqué ; version DirectML sous Windows, avec DirectML,
+licence Microsoft redistribuable), modèle de détourage IS-Net (Apache-2.0, téléchargé au
 premier usage) ; liste complète dans Réglages → À propos. Cadrage et historique du projet :
 [projet.md](projet.md).

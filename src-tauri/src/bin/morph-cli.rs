@@ -7,8 +7,9 @@
 //!   morph-cli pdf <images…>          assemble plusieurs images en un PDF
 //!   morph-cli archive-zip|archive-7z <fichiers ou dossiers…>  archive la sélection
 //!   morph-cli extract <archives…>    extrait chaque archive
-//!   morph-cli cutout [--best] <images ou vidéos…>  retire le fond (télécharge le modèle
-//!                                        la première fois ; --best : modèle « qualité »)
+//!   morph-cli cutout [--cpu] [--best] <images ou vidéos…>  retire le fond (télécharge le
+//!                                        modèle la première fois ; --best : modèle « qualité » ;
+//!                                        --cpu : sans la carte graphique)
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -37,6 +38,11 @@ fn cutout_cmd(files: &[String]) -> ExitCode {
     let beside_exe = std::env::current_exe().ok().and_then(|e| e.parent().map(|d| d.join(cutout::RUNTIME_LIB)));
     let dev = Path::new(env!("CARGO_MANIFEST_DIR")).join("onnxruntime").join(Path::new(cutout::RUNTIME_LIB).file_name().unwrap());
     cutout::set_runtime(beside_exe.filter(|p| p.exists()).unwrap_or(dev));
+    let (cpu, files) = match files.split_first() {
+        Some((flag, rest)) if flag == "--cpu" => (true, rest),
+        _ => (false, files),
+    };
+    cutout::set_gpu(!cpu);
     let (quality, files) = match files.split_first() {
         Some((flag, rest)) if flag == "--best" => (cutout::Quality::Best, rest),
         _ => (cutout::Quality::Fast, files),

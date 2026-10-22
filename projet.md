@@ -480,6 +480,14 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
   (VP9 yuva420p, CRF 30, son d'origine en Opus). Les modèles n'acceptent que 1024×1024 et
   tournent sur le processeur : ~0,9 s par image (IS-Net), ~14 s (BiRefNet) ; piste si
   besoin : ONNX Runtime DirectML (GPU) sous Windows.
+- **Accélération GPU** (2026-10-22, après 1.5.0) — Windows : ONNX Runtime DirectML 1.24.4 +
+  DirectML 1.15.4 (paquets NuGet, `npm run fetch:onnxruntime`), réglage `gpu` (Outils →
+  Accélération, activé par défaut, affiché sous Windows seulement ; Linux reste sur le
+  processeur). Session DirectML sans motif mémoire ni exécution parallèle ; si le
+  chargement ou un calcul échoue, ce modèle repasse au processeur jusqu'au prochain
+  lancement (`GPU_FAILED` par modèle). Mesures RTX 3050 portable 4 Go : IS-Net 0,14 s par
+  image contre 1,27 s ; BiRefNet manque de mémoire vidéo (8007000E) → processeur. Vidéo
+  de test 90 images : 21 s contre 1 min 54. `morph-cli cutout --cpu` pour comparer.
 - **Décisions M6** (validées par l'utilisateur le 2026-10-20) :
   - Découpage en sous-étapes, un commit + validation chacune :
     **6a** éditeur image, **6b** découpe audio, **6c** éditeur vidéo.

@@ -4,7 +4,8 @@
 //! Le modèle est téléchargé à sa première utilisation, vérifié par son empreinte, puis
 //! gardé dans les données de l'application ; rien n'est envoyé.
 //! ONNX Runtime (bibliothèque officielle embarquée à côté de l'application) n'est chargé
-//! qu'au premier détourage.
+//! qu'au premier détourage. Sous Windows, c'est sa version DirectML : le calcul passe par
+//! la carte graphique (réglage activé par défaut), et revient au processeur si elle échoue.
 
 use std::fs::{self, File};
 use std::io::{BufRead, BufReader, Read, Write};
@@ -75,19 +76,42 @@ const BEST: Model = Model {
     run_ms: 14_000,
 };
 
-/// Durées mesurées au dernier détourage (0 : pas encore), par modèle : [chargement, calcul].
-static MEASURED: [[AtomicU64; 2]; 2] = [[AtomicU64::new(0), AtomicU64::new(0)], [AtomicU64::new(0), AtomicU64::new(0)]];
+/// Durées mesurées au dernier détourage (0 : pas encore), par modèle et par moteur
+/// (processeur, carte graphique) : [chargement, calcul].
+static MEASURED: [[AtomicU64; 2]; 4] = [const { [AtomicU64::new(0), AtomicU64::new(0)] }; 4];
 
 impl Quality {
+    fn timing(self, stage: usize) -> &'static AtomicU64 {
+        &MEASURED[self as usize * 2 + self.gpu() as usize][stage]
+    }
+
     /// Durée attendue d'une étape (0 : chargement, 1 : calcul), mesurée ou typique.
     fn expected(self, stage: usize) -> Duration {
-        let measured = MEASURED[self as usize][stage].load(Ordering::Relaxed);
-        let typical = if stage == 0 { self.model().load_ms } else { self.model().run_ms };
+        let measured = self.timing(stage).load(Ordering::Relaxed);
+        let model = self.model();
+        let typical = match (stage, self.gpu()) {
+            (0, false) => model.load_ms,
+            (0, true) => model.load_ms * 2,
+            (_, false) => model.run_ms,
+            (_, true) => model.run_ms / 5,
+        };
         Duration::from_millis(if measured > 0 { measured } else { typical })
     }
 
     fn measured(self, stage: usize, took: Duration) {
-        MEASURED[self as usize][stage].store(took.as_millis() as u64, Ordering::Relaxed);
+        self.timing(stage).store(took.as_millis() as u64, Ordering::Relaxed);
+    }
+
+    /// Calcul sur la carte graphique : demandé, et ce modèle n'y a pas échoué.
+    fn gpu(self) -> bool {
+        cfg!(windows) && GPU.load(Ordering::Relaxed) && !GPU_FAILED[self as usize].load(Ordering::Relaxed)
+    }
+
+    /// La carte graphique a échoué avec ce modèle (mémoire insuffisante…) : processeur
+    /// jusqu'au prochain lancement.
+    fn gpu_failed(self, e: impl std::fmt::Display) {
+        eprintln!("[morph] détourage {self:?} sur la carte graphique en échec, processeur : {e}");
+        GPU_FAILED[self as usize].store(true, Ordering::Relaxed);
     }
 
     fn model(self) -> &'static Model {
@@ -124,6 +148,15 @@ pub const RUNTIME_LIB: &str = "onnxruntime/libonnxruntime.so";
 
 static MODELS_DIR: OnceLock<PathBuf> = OnceLock::new();
 static RUNTIME: OnceLock<PathBuf> = OnceLock::new();
+/// Calcul sur la carte graphique demandé (Réglages).
+static GPU: AtomicBool = AtomicBool::new(true);
+/// La carte graphique a échoué, par modèle.
+static GPU_FAILED: [AtomicBool; 2] = [const { AtomicBool::new(false) }; 2];
+
+/// Calcul sur la carte graphique (Windows : DirectML), selon les Réglages.
+pub fn set_gpu(enabled: bool) {
+    GPU.store(enabled, Ordering::Relaxed);
+}
 
 /// Dossier des modèles (données locales de l'application), fixé au démarrage.
 pub fn set_models_dir(dir: PathBuf) {
@@ -216,6 +249,8 @@ fn download(model: &Model, to: &Path, on_progress: &mut dyn FnMut(f32)) -> Resul
 /// Modèle chargé, gardé tant qu'il sert (un lot n'est chargé qu'une fois).
 struct Engine {
     path: PathBuf,
+    quality: Quality,
+    gpu: bool,
     session: Session,
     used: Instant,
 }
@@ -267,24 +302,67 @@ fn load_engine(
     on_progress: &mut dyn FnMut(f32),
 ) -> Result<MutexGuard<'static, Option<Engine>>, ConvertError> {
     let mut slot = ENGINE.lock().unwrap();
-    if slot.as_ref().is_none_or(|e| e.path != path) {
+    let gpu = quality.gpu();
+    if slot.as_ref().is_none_or(|e| e.path != path || e.gpu != gpu) {
         *slot = None;
         let env = environment()?;
         let (session, took) = ticking(quality.expected(0), 0.0, 1.0, on_progress, || {
-            Session::builder(env)?.commit_from_file(path)
+            let session = if gpu { gpu_session(env, path) } else { Err(ort::Error::new("")) };
+            session.or_else(|e| {
+                if gpu {
+                    quality.gpu_failed(e);
+                }
+                Session::builder(env)?.commit_from_file(path)
+            })
         });
         quality.measured(0, took);
-        *slot = Some(Engine { path: path.to_path_buf(), session: session.map_err(engine_error)?, used: Instant::now() });
+        let gpu = quality.gpu();
+        *slot = Some(Engine { path: path.to_path_buf(), quality, gpu, session: session.map_err(engine_error)?, used: Instant::now() });
     }
     Ok(slot)
 }
 
-/// Passe l'entrée dans le modèle.
-fn infer(session: &mut Session, data: Vec<f32>) -> Result<Vec<f32>, ConvertError> {
-    let input = Tensor::from_array(([1usize, 3, SIDE as usize, SIDE as usize], data)).map_err(engine_error)?;
-    let outputs = session.run(ort::inputs![input]).map_err(engine_error)?;
-    let (_, values) = outputs[0].try_extract_tensor::<f32>().map_err(engine_error)?;
-    Ok(values.to_vec())
+/// Session sur la carte graphique (DirectML, toute carte compatible DirectX 12). DirectML
+/// exige une exécution séquentielle, sans motif mémoire.
+#[cfg(windows)]
+fn gpu_session(env: &ort::environment::Environment, path: &Path) -> ort::Result<Session> {
+    use ort::ep::directml::{DirectML, PerformancePreference};
+    Session::builder(env)?
+        .with_memory_pattern(false)?
+        .with_parallel_execution(false)?
+        .with_execution_providers([DirectML::default()
+            .with_performance_preference(PerformancePreference::HighPerformance)
+            .build()
+            .error_on_failure()])?
+        .commit_from_file(path)
+}
+
+#[cfg(not(windows))]
+fn gpu_session(_: &ort::environment::Environment, _: &Path) -> ort::Result<Session> {
+    Err(ort::Error::new("pas de calcul sur la carte graphique sur ce système"))
+}
+
+/// Passe l'entrée dans le modèle. Si la carte graphique échoue (mémoire insuffisante,
+/// pilote…), le modèle est rechargé sur le processeur et le calcul refait.
+fn infer(engine: &mut Engine, data: Vec<f32>) -> Result<Vec<f32>, ConvertError> {
+    let run = |session: &mut Session, data: Vec<f32>| -> Result<Vec<f32>, ConvertError> {
+        let input = Tensor::from_array(([1usize, 3, SIDE as usize, SIDE as usize], data)).map_err(engine_error)?;
+        let outputs = session.run(ort::inputs![input]).map_err(engine_error)?;
+        let (_, values) = outputs[0].try_extract_tensor::<f32>().map_err(engine_error)?;
+        Ok(values.to_vec())
+    };
+    if !engine.gpu {
+        return run(&mut engine.session, data);
+    }
+    match run(&mut engine.session, data.clone()) {
+        Err(e) => {
+            engine.quality.gpu_failed(e);
+            engine.session = Session::builder(environment()?).and_then(|mut b| b.commit_from_file(&engine.path)).map_err(engine_error)?;
+            engine.gpu = false;
+            run(&mut engine.session, data)
+        }
+        ok => ok,
+    }
 }
 
 /// Sortie ramenée à 0…1, puis à la taille de l'image.
@@ -313,8 +391,7 @@ pub fn mask(img: &DynamicImage, quality: Quality, on_progress: &mut dyn FnMut(f3
     on_progress(step(0.05));
     let mut slot = load_engine(&path, quality, &mut |p| on_progress(step(0.05 + 0.25 * p)))?;
     let engine = slot.as_mut().unwrap();
-    let session = &mut engine.session;
-    let (pred, took) = ticking(quality.expected(1), step(0.3), step(0.95), on_progress, move || infer(session, data));
+    let (pred, took) = ticking(quality.expected(1), step(0.3), step(0.95), on_progress, || infer(engine, data));
     quality.measured(1, took);
     engine.used = Instant::now();
     drop(slot);
@@ -499,7 +576,7 @@ fn remove_video_background(input: &Path, quality: Quality, on_progress: &mut dyn
                 Err(e) => break Err(e.into()),
             }
             let frame = DynamicImage::ImageRgb8(ImageBuffer::from_raw(stream.width, stream.height, rgb.clone()).expect("taille de l'image"));
-            let pred = match infer(&mut engine.session, input_tensor(&frame, model)) {
+            let pred = match infer(engine, input_tensor(&frame, model)) {
                 Ok(pred) => pred,
                 Err(e) => break Err(e),
             };
@@ -625,4 +702,5 @@ mod tests {
         assert_eq!(out.get_pixel(1, 0)[3], 0);
     }
 }
+
 

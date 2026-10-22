@@ -56,6 +56,7 @@ const COMPONENTS = (): [string, string, string, string][] => [
   ["oxipng", t("Compression PNG sans perte", "Lossless PNG compression"), "MIT", "https://github.com/shssoichiro/oxipng"],
   ["libimagequant", t("Compression PNG par palette", "Palette-based PNG compression"), "GPL-3.0", "https://pngquant.org/lib/"],
   ["ONNX Runtime", t("Exécution du modèle de détourage", "Runs the background removal model"), "MIT", "https://onnxruntime.ai"],
+  ["DirectML", t("Détourage sur la carte graphique (Windows)", "Background removal on the graphics card (Windows)"), t("Licence Microsoft (redistribuable)", "Microsoft license (redistributable)"), "https://github.com/microsoft/DirectML"],
   ["IS-Net (DIS)", t("Modèle de détourage « Efficacité », téléchargé à la 1re utilisation", "“Speed” background removal model, downloaded on first use"), "Apache-2.0", "https://github.com/xuebinqin/DIS"],
   ["BiRefNet", t("Modèle de détourage « Qualité », téléchargé à la 1re utilisation", "“Quality” background removal model, downloaded on first use"), "MIT", "https://github.com/ZhengPeng7/BiRefNet"],
   ["resvg", t("Rendu des images SVG", "SVG rendering"), "Apache-2.0 / MIT", "https://github.com/linebender/resvg"],
@@ -331,35 +332,54 @@ function DuplicatesSection({ settings, save }: SectionProps) {
 }
 
 function ToolsSection({ settings, save }: SectionProps) {
+  const platform = usePlatform();
   return (
-    <Group
-      title={t("Détourer", "Remove background")}
-      hint={t(
-        "Modèle utilisé pour retirer le fond des images et des vidéos (une vidéo est traitée image par image, en WebM transparent). Tout reste sur ton ordinateur.",
-        "Model used to remove the background of images and videos (a video is processed frame by frame, into a transparent WebM). Everything stays on your computer.",
+    <>
+      <Group
+        title={t("Détourer", "Remove background")}
+        hint={t(
+          "Modèle utilisé pour retirer le fond des images et des vidéos (une vidéo est traitée image par image, en WebM transparent). Tout reste sur ton ordinateur.",
+          "Model used to remove the background of images and videos (a video is processed frame by frame, into a transparent WebM). Everything stays on your computer.",
+        )}
+      >
+        <div className="settings-options">
+          <Option
+            checked={settings.cutout === "fast"}
+            onChange={() => save({ cutout: "fast" })}
+            title={t("Efficacité", "Speed")}
+            hint={t(
+              "Une à deux secondes par image. Vidéo : environ 1 s par image de la vidéo, 10 fois moins avec la carte graphique. Modèle de 170 Mo.",
+              "One or two seconds per image. Video: about 1 s per video frame, 10 times less with the graphics card. 170 MB model.",
+            )}
+          />
+          <Option
+            checked={settings.cutout === "best"}
+            onChange={() => save({ cutout: "best" })}
+            title={t("Qualité", "Quality")}
+            hint={t(
+              "Contours bien plus fins (cheveux, objets détaillés), mais plus lent : environ 15 s par image sur le processeur, à réserver aux vidéos très courtes. Modèle de 970 Mo, téléchargé au premier détourage.",
+              "Much finer edges (hair, detailed objects), but slower: about 15 s per frame on the processor, best kept for very short videos. 970 MB model, downloaded on first use.",
+            )}
+          />
+        </div>
+      </Group>
+      {platform === "windows" && (
+        <Group title={t("Accélération", "Acceleration")}>
+          <label className="settings-toggle">
+            <input type="checkbox" checked={settings.gpu} onChange={(e) => save({ gpu: e.target.checked })} />
+            <span>
+              <strong>{t("Utiliser la carte graphique", "Use the graphics card")}</strong>
+              <small>
+                {t(
+                  "Détourage jusqu'à 10 fois plus rapide (DirectX 12). Si la carte n'y arrive pas (mémoire vidéo insuffisante pour le modèle Qualité…), Morph passe tout seul au processeur.",
+                  "Background removal up to 10 times faster (DirectX 12). If the card can't handle it (not enough video memory for the Quality model…), Morph switches to the processor by itself.",
+                )}
+              </small>
+            </span>
+          </label>
+        </Group>
       )}
-    >
-      <div className="settings-options">
-        <Option
-          checked={settings.cutout === "fast"}
-          onChange={() => save({ cutout: "fast" })}
-          title={t("Efficacité", "Speed")}
-          hint={t(
-            "Quelques secondes par image ; une vidéo prend environ 1 s par image (5 min pour 10 s de vidéo). Modèle de 170 Mo.",
-            "A few seconds per image; a video takes about 1 s per frame (5 min for 10 s of video). 170 MB model.",
-          )}
-        />
-        <Option
-          checked={settings.cutout === "best"}
-          onChange={() => save({ cutout: "best" })}
-          title={t("Qualité", "Quality")}
-          hint={t(
-            "Contours bien plus fins (cheveux, objets détaillés), mais plus lent : environ 15 s par image, à réserver aux vidéos très courtes. Modèle de 970 Mo, téléchargé au premier détourage.",
-            "Much finer edges (hair, detailed objects), but slower: about 15 s per frame, best kept for very short videos. 970 MB model, downloaded on first use.",
-          )}
-        />
-      </div>
-    </Group>
+    </>
   );
 }
 

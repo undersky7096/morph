@@ -3,11 +3,13 @@
   "bundle": {
     "resources": {
       "onnxruntime/onnxruntime.dll": "onnxruntime.dll",
+      "onnxruntime/DirectML.dll": "DirectML.dll",
       "onnxruntime/msvcp140.dll": "msvcp140.dll",
       "onnxruntime/msvcp140_1.dll": "msvcp140_1.dll",
       "onnxruntime/vcruntime140.dll": "vcruntime140.dll",
       "onnxruntime/vcruntime140_1.dll": "vcruntime140_1.dll",
       "onnxruntime/LICENSE-onnxruntime.txt": "licenses/onnxruntime.txt",
+      "onnxruntime/LICENSE-directml.txt": "licenses/directml.txt",
       "pdfium/pdfium.dll": "pdfium.dll",
       "pdfium/LICENSE-pdfium.txt": "licenses/pdfium.txt",
       "pandoc/LICENSE-pandoc.rtf": "licenses/pandoc.rtf"
