@@ -7,8 +7,8 @@
 //!   morph-cli pdf <images…>          assemble plusieurs images en un PDF
 //!   morph-cli archive-zip|archive-7z <fichiers ou dossiers…>  archive la sélection
 //!   morph-cli extract <archives…>    extrait chaque archive
-//!   morph-cli cutout [--best] <images…>  retire le fond (télécharge le modèle la première
-//!                                        fois ; --best : modèle « qualité »)
+//!   morph-cli cutout [--best] <images ou vidéos…>  retire le fond (télécharge le modèle
+//!                                        la première fois ; --best : modèle « qualité »)
 
 use std::io::Write;
 use std::path::{Path, PathBuf};

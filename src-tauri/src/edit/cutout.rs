@@ -7,10 +7,11 @@
 //! qu'au premier détourage.
 
 use std::fs::{self, File};
-use std::io::{Read, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
+use std::process::Stdio;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Mutex, MutexGuard, OnceLock};
 use std::time::{Duration, Instant};
 
 use image::{DynamicImage, GrayImage, ImageBuffer, Luma, RgbaImage, imageops};
@@ -19,7 +20,8 @@ use ort::value::Tensor;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::convert::{self, ConvertError, output, raster, ticking};
+use crate::convert::formats::Kind;
+use crate::convert::{self, ConvertError, ffmpeg, formats, output, raster, ticking};
 
 /// Modèle choisi dans les Réglages.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -243,16 +245,8 @@ fn schedule_release() {
     });
 }
 
-/// Masque du sujet (255 = garder), à la taille de l'image.
-pub fn mask(img: &DynamicImage, quality: Quality, on_progress: &mut dyn FnMut(f32)) -> Result<GrayImage, ConvertError> {
-    let downloading = !model_ready(quality);
-    let path = ensure_model(quality, &mut |p| on_progress(IMAGE_SHARE + p * (DOWNLOAD_SHARE - IMAGE_SHARE)))?;
-    let model = quality.model();
-    let base = if downloading { DOWNLOAD_SHARE } else { IMAGE_SHARE };
-    let step = |p: f32| base + (1.0 - base) * p;
-    output::check_cancel()?;
-
-    // Entrée du modèle : RVB 1024×1024, normalisé comme le fait rembg.
+/// Entrée du modèle : RVB 1024×1024, normalisé comme le fait rembg.
+fn input_tensor(img: &DynamicImage, model: &Model) -> Vec<f32> {
     let rgb = imageops::resize(&img.to_rgb8(), SIDE, SIDE, imageops::FilterType::Lanczos3);
     let max = rgb.as_raw().iter().copied().max().unwrap_or(255).max(1) as f32;
     let plane = (SIDE * SIDE) as usize;
@@ -262,35 +256,39 @@ pub fn mask(img: &DynamicImage, quality: Quality, on_progress: &mut dyn FnMut(f3
             data[c * plane + i] = (px[c] as f32 / max - model.mean[c]) / model.std[c];
         }
     }
-    on_progress(step(0.05));
+    data
+}
 
-    // Modèle gardé en mémoire entre deux détourages ; un seul à la fois.
+/// Modèle chargé (gardé en mémoire entre deux détourages ; un seul à la fois). Le
+/// chargement fait avancer `on_progress` de 0 à 1.
+fn load_engine(
+    path: &Path,
+    quality: Quality,
+    on_progress: &mut dyn FnMut(f32),
+) -> Result<MutexGuard<'static, Option<Engine>>, ConvertError> {
     let mut slot = ENGINE.lock().unwrap();
     if slot.as_ref().is_none_or(|e| e.path != path) {
         *slot = None;
         let env = environment()?;
-        let (session, took) = ticking(quality.expected(0), step(0.05), step(0.3), on_progress, || {
-            Session::builder(env)?.commit_from_file(&path)
+        let (session, took) = ticking(quality.expected(0), 0.0, 1.0, on_progress, || {
+            Session::builder(env)?.commit_from_file(path)
         });
         quality.measured(0, took);
-        *slot = Some(Engine { path: path.clone(), session: session.map_err(engine_error)?, used: Instant::now() });
+        *slot = Some(Engine { path: path.to_path_buf(), session: session.map_err(engine_error)?, used: Instant::now() });
     }
-    let engine = slot.as_mut().unwrap();
-    let session = &mut engine.session;
-    let (pred, took) = ticking(quality.expected(1), step(0.3), step(0.95), on_progress, move || {
-        let input = Tensor::from_array(([1usize, 3, SIDE as usize, SIDE as usize], data)).map_err(engine_error)?;
-        let outputs = session.run(ort::inputs![input]).map_err(engine_error)?;
-        let (_, values) = outputs[0].try_extract_tensor::<f32>().map_err(engine_error)?;
-        Ok::<_, ConvertError>(values.to_vec())
-    });
-    quality.measured(1, took);
-    engine.used = Instant::now();
-    drop(slot);
-    schedule_release();
-    let mut pred = pred?;
-    output::check_cancel()?;
+    Ok(slot)
+}
 
-    // Sortie ramenée à 0…1, puis à la taille de l'image.
+/// Passe l'entrée dans le modèle.
+fn infer(session: &mut Session, data: Vec<f32>) -> Result<Vec<f32>, ConvertError> {
+    let input = Tensor::from_array(([1usize, 3, SIDE as usize, SIDE as usize], data)).map_err(engine_error)?;
+    let outputs = session.run(ort::inputs![input]).map_err(engine_error)?;
+    let (_, values) = outputs[0].try_extract_tensor::<f32>().map_err(engine_error)?;
+    Ok(values.to_vec())
+}
+
+/// Sortie ramenée à 0…1, puis à la taille de l'image.
+fn output_mask(mut pred: Vec<f32>, model: &Model, width: u32, height: u32) -> GrayImage {
     if model.logits {
         pred.iter_mut().for_each(|v| *v = 1.0 / (1.0 + (-*v).exp()));
     }
@@ -299,7 +297,31 @@ pub fn mask(img: &DynamicImage, quality: Quality, on_progress: &mut dyn FnMut(f3
     let small: GrayImage = ImageBuffer::from_fn(SIDE, SIDE, |x, y| {
         Luma([(((pred[(y * SIDE + x) as usize] - lo) / span) * 255.0).round() as u8])
     });
-    Ok(imageops::resize(&small, img.width(), img.height(), imageops::FilterType::Lanczos3))
+    imageops::resize(&small, width, height, imageops::FilterType::Lanczos3)
+}
+
+/// Masque du sujet (255 = garder), à la taille de l'image.
+pub fn mask(img: &DynamicImage, quality: Quality, on_progress: &mut dyn FnMut(f32)) -> Result<GrayImage, ConvertError> {
+    let downloading = !model_ready(quality);
+    let path = ensure_model(quality, &mut |p| on_progress(IMAGE_SHARE + p * (DOWNLOAD_SHARE - IMAGE_SHARE)))?;
+    let model = quality.model();
+    let base = if downloading { DOWNLOAD_SHARE } else { IMAGE_SHARE };
+    let step = |p: f32| base + (1.0 - base) * p;
+    output::check_cancel()?;
+
+    let data = input_tensor(img, model);
+    on_progress(step(0.05));
+    let mut slot = load_engine(&path, quality, &mut |p| on_progress(step(0.05 + 0.25 * p)))?;
+    let engine = slot.as_mut().unwrap();
+    let session = &mut engine.session;
+    let (pred, took) = ticking(quality.expected(1), step(0.3), step(0.95), on_progress, move || infer(session, data));
+    quality.measured(1, took);
+    engine.used = Instant::now();
+    drop(slot);
+    schedule_release();
+    let pred = pred?;
+    output::check_cancel()?;
+    Ok(output_mask(pred, model, img.width(), img.height()))
 }
 
 /// Applique le masque comme transparence (en gardant celle de l'image).
@@ -335,14 +357,191 @@ pub fn cutout_png(input: &Path, quality: Quality, on_progress: &mut dyn FnMut(f3
     Ok(png)
 }
 
-/// Retire le fond d'une image : `nom Cutout.png` (transparent) à côté de l'original.
+/// Retire le fond d'une image (`nom Cutout.png`) ou d'une vidéo (`nom Cutout.webm`),
+/// à côté de l'original.
 pub fn remove_background(input: &Path, quality: Quality, on_progress: &mut dyn FnMut(f32)) -> Result<PathBuf, ConvertError> {
+    if formats::format_of(input).is_some_and(|f| f.kind == Kind::Video) {
+        return remove_video_background(input, quality, on_progress);
+    }
     let img = load(input, on_progress)?;
     let mask = mask(&img, quality, on_progress)?;
     let output = convert::suffixed_output_as(input, "Cutout", "png")?;
     raster::save(&DynamicImage::ImageRgba8(apply_mask(&img, &mask)), &output, "png")?;
     on_progress(1.0);
     Ok(output)
+}
+
+/// Vidéo décodée par ffmpeg, telle qu'il l'annonce avant les premières images.
+#[derive(Debug, PartialEq)]
+struct Stream {
+    width: u32,
+    height: u32,
+    /// Images par seconde, telles qu'écrites par ffmpeg (« 29.97 »).
+    fps: String,
+    /// Durée de l'entrée en secondes (0 : inconnue).
+    secs: f64,
+}
+
+impl Stream {
+    /// Lit l'en-tête de ffmpeg : durée de l'entrée, taille et cadence de la sortie
+    /// `rawvideo` (rotation appliquée).
+    fn parse(header: &[String]) -> Option<Stream> {
+        let secs = header.iter().find_map(|l| ffmpeg::parse_duration(l)).map_or(0.0, |us| us as f64 / 1e6);
+        let after = header.iter().position(|l| l.starts_with("Output #0"))?;
+        let line = header[after..].iter().find(|l| l.contains("Video: rawvideo"))?;
+        let parts: Vec<&str> = line.split([',', ' ']).filter(|p| !p.is_empty()).collect();
+        let (width, height) = parts.iter().find_map(|p| {
+            let (w, h) = p.split_once('x')?;
+            Some((w.parse().ok()?, h.parse().ok()?))
+        })?;
+        let fps = parts.windows(2).find(|w| w[1] == "fps").map_or("30", |w| w[0]).to_string();
+        Some(Stream { width, height, fps, secs })
+    }
+
+    /// Nombre d'images attendu, pour la progression.
+    fn frames(&self) -> f64 {
+        (self.secs * self.fps.parse::<f64>().unwrap_or(30.0)).max(1.0)
+    }
+}
+
+/// Lit le journal d'un ffmpeg à part ; ses dernières lignes servent au message d'erreur.
+fn drain(stderr: impl Read + Send + 'static) -> std::thread::JoinHandle<String> {
+    std::thread::spawn(move || {
+        let lines: Vec<String> = BufReader::new(stderr).lines().map_while(Result::ok).collect();
+        lines[lines.len().saturating_sub(10)..].join("\n")
+    })
+}
+
+/// Vidéo détourée, image par image : `nom Cutout.webm` (VP9 avec transparence, son
+/// d'origine en Opus). Un ffmpeg décode la vidéo en images brutes, le modèle calcule
+/// chaque masque, un second ffmpeg encode le résultat.
+fn remove_video_background(input: &Path, quality: Quality, on_progress: &mut dyn FnMut(f32)) -> Result<PathBuf, ConvertError> {
+    on_progress(0.0);
+    let downloading = !model_ready(quality);
+    let path = ensure_model(quality, &mut |p| on_progress(p * DOWNLOAD_SHARE))?;
+    let base = if downloading { DOWNLOAD_SHARE } else { 0.0 };
+    let step = |p: f32| base + (1.0 - base) * p;
+    let model = quality.model();
+    output::check_cancel()?;
+
+    // Décodage : images RVB brutes sur la sortie standard.
+    let mut decoder = ffmpeg::command()
+        .args(["-loglevel", "info", "-i"])
+        .arg(input)
+        .args(["-map", "0:v:0", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(ffmpeg::spawn_error)?;
+    let mut stderr = BufReader::new(decoder.stderr.take().expect("stderr piped"));
+    let mut header = Vec::new();
+    let mut line = String::new();
+    let stream = loop {
+        line.clear();
+        if stderr.read_line(&mut line)? == 0 {
+            let _ = decoder.wait();
+            return Err(ConvertError::Ffmpeg(header.join("\n")));
+        }
+        header.push(line.trim_end().to_string());
+        if header.last().is_some_and(|l| l.contains("Video: rawvideo")) {
+            match Stream::parse(&header) {
+                Some(stream) => break stream,
+                None => {
+                    let _ = decoder.kill();
+                    return Err(ConvertError::Ffmpeg(header.join("\n")));
+                }
+            }
+        }
+    };
+    let decoder_log = drain(stderr.into_inner());
+    let frames = stream.frames();
+
+    let output = match convert::suffixed_output_as(input, "Cutout", "webm") {
+        Ok(output) => output,
+        Err(e) => {
+            let _ = decoder.kill();
+            return Err(e);
+        }
+    };
+    let size = format!("{}x{}", stream.width, stream.height);
+    let encoder = ffmpeg::command()
+        .args(["-loglevel", "error", "-n", "-f", "rawvideo", "-pix_fmt", "rgba", "-s", &size, "-framerate", &stream.fps, "-i", "-", "-i"])
+        .arg(input)
+        .args(["-map", "0:v", "-map", "1:a:0?", "-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p", "-crf", "30", "-b:v", "0"])
+        .args(["-row-mt", "1", "-deadline", "good", "-cpu-used", "4", "-c:a", "libopus", "-b:a", "128k", "-shortest"])
+        .arg(&output)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn();
+    let mut encoder = match encoder {
+        Ok(encoder) => encoder,
+        Err(e) => {
+            let _ = decoder.kill();
+            return Err(ffmpeg::spawn_error(e));
+        }
+    };
+    let encoder_log = drain(encoder.stderr.take().expect("stderr piped"));
+
+    let mut reader = decoder.stdout.take().expect("stdout piped");
+    let mut writer = encoder.stdin.take().expect("stdin piped");
+    let result = load_engine(&path, quality, &mut |p| on_progress(step(0.03 * p))).and_then(|mut slot| {
+        let engine = slot.as_mut().unwrap();
+        let mut rgb = vec![0u8; (stream.width * stream.height * 3) as usize];
+        let mut done = 0f64;
+        let result = loop {
+            if let Err(e) = output::check_cancel() {
+                break Err(e);
+            }
+            match reader.read_exact(&mut rgb) {
+                Ok(()) => {}
+                Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => break Ok(()),
+                Err(e) => break Err(e.into()),
+            }
+            let frame = DynamicImage::ImageRgb8(ImageBuffer::from_raw(stream.width, stream.height, rgb.clone()).expect("taille de l'image"));
+            let pred = match infer(&mut engine.session, input_tensor(&frame, model)) {
+                Ok(pred) => pred,
+                Err(e) => break Err(e),
+            };
+            let mask = output_mask(pred, model, stream.width, stream.height);
+            // Écriture refusée : l'encodeur s'est arrêté, son journal dira pourquoi.
+            if writer.write_all(apply_mask(&frame, &mask).as_raw()).is_err() {
+                break Ok(());
+            }
+            engine.used = Instant::now();
+            done += 1.0;
+            on_progress(step(0.03 + 0.96 * (done / frames).min(1.0) as f32));
+        };
+        engine.used = Instant::now();
+        result
+    });
+    schedule_release();
+    drop(writer);
+    drop(reader);
+
+    if result.is_err() {
+        let _ = decoder.kill();
+        let _ = encoder.kill();
+    }
+    let decoded = decoder.wait()?;
+    let encoded = encoder.wait()?;
+    let decoder_log = decoder_log.join().unwrap_or_default();
+    let encoder_log = encoder_log.join().unwrap_or_default();
+    let result = result.and_then(|()| match (decoded.success(), encoded.success()) {
+        (true, true) => Ok(()),
+        (false, _) => Err(ConvertError::Ffmpeg(decoder_log)),
+        (_, false) => Err(ConvertError::Ffmpeg(encoder_log)),
+    });
+    match result {
+        Ok(()) => {
+            on_progress(1.0);
+            Ok(output)
+        }
+        Err(e) => {
+            let _ = fs::remove_file(&output);
+            Err(e)
+        }
+    }
 }
 
 #[cfg(test)]
@@ -402,6 +601,22 @@ mod tests {
     }
 
     #[test]
+    fn reads_decoded_stream() {
+        let header: Vec<String> = [
+            "Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'phone.mp4':",
+            "  Duration: 00:00:10.50, start: 0.000000, bitrate: 9000 kb/s",
+            "  Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p, 1920x1080, 29.97 fps",
+            "Output #0, rawvideo, to 'pipe:':",
+            "  Stream #0:0(und): Video: rawvideo (RGB[24] / 0x18424752), rgb24(pc, gbr/bt709/bt709, progressive), 1080x1920, q=2-31, 1492992 kb/s, 29.97 fps, 29.97 tbn",
+        ]
+        .map(String::from)
+        .to_vec();
+        let stream = Stream::parse(&header).unwrap();
+        assert_eq!(stream, Stream { width: 1080, height: 1920, fps: "29.97".into(), secs: 10.5 });
+        assert_eq!(stream.frames().round(), 315.0);
+    }
+
+    #[test]
     fn mask_keeps_existing_transparency() {
         let img = DynamicImage::ImageRgba8(ImageBuffer::from_pixel(2, 1, image::Rgba([1, 2, 3, 128])));
         let mask = GrayImage::from_raw(2, 1, vec![255, 0]).unwrap();
@@ -410,3 +625,4 @@ mod tests {
         assert_eq!(out.get_pixel(1, 0)[3], 0);
     }
 }
+

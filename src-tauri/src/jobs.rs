@@ -21,7 +21,7 @@ use crate::convert::{self, ErrorInfo};
 use crate::edit::cutout;
 use crate::{notify, progress, settings};
 
-/// Cible spéciale : retirer le fond (PNG transparent) au lieu de convertir.
+/// Cible spéciale : retirer le fond (PNG transparent, WebM pour une vidéo) au lieu de convertir.
 pub const CUTOUT: &str = "cutout";
 /// Cibles spéciales : fusionner des PDF, archiver la sélection, extraire une archive.
 pub use crate::convert::archive::{ARCHIVE_7Z, ARCHIVE_ZIP, EXTRACT};

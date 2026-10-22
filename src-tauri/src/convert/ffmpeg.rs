@@ -315,7 +315,7 @@ pub fn run_for(
 }
 
 /// Extrait la durée d'une ligne `  Duration: 00:01:02.34, start: …` en microsecondes.
-fn parse_duration(line: &str) -> Option<u64> {
+pub(crate) fn parse_duration(line: &str) -> Option<u64> {
     let rest = line.trim_start().strip_prefix("Duration: ")?;
     let hms = rest.split(',').next()?;
     let mut parts = hms.split(':');

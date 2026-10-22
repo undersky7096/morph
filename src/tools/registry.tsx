@@ -35,7 +35,7 @@ export const TOOLS: Record<ToolId, ToolInfo> = {
   cutout: {
     get label() { return t("Détourer", "Remove BG"); },
     icon: CutoutIcon,
-    kinds: ["image"],
+    kinds: ["image", "video"],
     wholeBatch: true,
     direct: CUTOUT,
     get done() { return t("Détouré", "Done"); },

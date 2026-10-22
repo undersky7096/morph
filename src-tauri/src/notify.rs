@@ -31,7 +31,7 @@ fn summary(job: &Job) -> (String, String) {
     } else if failed == 0 {
         let title = match (done, job.target == crate::jobs::CUTOUT) {
             (1, true) => tr("Fond retiré", "Background removed").to_string(),
-            (n, true) => tr(format!("Fond retiré de {n} images"), format!("Background removed from {n} images")),
+            (n, true) => tr(format!("Fond retiré de {n} fichiers"), format!("Background removed from {n} files")),
             (1, false) => tr(format!("Fichier converti en {target}"), format!("File converted to {target}")),
             (n, false) => tr(format!("{n} fichiers convertis en {target}"), format!("{n} files converted to {target}")),
         };

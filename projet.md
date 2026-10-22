@@ -473,6 +473,13 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
   raisons des pétales grisés, clic droit Linux ; les détails techniques restent en français.
   Installeur Windows : français + anglais avec sélecteur ; le hook POSTINSTALL écrit
   `%APPDATA%\com.underskydev.morph\installer-language`, adopté au premier lancement puis supprimé.
+- **v1.5.0** (2026-10-22) — Détourer accepte les vidéos (même réglage Efficacité / Qualité).
+  `cutout::remove_background` aiguille les vidéos vers `remove_video_background` : un ffmpeg
+  décode en RVB brut (taille et cadence lues dans son en-tête « Output #0 », rotation
+  appliquée), chaque image passe dans le modèle, un second ffmpeg encode `nom Cutout.webm`
+  (VP9 yuva420p, CRF 30, son d'origine en Opus). Les modèles n'acceptent que 1024×1024 et
+  tournent sur le processeur : ~0,9 s par image (IS-Net), ~14 s (BiRefNet) ; piste si
+  besoin : ONNX Runtime DirectML (GPU) sous Windows.
 - **Décisions M6** (validées par l'utilisateur le 2026-10-20) :
   - Découpage en sous-étapes, un commit + validation chacune :
     **6a** éditeur image, **6b** découpe audio, **6c** éditeur vidéo.

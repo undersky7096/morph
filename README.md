@@ -24,7 +24,7 @@ propose les formats et les outils. Windows et Linux. Site : [morph.underskydev.c
 - **PDF** : fusionner plusieurs PDF, compresser un PDF.
 - **Archives** : créer une archive ZIP ou 7Z de fichiers et de dossiers ; extraire ZIP, 7Z,
   TAR (GZ, BZ2, XZ) et RAR ; changer le format d'une archive (RAR → ZIP…).
-- **Recadrer** une image, **Détourer** (retirer le fond, en local), **Compresser** (images,
+- **Recadrer** une image, **Détourer** (retirer le fond d'une image ou d'une vidéo, en local), **Compresser** (images,
   audio, vidéo, taille cible), **Éditer** : retouches et annotations d'image, découpe et
   volume audio, montage léger de vidéo (découpe, cadrage, vitesse, effets, son).
 - Traitements en arrière-plan avec mini-fenêtre de progression, annulation, doublons et

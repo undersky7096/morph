@@ -334,22 +334,28 @@ function ToolsSection({ settings, save }: SectionProps) {
   return (
     <Group
       title={t("Détourer", "Remove background")}
-      hint={t("Modèle utilisé pour retirer le fond des images. Tout reste sur ton ordinateur.", "Model used to remove image backgrounds. Everything stays on your computer.")}
+      hint={t(
+        "Modèle utilisé pour retirer le fond des images et des vidéos (une vidéo est traitée image par image, en WebM transparent). Tout reste sur ton ordinateur.",
+        "Model used to remove the background of images and videos (a video is processed frame by frame, into a transparent WebM). Everything stays on your computer.",
+      )}
     >
       <div className="settings-options">
         <Option
           checked={settings.cutout === "fast"}
           onChange={() => save({ cutout: "fast" })}
           title={t("Efficacité", "Speed")}
-          hint={t("Quelques secondes par image. Modèle de 170 Mo.", "A few seconds per image. 170 MB model.")}
+          hint={t(
+            "Quelques secondes par image ; une vidéo prend environ 1 s par image (5 min pour 10 s de vidéo). Modèle de 170 Mo.",
+            "A few seconds per image; a video takes about 1 s per frame (5 min for 10 s of video). 170 MB model.",
+          )}
         />
         <Option
           checked={settings.cutout === "best"}
           onChange={() => save({ cutout: "best" })}
           title={t("Qualité", "Quality")}
           hint={t(
-            "Contours bien plus fins (cheveux, objets détaillés), mais plus lent. Modèle de 970 Mo, téléchargé au premier détourage.",
-            "Much finer edges (hair, detailed objects), but slower. 970 MB model, downloaded on first use.",
+            "Contours bien plus fins (cheveux, objets détaillés), mais plus lent : environ 15 s par image, à réserver aux vidéos très courtes. Modèle de 970 Mo, téléchargé au premier détourage.",
+            "Much finer edges (hair, detailed objects), but slower: about 15 s per frame, best kept for very short videos. 970 MB model, downloaded on first use.",
           )}
         />
       </div>
