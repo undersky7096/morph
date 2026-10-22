@@ -99,6 +99,8 @@ function setVars(s: Settings) {
     value === null ? root.style.removeProperty(name) : root.style.setProperty(name, value);
   set("--accent", s.accent);
   set("--accent-2", s.accent && `color-mix(in srgb, ${s.accent} 55%, white)`);
+  // Texte posé sur l'accent (pastilles) : sombre si l'accent choisi est clair.
+  set("--on-accent", s.accent && luminance(s.accent) > 0.5 ? "#181818" : null);
   set("--bg", s.background);
   set("--surface-base", s.background);
   set("--logo-tile", s.background);

@@ -12,8 +12,8 @@ use tauri_plugin_updater::{Update, UpdaterExt};
 use crate::i18n::tr;
 use crate::{jobs, notify, tools};
 
-/// Première vérification, après le démarrage (laisse la session s'ouvrir tranquillement).
-const FIRST_CHECK: Duration = Duration::from_secs(30);
+/// Première vérification, peu après le lancement (le temps que la session s'ouvre).
+const FIRST_CHECK: Duration = Duration::from_secs(5);
 const EVERY: Duration = Duration::from_secs(6 * 3600);
 
 #[derive(Debug, Clone, Serialize)]

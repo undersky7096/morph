@@ -98,6 +98,7 @@ function App() {
   const [version, setVersion] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [over, setOver] = useState(false);
+  const update = useUpdateStatus();
 
   useEffect(() => {
     getVersion().then(setVersion);
@@ -152,6 +153,11 @@ function App() {
           <button key={id} className={section === id ? "is-active" : ""} onClick={() => setSection(id)}>
             {section === id && <motion.span layoutId="nav-active" className="settings-nav-pill" transition={PILL} />}
             <span>{sectionLabel(id)}</span>
+            {id === "about" && update?.available && (
+              <span className="settings-nav-badge" title={t(`Mise à jour ${update.available.version} disponible`, `Update ${update.available.version} available`)}>
+                1
+              </span>
+            )}
           </button>
         ))}
         <p className="settings-tip">
@@ -485,11 +491,9 @@ function ago(ms: number) {
   return h < 24 ? rtf.format(-h, "hour") : rtf.format(-Math.round(h / 24), "day");
 }
 
-/** Mises à jour : vérifiées automatiquement (démarrage, puis toutes les 6 h), installées sur clic. */
-function UpdatesGroup() {
+/** État des mises à jour, suivi en direct. */
+function useUpdateStatus() {
   const [status, setStatus] = useState<UpdateStatus | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
     invoke<UpdateStatus>("update_status").then(setStatus);
     const unlisten = listen<UpdateStatus>("update-status", ({ payload }) => setStatus(payload));
@@ -497,6 +501,13 @@ function UpdatesGroup() {
       unlisten.then((fn) => fn());
     };
   }, []);
+  return status;
+}
+
+/** Mises à jour : vérifiées automatiquement (démarrage, puis toutes les 6 h), installées sur clic. */
+function UpdatesGroup() {
+  const status = useUpdateStatus();
+  const [error, setError] = useState<string | null>(null);
 
   async function install() {
     setError(null);
