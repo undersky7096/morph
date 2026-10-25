@@ -493,13 +493,18 @@ pub fn edit(input: &Path, e: &VideoEdit, on_progress: &mut dyn FnMut(f32)) -> Re
 
 /// Copie légère lisible par le webview (H.264 720p), pour les conteneurs qu'il ne lit pas
 /// (AVI, WMV, FLV, MPEG…). Recréée à chaque ouverture, supprimée à la fermeture de Morph.
+/// Chemin neuf (dossier temporaire du processus) pour une copie d'aperçu au format `ext`.
+pub(crate) fn preview_path(ext: &str) -> Result<PathBuf, ConvertError> {
+    let dir = std::env::temp_dir().join(format!("morph-preview-{}", std::process::id()));
+    fs::create_dir_all(&dir)?;
+    Ok(dir.join(format!("{}.{ext}", work_dir().file_name().unwrap().to_string_lossy())))
+}
+
 pub fn preview(input: &Path) -> Result<PathBuf, ConvertError> {
     if formats::kind_of(input) != Some(Kind::Video) {
         return Err(ConvertError::Unsupported(input.display().to_string()));
     }
-    let dir = std::env::temp_dir().join(format!("morph-preview-{}", std::process::id()));
-    fs::create_dir_all(&dir)?;
-    let output = dir.join(format!("{}.mp4", work_dir().file_name().unwrap().to_string_lossy()));
+    let output = preview_path("mp4")?;
     let args = [
         "-vf", "scale='if(gte(iw,ih),-2,min(720,trunc(iw/2)*2))':'if(gte(iw,ih),min(720,trunc(ih/2)*2),-2)',setsar=1",
         "-c:v", "libx264", "-preset", "veryfast", "-crf", "26", "-pix_fmt", "yuv420p",

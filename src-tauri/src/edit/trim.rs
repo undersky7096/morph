@@ -94,20 +94,13 @@ pub fn peaks(input: &Path) -> Result<(f64, Vec<u8>), ConvertError> {
     Ok((total as f64 / PEAKS_RATE as f64, peaks))
 }
 
-/// Version WAV pour l'écoute, quand le webview ne sait pas lire le format d'origine (WMA…).
-pub fn preview_wav(input: &Path) -> Result<Vec<u8>, ConvertError> {
+/// Copie WAV pour l'écoute, quand le webview ne sait pas lire le format d'origine (WMA…).
+/// Écrite dans un fichier temporaire, lu en continu par le lecteur (pas de copie en mémoire).
+pub fn preview(input: &Path) -> Result<PathBuf, ConvertError> {
     check_audio(input)?;
-    let out = ffmpeg::command()
-        .arg("-i")
-        .arg(input)
-        .args(["-vn", "-ac", "2", "-ar", "32000", "-c:a", "pcm_s16le", "-f", "wav", "pipe:1"])
-        .stderr(Stdio::null())
-        .output()
-        .map_err(ffmpeg::spawn_error)?;
-    if !out.status.success() || out.stdout.is_empty() {
-        return Err(ConvertError::Ffmpeg(format!("lecture audio impossible : {}", input.display())));
-    }
-    Ok(out.stdout)
+    let output = super::video::preview_path("wav")?;
+    ffmpeg::run(input, &["-vn", "-ac", "2", "-ar", "32000", "-c:a", "pcm_s16le"], &output, &mut |_| {})?;
+    Ok(output)
 }
 
 /// Segments triés, ramenés dans le fichier, trop courts retirés, contigus recollés.

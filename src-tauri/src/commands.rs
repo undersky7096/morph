@@ -231,16 +231,6 @@ pub async fn read_image(path: String) -> Result<Response, ConvertError> {
     Ok(Response::new(read_file(path).await?))
 }
 
-/// Contenu brut d'un fichier audio ou vidéo, lu par le lecteur des éditeurs.
-#[tauri::command]
-pub async fn read_media(path: String) -> Result<Response, ConvertError> {
-    let path = PathBuf::from(path);
-    if !matches!(formats::kind_of(&path), Some(formats::Kind::Audio | formats::Kind::Video)) {
-        return Err(ConvertError::Unsupported(path.display().to_string()));
-    }
-    Ok(Response::new(read_file(path).await?))
-}
-
 async fn read_file(path: PathBuf) -> std::io::Result<Vec<u8>> {
     tauri::async_runtime::spawn_blocking(move || std::fs::read(path))
         .await
@@ -336,10 +326,11 @@ pub async fn audio_peaks(path: String) -> Result<Response, ConvertError> {
     Ok(Response::new(bytes))
 }
 
-/// Version WAV d'un fichier audio, pour l'écoute quand le webview ne lit pas son format.
+/// Copie WAV d'un fichier audio, pour l'écoute quand le webview ne lit pas son format.
 #[tauri::command]
-pub async fn audio_preview(path: String) -> Result<Response, ConvertError> {
-    blocking(move || trim::preview_wav(Path::new(&path))).await.map(Response::new)
+pub async fn audio_preview(app: AppHandle, path: String) -> Result<String, ConvertError> {
+    let out = blocking(move || trim::preview(Path::new(&path))).await?;
+    allow_media(app, out.display().to_string())
 }
 
 /// Garde les segments donnés d'un fichier audio, au volume donné (0…2). Progression via l'événement `trim-progress`.
@@ -361,7 +352,7 @@ pub async fn trim_audio(
     .map(|out| out.display().to_string())
 }
 
-/// Ouvre l'accès d'un fichier vidéo au protocole `asset` (lecture en continu par le lecteur,
+/// Ouvre l'accès d'un fichier audio ou vidéo au protocole `asset` (lecture en continu par le lecteur,
 /// sans tout charger en mémoire) et le renvoie. Seuls les fichiers demandés sont autorisés.
 #[tauri::command]
 pub fn allow_media(app: AppHandle, path: String) -> Result<String, ConvertError> {

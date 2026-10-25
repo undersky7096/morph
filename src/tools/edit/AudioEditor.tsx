@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
 import { describe } from "../../errors";
@@ -55,16 +55,12 @@ export default function AudioEditor({ path, onSaved, footerExtra }: Props) {
     update((s) => ({ ...s, segments: fn(s.segments) }), key);
   const trimmer = useTrimmer(player, track?.duration ?? 0, segments, updateSegments, setError, volume / 100);
 
-  // Forme d'onde et fichier à écouter.
+  // Forme d'onde et fichier à écouter (lu en continu sur le disque, jamais chargé en entier).
   useEffect(() => {
-    let url: string | null = null;
     let cancelled = false;
     const load = async (preview: boolean) => {
-      const bytes = await invoke<ArrayBuffer>(preview ? "audio_preview" : "read_media", { path });
-      if (cancelled) return;
-      if (url) URL.revokeObjectURL(url);
-      url = URL.createObjectURL(new Blob([bytes]));
-      player.src = url;
+      const file = await invoke<string>(preview ? "audio_preview" : "allow_media", { path });
+      if (!cancelled) player.src = convertFileSrc(file);
     };
     const ext = path.split(".").pop()?.toLowerCase() ?? "";
     let fellBack = NOT_PLAYABLE.has(ext);
@@ -88,7 +84,6 @@ export default function AudioEditor({ path, onSaved, footerExtra }: Props) {
       player.pause();
       player.onerror = null;
       player.removeAttribute("src");
-      if (url) URL.revokeObjectURL(url);
     };
   }, [path]);
 
