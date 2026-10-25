@@ -4,16 +4,22 @@ import "./Halo.css";
 
 /** Halo qui suit le curseur pendant un Shift+glisser au-dessus de la zone de dépôt Morph. */
 export default function Halo() {
-  // Relance l'animation d'apparition à chaque nouveau survol.
-  const [key, setKey] = useState(0);
+  // Relance l'animation d'apparition à chaque nouveau survol ; null quand le halo est masqué.
+  const [key, setKey] = useState<number | null>(null);
 
   useEffect(() => {
-    const unlisten = getCurrentWebviewWindow().listen("halo-show", () => setKey((k) => k + 1));
+    const win = getCurrentWebviewWindow();
+    const unlisten = [
+      win.listen("halo-show", () => setKey((k) => (k ?? 0) + 1)),
+      // Masqué : plus rien à dessiner, l'animation en boucle s'arrête.
+      win.listen("halo-hide", () => setKey(null)),
+    ];
     return () => {
-      unlisten.then((fn) => fn());
+      unlisten.forEach((p) => p.then((fn) => fn()));
     };
   }, []);
 
+  if (key === null) return null;
   return (
     <div className="halo" key={key}>
       <div className="halo-glow" />

@@ -289,6 +289,9 @@ fn move_halo(pt: &POINTL, appear: bool) {
 fn hide_halo() {
     if let Some(halo) = halo_window() {
         let _ = halo.hide();
+        // Une fenêtre masquée continue d'être dessinée par le webview : le halo vide son
+        // contenu (et son animation en boucle) pour ne pas occuper la carte graphique au repos.
+        let _ = halo.emit_to(HALO_LABEL, "halo-hide", ());
     }
 }
 
