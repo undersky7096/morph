@@ -6,9 +6,10 @@
 //! avoir à le faire passer par chaque fonction de conversion.
 
 use std::cell::RefCell;
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
 
@@ -42,6 +43,29 @@ struct Context {
     scope: Scope,
     /// Fichiers remplacés, mis de côté : (copie de sauvegarde, emplacement d'origine).
     backups: Vec<(PathBuf, PathBuf)>,
+    /// Noms de sortie réservés par cette opération (voir [`claim`]).
+    claimed: Vec<PathBuf>,
+}
+
+/// Noms de sortie choisis par les opérations en cours, pas encore écrits sur le disque :
+/// plusieurs fichiers convertis en même temps ne peuvent pas viser le même nom.
+static CLAIMED: Mutex<Option<HashSet<PathBuf>>> = Mutex::new(None);
+
+/// Réserve `path` pour l'opération en cours s'il n'existe pas et n'est pas déjà réservé.
+/// Hors de [`scoped`] (rien pour libérer la réservation) : seule l'existence compte.
+fn claim(path: &Path) -> bool {
+    let mut claimed = CLAIMED.lock().unwrap();
+    let reserved = claimed.get_or_insert_default();
+    if path.exists() || reserved.contains(path) {
+        return false;
+    }
+    CONTEXT.with(|c| {
+        if let Some(ctx) = c.borrow_mut().as_mut() {
+            ctx.claimed.push(path.to_path_buf());
+            reserved.insert(path.to_path_buf());
+        }
+    });
+    true
 }
 
 thread_local! {
@@ -54,9 +78,14 @@ pub fn scoped<T>(scope: Scope, f: impl FnOnce() -> Result<T, ConvertError>) -> R
     if let Some(dir) = &scope.dir {
         let _ = std::fs::create_dir_all(dir);
     }
-    let previous = CONTEXT.with(|c| c.replace(Some(Context { scope, backups: Vec::new() })));
+    let previous = CONTEXT.with(|c| c.replace(Some(Context { scope, ..Context::default() })));
     let result = check_cancel().and_then(|_| f());
     let ctx = CONTEXT.with(|c| c.replace(previous)).unwrap_or_default();
+    if let Some(claimed) = CLAIMED.lock().unwrap().as_mut() {
+        for p in &ctx.claimed {
+            claimed.remove(p);
+        }
+    }
     let cancelled = ctx.scope.cancel.iter().any(|f| f.load(Ordering::Relaxed));
     for (backup, target) in ctx.backups {
         if result.is_ok() && target.exists() {
@@ -122,20 +151,14 @@ pub(super) fn unique_in_dir(input: &Path, stem: &str, ext: &str) -> Result<PathB
     });
     let dir = dir.unwrap_or_else(|| input.parent().unwrap_or(Path::new(".")).to_path_buf());
     let target = dir.join(format!("{stem}.{ext}"));
-    if !target.exists() {
+    if claim(&target) {
         return Ok(target);
     }
+    // Pris par une autre conversion en cours (pas encore sur le disque) : « (2) », jamais remplacé.
+    let busy = !target.exists();
     match duplicates {
-        Duplicates::Keep => {
-            let mut n = 2;
-            loop {
-                let candidate = dir.join(format!("{stem} ({n}).{ext}"));
-                if !candidate.exists() {
-                    return Ok(candidate);
-                }
-                n += 1;
-            }
-        }
+        Duplicates::Keep => numbered(&dir, stem, ext),
+        _ if busy => numbered(&dir, stem, ext),
         Duplicates::Ask => Err(ConvertError::Exists(target)),
         Duplicates::Replace => {
             static COUNTER: AtomicU32 = AtomicU32::new(0);
@@ -147,9 +170,18 @@ pub(super) fn unique_in_dir(input: &Path, stem: &str, ext: &str) -> Result<PathB
                     ctx.backups.push((backup.clone(), target.clone()));
                 }
             });
+            claim(&target);
             Ok(target)
         }
     }
+}
+
+/// Premier `stem (n).ext` libre, à partir de 2.
+fn numbered(dir: &Path, stem: &str, ext: &str) -> Result<PathBuf, ConvertError> {
+    (2..)
+        .map(|n| dir.join(format!("{stem} ({n}).{ext}")))
+        .find(|candidate| claim(candidate))
+        .ok_or_else(|| ConvertError::Exists(dir.join(format!("{stem}.{ext}"))))
 }
 
 #[cfg(test)]
@@ -203,6 +235,36 @@ mod tests {
         let flag = Arc::new(AtomicBool::new(true));
         let r = scoped(Scope { cancel: vec![flag], ..Scope::default() }, || Ok(()));
         assert!(matches!(r, Err(ConvertError::Cancelled)));
+        std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    #[test]
+    fn concurrent_operations_never_share_an_output_name() {
+        let d = dir("morph-test-claim");
+        let out = Scope { dir: Some(d.clone()), ..Scope::default() };
+        // Deux fichiers « a » de dossiers différents, convertis en même temps vers le même dossier :
+        // le second voit le nom réservé par le premier, avant toute écriture.
+        let (tx, rx) = std::sync::mpsc::channel();
+        let (go, wait) = std::sync::mpsc::channel::<()>();
+        let first = {
+            let out = out.clone();
+            std::thread::spawn(move || {
+                scoped(out, || {
+                    let p = unique_in_dir(Path::new("x/a.png"), "a", "webp")?;
+                    tx.send(p.clone()).unwrap();
+                    wait.recv().unwrap();
+                    Ok(p)
+                })
+            })
+        };
+        let taken = rx.recv().unwrap();
+        let second = scoped(out.clone(), || unique_in_dir(Path::new("y/a.png"), "a", "webp")).unwrap();
+        go.send(()).unwrap();
+        assert_eq!(first.join().unwrap().unwrap(), d.join("a.webp"));
+        assert_eq!(taken, d.join("a.webp"));
+        assert_eq!(second, d.join("a (2).webp"));
+        // Réservations libérées à la fin des opérations.
+        assert_eq!(scoped(out, || unique_in_dir(Path::new("z/a.png"), "a", "webp")).unwrap(), d.join("a.webp"));
         std::fs::remove_dir_all(&d).unwrap();
     }
 }

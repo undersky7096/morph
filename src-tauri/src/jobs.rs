@@ -16,6 +16,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 
+use crate::convert::formats::{self, Kind};
 use crate::convert::output::{self, Duplicates, Scope};
 use crate::convert::{self, ErrorInfo};
 use crate::edit::cutout;
@@ -31,6 +32,8 @@ pub use crate::convert::pdf::MERGE;
 const HALFWAY_LIMIT: f32 = 10.0;
 /// Temps d'observation avant d'estimer la durée (les premières mesures sont trompeuses).
 const ESTIMATE_AFTER: f32 = 1.0;
+/// Au plus autant d'images converties en même temps dans un lot (voir [`parallelism`]).
+const MAX_PARALLEL: usize = 6;
 /// Intervalle minimal entre deux instantanés de progression.
 const THROTTLE: Duration = Duration::from_millis(100);
 
@@ -219,7 +222,32 @@ pub fn detach(app: &AppHandle, id: u64) {
     }
 }
 
+/// Fichiers traités en même temps : plusieurs pour un lot d'images vers un format d'image
+/// (chaque image occupe à peu près un cœur), un seul sinon (ffmpeg, LibreOffice et le
+/// détourage se servent déjà de toute la machine).
+fn parallelism(job: &Job) -> usize {
+    let to_image = convert::catalog::find(&job.target).is_some_and(|f| f.kind == Kind::Image);
+    let images = job.files.iter().all(|f| f.count == 1 && formats::kind_of(Path::new(&f.input)) == Some(Kind::Image));
+    if job.target == CUTOUT || !to_image || !images {
+        return 1;
+    }
+    let cores = std::thread::available_parallelism().map_or(1, |n| n.get());
+    (cores / 2).clamp(1, MAX_PARALLEL).min(job.files.len())
+}
+
 fn work(app: &AppHandle, id: u64) {
+    let workers = with_job(app, id, |j| parallelism(j)).unwrap_or(1);
+    std::thread::scope(|s| {
+        for _ in 1..workers {
+            s.spawn(|| drain(app, id));
+        }
+        drain(app, id);
+    });
+    finish(app, id);
+}
+
+/// Traite les fichiers en attente jusqu'au dernier (plusieurs fils peuvent s'y relayer).
+fn drain(app: &AppHandle, id: u64) {
     loop {
         // Fichier suivant en attente (ou fin).
         let next = with_job(app, id, |j| {
@@ -294,8 +322,10 @@ fn work(app: &AppHandle, id: u64) {
         });
         emit(app, id);
     }
+}
 
-    // Fin : erreur ou doublon à trancher → mini-fenêtre ; longue conversion → notification.
+/// Fin : erreur ou doublon à trancher → mini-fenêtre ; longue conversion → notification.
+fn finish(app: &AppHandle, id: u64) {
     let Some(job) = with_job(app, id, |j| {
         j.running = false;
         j.finished = true;
