@@ -26,11 +26,11 @@ export const ARCHIVE_7Z = "archive-7z";
 export const EXTRACT = "extract";
 
 const LABELS = (): Record<string, string> => ({
-  [CUTOUT]: t("Détourage", "Background removal"),
-  [MERGE]: t("Fusion", "Merge"),
-  [EXTRACT]: t("Extraction", "Extraction"),
-  [ARCHIVE_ZIP]: t("Archive ZIP", "ZIP archive"),
-  [ARCHIVE_7Z]: t("Archive 7Z", "7Z archive"),
+  [CUTOUT]: t("jobs.background_removal"),
+  [MERGE]: t("jobs.merge"),
+  [EXTRACT]: t("jobs.extraction"),
+  [ARCHIVE_ZIP]: t("jobs.zip_archive"),
+  [ARCHIVE_7Z]: t("jobs.7z_archive"),
 });
 
 /** Nom d'un traitement : « Détourage », « Fusion », « → WEBP ». */

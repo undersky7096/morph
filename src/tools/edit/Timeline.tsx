@@ -280,8 +280,8 @@ export function TrimTransport({ trimmer: t, history, ready }: { trimmer: Trimmer
         className="audio-play"
         onClick={t.togglePlay}
         disabled={!ready}
-        aria-label={t.playing ? tr("Pause", "Pause") : tr("Lecture", "Play")}
-        title={tr("Lecture / pause (Espace)", "Play / pause (Space)")}
+        aria-label={t.playing ? tr("editor.pause") : tr("editor.play")}
+        title={tr("editor.play_pause_space")}
       >
         {t.playing ? <PauseIcon /> : <PlayIcon />}
       </button>
@@ -290,30 +290,30 @@ export function TrimTransport({ trimmer: t, history, ready }: { trimmer: Trimmer
       </span>
 
       <div className="editor-toolbar">
-        <button onClick={t.cutHere} disabled={!ready} title={tr("Couper au curseur de lecture (S)", "Cut at the playhead (S)")}>
+        <button onClick={t.cutHere} disabled={!ready} title={tr("editor.cut_at_playhead_s")}>
           <ScissorsIcon />
         </button>
-        <button onClick={t.removeSelection} disabled={!t.selection} title={tr("Retirer la sélection (Suppr)", "Remove selection (Delete)")}>
+        <button onClick={t.removeSelection} disabled={!t.selection} title={tr("editor.remove_selection_delete")}>
           <TrashIcon />
         </button>
-        <button onClick={t.keepSelection} disabled={!t.selection} title={tr("Ne garder que la sélection (K)", "Keep only the selection (K)")}>
+        <button onClick={t.keepSelection} disabled={!t.selection} title={tr("editor.keep_only_selection_k")}>
           <KeepIcon />
         </button>
         <span className="editor-toolbar-sep" />
-        <button onClick={history.undo} disabled={!history.canUndo} title={tr("Annuler (Ctrl+Z)", "Undo (Ctrl+Z)")}>
+        <button onClick={history.undo} disabled={!history.canUndo} title={tr("editor.undo_ctrl_z")}>
           <UndoIcon />
         </button>
-        <button onClick={history.redo} disabled={!history.canRedo} title={tr("Rétablir (Ctrl+Y)", "Redo (Ctrl+Y)")}>
+        <button onClick={history.redo} disabled={!history.canRedo} title={tr("editor.redo_ctrl_y")}>
           <RedoIcon />
         </button>
         <span className="editor-toolbar-sep" />
-        <button onClick={() => t.zoom(1 / 2)} disabled={!ready} title={tr("Zoom avant (Ctrl + molette)", "Zoom in (Ctrl + scroll)")}>
+        <button onClick={() => t.zoom(1 / 2)} disabled={!ready} title={tr("editor.zoom_ctrl_scroll")}>
           <ZoomInIcon />
         </button>
-        <button onClick={() => t.zoom(2)} disabled={!ready} title={tr("Zoom arrière", "Zoom out")}>
+        <button onClick={() => t.zoom(2)} disabled={!ready} title={tr("editor.zoom_out")}>
           <ZoomOutIcon />
         </button>
-        <button onClick={() => t.setView({ start: 0, end: t.duration })} disabled={!ready} title={tr("Tout afficher", "Show all")}>
+        <button onClick={() => t.setView({ start: 0, end: t.duration })} disabled={!ready} title={tr("editor.show_all")}>
           <FitIcon />
         </button>
       </div>
@@ -347,8 +347,8 @@ export function SegmentList({ trimmer: t, ready }: { trimmer: Trimmer; ready: bo
               <button
                 className="segment-remove"
                 onClick={() => t.removeSegment(i)}
-                aria-label={tr("Retirer ce passage", "Remove this section")}
-                title={tr("Retirer ce passage", "Remove this section")}
+                aria-label={tr("editor.remove_section")}
+                title={tr("editor.remove_section")}
               >
                 <TrashIcon />
               </button>
@@ -356,10 +356,10 @@ export function SegmentList({ trimmer: t, ready }: { trimmer: Trimmer; ready: bo
           );
         })}
       </ol>
-      {ready && !t.segments.length && <p className="tool-hint">{tr("Aucun passage gardé : annulez ou restaurez.", "No section kept: undo or restore.")}</p>}
+      {ready && !t.segments.length && <p className="tool-hint">{tr("editor.no_section_kept_undo_restore")}</p>}
       {ready && (t.segments.length !== 1 || kept < t.duration - 0.005) && (
         <button className="link" onClick={t.restore}>
-          {tr("Tout restaurer", "Restore all")}
+          {tr("editor.restore_all")}
         </button>
       )}
     </>

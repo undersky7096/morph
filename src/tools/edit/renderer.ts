@@ -116,7 +116,7 @@ export class Renderer {
 
   constructor() {
     const gl = this.canvas.getContext("webgl", { premultipliedAlpha: false, preserveDrawingBuffer: true });
-    if (!gl) throw new Error(t("WebGL indisponible : impossible d'afficher l'éditeur.", "WebGL unavailable: the editor can’t be displayed."));
+    if (!gl) throw new Error(t("editor.webgl_unavailable_editor_cant_be"));
     this.gl = gl;
     this.blur = program(gl, BLUR);
     this.final = program(gl, FINAL);

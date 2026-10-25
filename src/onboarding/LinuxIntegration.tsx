@@ -30,18 +30,12 @@ export default function LinuxIntegration() {
   return (
     <div className="linux-integration">
       <button className={on ? "settings-button" : "settings-button is-primary"} onClick={toggle} disabled={busy}>
-        {on ? t("Retirer Morph du système", "Remove Morph from the system") : t("Ajouter Morph au système", "Add Morph to the system")}
+        {on ? t("onboarding.remove_morph_from_system") : t("onboarding.add_morph_system")}
       </button>
       <span className="settings-hint">
         {on
-          ? t(
-              "Morph est dans le menu des applications et dans le clic droit (Convertir, Éditer, Compresser avec Morph).",
-              "Morph is in the applications menu and in the right-click menu (Convert, Edit, Compress with Morph).",
-            )
-          : t(
-              "Ajoute Morph au menu des applications, à « Ouvrir avec » et au clic droit de Nautilus, Dolphin et Nemo.",
-              "Adds Morph to the applications menu, “Open with” and the right-click menu of Nautilus, Dolphin and Nemo.",
-            )}
+          ? t("onboarding.morph_applications_menu_right_click")
+          : t("onboarding.adds_morph_applications_menu_open")}
       </span>
       {error && <span className="settings-error">{error}</span>}
     </div>

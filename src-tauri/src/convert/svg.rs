@@ -33,7 +33,7 @@ pub fn render(input: &Path) -> Result<DynamicImage, ConvertError> {
         fontdb: fonts(),
         ..usvg::Options::default()
     };
-    let unreadable = |e: &dyn std::fmt::Display| ConvertError::Edit(crate::i18n::tr(format!("SVG illisible ({e})"), format!("unreadable SVG ({e})")));
+    let unreadable = |e: &dyn std::fmt::Display| ConvertError::Edit(crate::i18n::trf("core.unreadable_svg", &[("error", &e)]));
     let tree = usvg::Tree::from_data(&data, &options).map_err(|e| unreadable(&e))?;
 
     let size = tree.size();

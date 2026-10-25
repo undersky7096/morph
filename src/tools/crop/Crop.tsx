@@ -8,7 +8,7 @@ import { dragRect, fitRatio, type Handle, type Rect, resizeTo, type Size, toPixe
 import "./Crop.css";
 
 const RATIOS = (): { label: string; value: number | null }[] => [
-  { label: t("Libre", "Free"), value: null },
+  { label: t("crop.free"), value: null },
   { label: "1:1", value: 1 },
   { label: "16:9", value: 16 / 9 },
   { label: "9:16", value: 9 / 16 },
@@ -156,12 +156,12 @@ export default function Crop({ path, onSaved, footerExtra }: Props) {
             )}
           </div>
         )}
-        {!src && !error && <p className="tool-hint">{t("Chargement…", "Loading…")}</p>}
+        {!src && !error && <p className="tool-hint">{t("crop.loading")}</p>}
       </div>
 
       <aside className="tool-panel">
         <section>
-          <h2>{t("Format", "Aspect ratio")}</h2>
+          <h2>{t("crop.aspect_ratio")}</h2>
           <div className="chips">
             {RATIOS().map((r) => (
               <button
@@ -179,7 +179,7 @@ export default function Crop({ path, onSaved, footerExtra }: Props) {
           <h2>Dimensions</h2>
           <div className="dims">
             <label>
-              <span>{t("L", "W")}</span>
+              <span>{t("crop.w")}</span>
               <input type="number" min={1} value={px?.width ?? ""} onChange={(e) => onDimension("w", e.target.value)} />
             </label>
             <span className="dims-x">×</span>
@@ -190,14 +190,14 @@ export default function Crop({ path, onSaved, footerExtra }: Props) {
           </div>
           {img && (
             <p className="tool-hint">
-              {t("Image d'origine : ", "Original image: ")}
+              {t("crop.original_image")}
               {img.w} × {img.h} px
             </p>
           )}
         </section>
 
         <button className="link" onClick={() => img && setRect(fitRatio(img, ratio))}>
-          {t("Réinitialiser", "Reset")}
+          {t("crop.reset")}
         </button>
       </aside>
 
@@ -206,7 +206,7 @@ export default function Crop({ path, onSaved, footerExtra }: Props) {
         <SaveExtras flow={flow} />
         {footerExtra}
         <button className="primary" onClick={() => apply()} disabled={!rect || busy}>
-          {busy ? t("Enregistrement…", "Saving…") : t("Appliquer", "Apply")}
+          {busy ? t("crop.saving") : t("crop.apply")}
         </button>
       </footer>
     </div>

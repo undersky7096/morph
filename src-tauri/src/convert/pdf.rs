@@ -47,10 +47,7 @@ fn pdf_error(e: impl std::fmt::Display) -> ConvertError {
 fn with_pdfium<T>(f: impl FnOnce(&Pdfium) -> Result<T, ConvertError>) -> Result<T, ConvertError> {
     static ONE_AT_A_TIME: Mutex<()> = Mutex::new(());
     let _guard = ONE_AT_A_TIME.lock().unwrap_or_else(|e| e.into_inner());
-    let path = LIBRARY_PATH.get().filter(|p| p.is_file()).ok_or(ConvertError::EngineMissing(crate::i18n::tr(
-        "Le moteur PDF (pdfium) est introuvable : réinstalle Morph.",
-        "The PDF engine (pdfium) is missing: reinstall Morph.",
-    )))?;
+    let path = LIBRARY_PATH.get().filter(|p| p.is_file()).ok_or(ConvertError::EngineMissing(crate::i18n::tr("core.pdf_engine_pdfium_missing_reinstall")))?;
     let bindings = Pdfium::bind_to_library(path).map_err(pdf_error)?;
     f(&Pdfium::new(bindings))
 }

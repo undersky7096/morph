@@ -87,7 +87,7 @@ const Canvas = forwardRef<CanvasHandle, Props>(function Canvas(props, ref) {
         type: "text",
         x,
         y,
-        text: t("Texte", "Text"),
+        text: t("editor.text"),
         font: style.font,
         size: Math.round(style.size * side),
         bold: style.bold,

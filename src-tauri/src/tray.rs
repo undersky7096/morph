@@ -25,7 +25,7 @@ pub fn show_settings_at(app: &AppHandle, section: Option<&str>) -> tauri::Result
     }
     let url = section.map_or_else(|| "index.html".to_string(), |s| format!("index.html#{s}"));
     let window = WebviewWindowBuilder::new(app, SETTINGS, WebviewUrl::App(url.into()))
-        .title(crate::i18n::tr("Réglages · Morph", "Settings · Morph"))
+        .title(crate::i18n::tr("core.settings_morph"))
         .inner_size(880.0, 640.0)
         .min_inner_size(720.0, 520.0)
         .center()
@@ -48,8 +48,8 @@ pub fn reveal_settings(app: &AppHandle) -> tauri::Result<()> {
 
 /// Menu de l'icône, dans la langue de l'interface.
 fn menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
-    let settings = MenuItem::with_id(app, "settings", crate::i18n::tr("Réglages", "Settings"), true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", crate::i18n::tr("Quitter Morph", "Quit Morph"), true, None::<&str>)?;
+    let settings = MenuItem::with_id(app, "settings", crate::i18n::tr("core.settings"), true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", crate::i18n::tr("core.quit_morph"), true, None::<&str>)?;
     Menu::with_items(app, &[&settings, &PredefinedMenuItem::separator(app)?, &quit])
 }
 
@@ -59,7 +59,7 @@ pub fn relabel(app: &AppHandle) {
         let _ = tray.set_menu(Some(menu));
     }
     if let Some(window) = app.get_webview_window(SETTINGS) {
-        let _ = window.set_title(crate::i18n::tr("Réglages · Morph", "Settings · Morph"));
+        let _ = window.set_title(crate::i18n::tr("core.settings_morph"));
     }
 }
 

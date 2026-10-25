@@ -71,7 +71,7 @@ export function useSaveFlow(): SaveFlow {
         return null;
       }
       if (err.code === "cancelled") {
-        setNotice(t("Enregistrement annulé.", "Save cancelled."));
+        setNotice(t("tools.save_cancelled"));
         return null;
       }
       setFailure(err);
@@ -100,13 +100,13 @@ export function SaveExtras({ flow }: { flow: SaveFlow }) {
     return (
       <span className="save-conflict">
         <span>{message}</span>
-        <button onClick={() => retry("replace")}>{t("Remplacer", "Replace")}</button>
-        <button onClick={() => retry("keep")}>{t("Garder les deux", "Keep both")}</button>
-        <button onClick={flow.dismissConflict}>{t("Annuler", "Cancel")}</button>
+        <button onClick={() => retry("replace")}>{t("tools.replace")}</button>
+        <button onClick={() => retry("keep")}>{t("tools.keep_both")}</button>
+        <button onClick={flow.dismissConflict}>{t("tools.cancel")}</button>
       </span>
     );
   }
-  if (flow.running) return <button onClick={flow.cancel}>{t("Annuler", "Cancel")}</button>;
+  if (flow.running) return <button onClick={flow.cancel}>{t("tools.cancel")}</button>;
   if (flow.notice) return <span className="save-notice">{flow.notice}</span>;
   if (flow.failure) return <CopyDetail error={flow.failure} />;
   return null;
@@ -125,7 +125,7 @@ export function CopyDetail({ error, className = "" }: { error: AppError; classNa
         window.setTimeout(() => setCopied(false), 1500);
       }}
     >
-      {copied ? t("Copié ✓", "Copied ✓") : t("Copier le détail", "Copy details")}
+      {copied ? t("tools.copied") : t("tools.copy_details")}
     </button>
   );
 }

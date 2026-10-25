@@ -90,15 +90,15 @@ const DEFAULT: VideoState = {
 type Tab = "trim" | "adjust" | "filters" | "frame" | "sound";
 
 const TABS = (): [Tab, string][] => [
-  ["trim", t("Découpe", "Trim")],
-  ["adjust", t("Réglages", "Adjust")],
-  ["filters", t("Filtres", "Filters")],
-  ["frame", t("Cadre", "Frame")],
-  ["sound", t("Son", "Sound")],
+  ["trim", t("editor.trim")],
+  ["adjust", t("editor.adjust")],
+  ["filters", t("editor.filters")],
+  ["frame", t("editor.frame")],
+  ["sound", t("editor.sound")],
 ];
 
 const RATIOS = (): { label: string; value: number | null }[] => [
-  { label: t("Origine", "Original"), value: null },
+  { label: t("editor.original"), value: null },
   { label: "16:9", value: 16 / 9 },
   { label: "9:16", value: 9 / 16 },
   { label: "1:1", value: 1 },
@@ -161,7 +161,7 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
   const [busy, setBusy] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const flow = useSaveFlow();
-  const [hint, setHint] = useState<string | null>(() => t("Chargement de la vidéo…", "Loading video…"));
+  const [hint, setHint] = useState<string | null>(() => t("editor.loading_video"));
   const [video] = useState(() => {
     const v = document.createElement("video");
     // Le protocole asset renvoie les en-têtes CORS : l'image reste lisible par WebGL.
@@ -193,10 +193,10 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
       if (cancelled) return;
       if (fellBack) {
         setHint(null);
-        return setError(t("Lecture impossible pour cette vidéo.", "This video can’t be played."));
+        return setError(t("editor.video_cant_be_played"));
       }
       fellBack = true;
-      setHint(t("Préparation d'un aperçu lisible…", "Preparing a playable preview…"));
+      setHint(t("editor.preparing_playable_preview"));
       invoke<string>("video_preview", { path })
         .then((p) => !cancelled && play(p))
         .catch((e) => setError(describe(e).message));
@@ -406,10 +406,10 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
     error ??
     hint ??
     (busy !== null
-      ? `${t("Enregistrement…", "Saving…")} ${Math.round(busy * 100)} %`
+      ? `${t("editor.saving")} ${Math.round(busy * 100)} %`
       : ready && dims
-        ? `${t("Résultat : ", "Result: ")}${keptSummary(state.segments, duration, state.speed)} · ${dims.output.w} × ${dims.output.h} px`
-        : t("Analyse de la vidéo…", "Analysing video…"));
+        ? `${t("editor.result")}${keptSummary(state.segments, duration, state.speed)} · ${dims.output.w} × ${dims.output.h} px`
+        : t("editor.analysing_video"));
   const shortSource = dims ? Math.min(dims.framed.w, dims.framed.h) : 0;
 
   return (
@@ -450,7 +450,7 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
               )}
             </div>
           )}
-          {!renderer && <p className="tool-hint">{error ? "" : (hint ?? t("Chargement…", "Loading…"))}</p>}
+          {!renderer && <p className="tool-hint">{error ? "" : (hint ?? t("editor.loading"))}</p>}
         </div>
 
         <TrimTransport trimmer={trimmer} history={history} ready={ready} />
@@ -463,20 +463,20 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
         {tab === "trim" && (
           <>
             <section>
-              <h2>{t("Passages gardés", "Kept sections")}</h2>
+              <h2>{t("editor.kept_sections")}</h2>
               <SegmentList trimmer={trimmer} ready={ready} />
             </section>
             <section>
               <ul className="audio-help">
                 <li>
-                  {t("Glissez sur la forme d'onde pour sélectionner, puis ", "Drag on the waveform to select, then ")}
-                  <kbd>{t("Suppr", "Delete")}</kbd>
-                  {t(" pour retirer ce passage.", " to remove that section.")}
+                  {t("editor.drag_waveform_select_then")}
+                  <kbd>{t("editor.delete")}</kbd>
+                  {t("editor.remove_that_section")}
                 </li>
-                <li>{t("Tirez les bords violets pour ajuster le début et la fin.", "Drag the purple edges to adjust the start and end.")}</li>
+                <li>{t("editor.drag_purple_edges_adjust_start")}</li>
                 <li>
                   <kbd>S</kbd>
-                  {t(" coupe au curseur ; la lecture saute les passages retirés.", " cuts at the cursor; playback skips removed sections.")}
+                  {t("editor.cuts_at_cursor_playback_skips")}
                 </li>
               </ul>
             </section>
@@ -497,10 +497,10 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
             ))}
             <label className="check">
               <input type="checkbox" checked={state.invert} onChange={(e) => update((s) => ({ ...s, invert: e.target.checked }))} />
-              {t("Inverser les couleurs", "Invert colours")}
+              {t("editor.invert_colours")}
             </label>
             <button className="link" onClick={() => update((s) => ({ ...s, adjust: ADJUST_DEFAULT, invert: false }))}>
-              {t("Réinitialiser les réglages", "Reset adjustments")}
+              {t("editor.reset_adjustments")}
             </button>
           </section>
         )}
@@ -520,7 +520,7 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
               ))}
             </div>
             <p className="tool-hint">
-              {t("Le filtre s'ajoute aux réglages : on peut l'affiner dans l'onglet Réglages.", "The filter adds to your adjustments: fine-tune it in the Adjust tab.")}
+              {t("editor.filter_adds_adjustments_fine_tune")}
             </p>
           </section>
         )}
@@ -528,23 +528,23 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
         {tab === "frame" && (
           <>
             <section>
-              <h2>{t("Rotation", "Rotation")}</h2>
+              <h2>{t("editor.rotation")}</h2>
               <div className="editor-toolbar video-rotate">
-                <button title={t("Pivoter à gauche", "Rotate left")} onClick={() => setGeometry((g) => ({ ...g, quarter: (g.quarter + 3) % 4 }))}>
+                <button title={t("editor.rotate_left")} onClick={() => setGeometry((g) => ({ ...g, quarter: (g.quarter + 3) % 4 }))}>
                   <RotateLeftIcon />
                 </button>
-                <button title={t("Pivoter à droite", "Rotate right")} onClick={() => setGeometry((g) => ({ ...g, quarter: (g.quarter + 1) % 4 }))}>
+                <button title={t("editor.rotate_right")} onClick={() => setGeometry((g) => ({ ...g, quarter: (g.quarter + 1) % 4 }))}>
                   <RotateRightIcon />
                 </button>
-                <button title={t("Miroir horizontal", "Flip horizontally")} onClick={() => setGeometry((g) => ({ ...g, flipH: !g.flipH }))}>
+                <button title={t("editor.flip_horizontally")} onClick={() => setGeometry((g) => ({ ...g, flipH: !g.flipH }))}>
                   <FlipHIcon />
                 </button>
-                <button title={t("Miroir vertical", "Flip vertically")} onClick={() => setGeometry((g) => ({ ...g, flipV: !g.flipV }))}>
+                <button title={t("editor.flip_vertically")} onClick={() => setGeometry((g) => ({ ...g, flipV: !g.flipV }))}>
                   <FlipVIcon />
                 </button>
               </div>
               <Slider
-                label={t("Redresser", "Straighten")}
+                label={t("editor.straighten")}
                 min={-45}
                 max={45}
                 step={0.5}
@@ -555,7 +555,7 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
             </section>
 
             <section>
-              <h2>{t("Format", "Aspect ratio")}</h2>
+              <h2>{t("editor.aspect_ratio")}</h2>
               <div className="chips">
                 {RATIOS().map((r) => (
                   <button
@@ -571,8 +571,8 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
                 <div className="chips video-method">
                   {(
                     [
-                      ["crop", t("Recadrer", "Crop")],
-                      ["fit", t("Ajuster", "Fit")],
+                      ["crop", t("editor.crop")],
+                      ["fit", t("editor.fit")],
                     ] as const
                   ).map(([id, label]) => (
                     <button
@@ -586,17 +586,17 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
                 </div>
               )}
               {state.ratio !== null && state.method === "crop" && (
-                <p className="tool-hint">{t("Déplacez le cadre sur l'aperçu pour choisir la partie gardée.", "Move the frame on the preview to choose the kept area.")}</p>
+                <p className="tool-hint">{t("editor.move_frame_preview_choose_kept")}</p>
               )}
               {fit && (
                 <>
-                  <p className="tool-hint">{t("Toute l'image est gardée ; les bandes sont remplies par :", "The whole picture is kept; bars are filled with:")}</p>
+                  <p className="tool-hint">{t("editor.whole_picture_kept_bars_are")}</p>
                   <div className="swatches video-fills">
                     <button
                       className={`chip ${state.fill === null ? "is-active" : ""}`}
                       onClick={() => update((s) => ({ ...s, fill: null }))}
                     >
-                      {t("Flou", "Blur")}
+                      {t("editor.blur")}
                     </button>
                     {FILLS.map((c) => (
                       <button
@@ -613,13 +613,13 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
             </section>
 
             <section>
-              <h2>{t("Résolution", "Resolution")}</h2>
+              <h2>{t("editor.resolution")}</h2>
               <div className="chips">
                 <button
                   className={`chip ${state.shortSide === null ? "is-active" : ""}`}
                   onClick={() => update((s) => ({ ...s, shortSide: null }))}
                 >
-                  {t("Origine", "Original")}
+                  {t("editor.original")}
                 </button>
                 {RESOLUTIONS.filter((r) => r < shortSource).map((r) => (
                   <button
@@ -633,8 +633,8 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
               </div>
               {dims && (
                 <p className="tool-hint">
-                  {t("Sortie : ", "Output: ")}
-                  {dims.output.w} × {dims.output.h} px ({t("origine", "original")} {info!.width} × {info!.height})
+                  {t("editor.output")}
+                  {dims.output.w} × {dims.output.h} px ({t("editor.original_2")} {info!.width} × {info!.height})
                 </p>
               )}
             </section>
@@ -644,7 +644,7 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
         {tab === "sound" && (
           <>
             <section>
-              <h2>{t("Vitesse", "Speed")}</h2>
+              <h2>{t("editor.speed")}</h2>
               <div className="chips video-speeds">
                 {SPEEDS.map((v) => (
                   <button key={v} className={`chip ${state.speed === v ? "is-active" : ""}`} onClick={() => update((s) => ({ ...s, speed: v }))}>
@@ -652,17 +652,17 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
                   </button>
                 ))}
               </div>
-              <p className="tool-hint">{t("Le son garde sa hauteur normale.", "Sound keeps its normal pitch.")}</p>
+              <p className="tool-hint">{t("editor.sound_keeps_normal_pitch")}</p>
             </section>
             <section>
-              <h2>{t("Son", "Sound")}</h2>
+              <h2>{t("editor.sound")}</h2>
               {info && !info.hasAudio ? (
-                <p className="tool-hint">{t("Cette vidéo n'a pas de son.", "This video has no sound.")}</p>
+                <p className="tool-hint">{t("editor.video_has_no_sound")}</p>
               ) : (
                 <>
                   <label className="check">
                     <input type="checkbox" checked={state.mute} onChange={(e) => update((s) => ({ ...s, mute: e.target.checked }))} />
-                    {t("Couper le son", "Mute")}
+                    {t("editor.mute")}
                   </label>
                   {!state.mute && (
                     <>
@@ -681,10 +681,10 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
                           checked={state.normalize}
                           onChange={(e) => update((s) => ({ ...s, normalize: e.target.checked }))}
                         />
-                        {t("Normaliser le volume (EBU R128)", "Normalise loudness (EBU R128)")}
+                        {t("editor.normalise_loudness_ebu_r128")}
                       </label>
                       <Slider
-                        label={t("Fondu entrant", "Fade in")}
+                        label={t("editor.fade")}
                         min={0}
                         max={5}
                         step={0.1}
@@ -693,7 +693,7 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
                         onChange={(v) => update((s) => ({ ...s, fadeIn: v }), "fadeIn")}
                       />
                       <Slider
-                        label={t("Fondu sortant", "Fade out")}
+                        label={t("editor.fade_out")}
                         min={0}
                         max={5}
                         step={0.1}
@@ -702,7 +702,7 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
                         onChange={(v) => update((s) => ({ ...s, fadeOut: v }), "fadeOut")}
                       />
                       <p className="tool-hint">
-                        {t("La normalisation et les fondus s'appliquent à l'enregistrement.", "Normalisation and fades are applied when saving.")}
+                        {t("editor.normalisation_fades_are_applied_when")}
                       </p>
                     </>
                   )}
@@ -718,7 +718,7 @@ export default function VideoEditor({ path, onSaved, footerExtra }: Props) {
         <SaveExtras flow={flow} />
         {footerExtra}
         <button className="primary" onClick={() => save()} disabled={!ready || !state.segments.length || busy !== null}>
-          {busy !== null ? t("Enregistrement…", "Saving…") : t("Enregistrer", "Save")}
+          {busy !== null ? t("editor.saving") : t("editor.save")}
         </button>
       </footer>
     </div>

@@ -45,7 +45,7 @@ export function Slider(props: {
     <label
       className="slider"
       onDoubleClick={() => onChange(neutral)}
-      title={t(`Double-clic : remettre à ${neutral.toLocaleString(locale())}${unit}`, `Double-click: reset to ${neutral.toLocaleString(locale())}${unit}`)}
+      title={t("editor.double_click_reset", { value: `${neutral.toLocaleString(locale())}${unit}` })}
     >
       <span className="slider-head">
         <span>{label}</span>

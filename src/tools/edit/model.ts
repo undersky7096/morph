@@ -31,15 +31,15 @@ export const ADJUST_DEFAULT: Adjust = {
 };
 
 export const SLIDERS: { key: AdjustKey; label: string; min: number }[] = [
-  { key: "exposure", get label() { return t("Exposition", "Exposure"); }, min: -100 },
-  { key: "brightness", get label() { return t("Luminosité", "Brightness"); }, min: -100 },
-  { key: "contrast", get label() { return t("Contraste", "Contrast"); }, min: -100 },
-  { key: "saturation", get label() { return t("Saturation", "Saturation"); }, min: -100 },
-  { key: "temperature", get label() { return t("Température", "Temperature"); }, min: -100 },
-  { key: "sharpness", get label() { return t("Netteté", "Sharpness"); }, min: 0 },
-  { key: "blur", get label() { return t("Flou", "Blur"); }, min: 0 },
-  { key: "vignette", get label() { return t("Vignettage", "Vignette"); }, min: 0 },
-  { key: "grain", get label() { return t("Grain", "Grain"); }, min: 0 },
+  { key: "exposure", get label() { return t("editor.exposure"); }, min: -100 },
+  { key: "brightness", get label() { return t("editor.brightness"); }, min: -100 },
+  { key: "contrast", get label() { return t("editor.contrast"); }, min: -100 },
+  { key: "saturation", get label() { return t("editor.saturation"); }, min: -100 },
+  { key: "temperature", get label() { return t("editor.temperature"); }, min: -100 },
+  { key: "sharpness", get label() { return t("editor.sharpness"); }, min: 0 },
+  { key: "blur", get label() { return t("editor.blur"); }, min: 0 },
+  { key: "vignette", get label() { return t("editor.vignette"); }, min: 0 },
+  { key: "grain", get label() { return t("editor.grain"); }, min: 0 },
 ];
 
 /** Filtre prédéfini : s'ajoute aux réglages de l'utilisateur. */
@@ -54,16 +54,16 @@ export interface Preset {
 }
 
 export const PRESETS: Preset[] = [
-  { id: "none", get label() { return t("Aucun", "None"); }, adjust: {} },
-  { id: "bw", get label() { return t("N&B", "B&W"); }, adjust: { saturation: -100, contrast: 10 } },
-  { id: "noir", get label() { return t("Noir", "Noir"); }, adjust: { saturation: -100, contrast: 55, vignette: 50, grain: 20 } },
-  { id: "sepia", get label() { return t("Sépia", "Sepia"); }, adjust: { contrast: 5 }, sepia: 0.85 },
-  { id: "vintage", get label() { return t("Vintage", "Vintage"); }, adjust: { saturation: -20, contrast: -10, vignette: 35 }, sepia: 0.35, fade: 0.1 },
-  { id: "fade", get label() { return t("Délavé", "Faded"); }, adjust: { contrast: -15, saturation: -15 }, fade: 0.18 },
-  { id: "warm", get label() { return t("Chaud", "Warm"); }, adjust: { temperature: 35, saturation: 10 } },
-  { id: "cold", get label() { return t("Froid", "Cool"); }, adjust: { temperature: -35, saturation: -5 } },
-  { id: "vivid", get label() { return t("Éclatant", "Vivid"); }, adjust: { saturation: 45, contrast: 15 } },
-  { id: "dramatic", get label() { return t("Dramatique", "Dramatic"); }, adjust: { contrast: 40, saturation: -25, vignette: 45, exposure: -5 } },
+  { id: "none", get label() { return t("editor.none"); }, adjust: {} },
+  { id: "bw", get label() { return t("editor.b_w"); }, adjust: { saturation: -100, contrast: 10 } },
+  { id: "noir", get label() { return t("editor.noir"); }, adjust: { saturation: -100, contrast: 55, vignette: 50, grain: 20 } },
+  { id: "sepia", get label() { return t("editor.sepia"); }, adjust: { contrast: 5 }, sepia: 0.85 },
+  { id: "vintage", get label() { return t("editor.vintage"); }, adjust: { saturation: -20, contrast: -10, vignette: 35 }, sepia: 0.35, fade: 0.1 },
+  { id: "fade", get label() { return t("editor.faded"); }, adjust: { contrast: -15, saturation: -15 }, fade: 0.18 },
+  { id: "warm", get label() { return t("editor.warm"); }, adjust: { temperature: 35, saturation: 10 } },
+  { id: "cold", get label() { return t("editor.cool"); }, adjust: { temperature: -35, saturation: -5 } },
+  { id: "vivid", get label() { return t("editor.vivid"); }, adjust: { saturation: 45, contrast: 15 } },
+  { id: "dramatic", get label() { return t("editor.dramatic"); }, adjust: { contrast: 40, saturation: -25, vignette: 45, exposure: -5 } },
 ];
 
 export interface Geometry {

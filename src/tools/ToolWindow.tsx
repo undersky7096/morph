@@ -4,7 +4,7 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 import { basename, kindOfPath } from "../formats";
 import { CloseIcon, MinimizeIcon } from "../icons";
-import { t } from "../i18n";
+import { plural, t } from "../i18n";
 import Compress from "./compress/Compress";
 import Crop from "./crop/Crop";
 import { TOOLS, type ToolId } from "./registry";
@@ -93,8 +93,8 @@ export default function ToolWindow() {
   }
 
   const skip = counter && (
-    <button onClick={() => advance(null)} title={t("Garder ce fichier tel quel et passer au suivant", "Keep this file as is and go to the next one")}>
-      {t("Passer", "Skip")}
+    <button onClick={() => advance(null)} title={t("tools.keep_file_as_go_next")}>
+      {t("tools.skip")}
     </button>
   );
   const key = session && `${session.id}-${session.index}`;
@@ -113,10 +113,10 @@ export default function ToolWindow() {
           </span>
         )}
         <div className="titlebar-buttons">
-          <button aria-label={t("Réduire", "Minimize")} onClick={() => win.minimize()}>
+          <button aria-label={t("tools.minimize")} onClick={() => win.minimize()}>
             <MinimizeIcon />
           </button>
-          <button aria-label={t("Fermer", "Close")} className="is-close" onClick={() => win.close()}>
+          <button aria-label={t("tools.close")} className="is-close" onClick={() => win.close()}>
             <CloseIcon />
           </button>
         </div>
@@ -127,7 +127,7 @@ export default function ToolWindow() {
           <Crop key={key} path={current![0]} footerExtra={skip} onSaved={advance} />
         )}
         {session?.tool === "edit" && (
-          <Suspense fallback={<p className="tool-hint tool-loading">{t("Chargement de l'éditeur…", "Loading editor…")}</p>}>
+          <Suspense fallback={<p className="tool-hint tool-loading">{t("tools.loading_editor")}</p>}>
             {kindOfPath(current![0]) === "audio" ? (
               <AudioEditor key={key} path={current![0]} footerExtra={skip} onSaved={advance} />
             ) : kindOfPath(current![0]) === "video" ? (
@@ -143,4 +143,4 @@ export default function ToolWindow() {
   );
 }
 
-const describe = (paths: string[]) => (paths.length === 1 ? basename(paths[0]) : t(`${paths.length} fichiers`, `${paths.length} files`));
+const describe = (paths: string[]) => (paths.length === 1 ? basename(paths[0]) : plural(paths.length, "common.files"));

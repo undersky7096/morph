@@ -6,46 +6,45 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
 
-use crate::i18n::tr;
+use crate::i18n::{tr, trf, trn};
 use crate::jobs::{Job, Status};
 
 /// Message de fin : « 5 fichiers convertis en WEBP », « 3 sur 4 réussis, 1 erreur »…
 fn summary(job: &Job) -> (String, String) {
     let count = |s: Status| job.files.iter().filter(|f| f.status == s).count();
     let (done, failed) = (count(Status::Done), count(Status::Error) + count(Status::Conflict));
-    let s = |n: usize| if n > 1 { "s" } else { "" };
-    let open = || tr("Clique pour ouvrir le dossier.", "Click to open the folder.").to_string();
+    let open = || tr("core.click_open_folder").to_string();
     let target = job.target.to_uppercase();
     use crate::jobs::{ARCHIVE_7Z, ARCHIVE_ZIP, EXTRACT, MERGE};
     if failed == 0 && job.target == MERGE {
-        (tr("PDF fusionnés", "PDFs merged").into(), open())
+        (tr("core.pdfs_merged").into(), open())
     } else if failed == 0 && (job.target == ARCHIVE_ZIP || job.target == ARCHIVE_7Z) {
-        (tr("Archive créée", "Archive created").into(), open())
+        (tr("core.archive_created").into(), open())
     } else if failed == 0 && job.target == EXTRACT {
         let title = if done > 1 {
-            tr(format!("{done} archives extraites"), format!("{done} archives extracted"))
+            trn("core.archives_extracted", done, &[])
         } else {
-            tr("Archive extraite", "Archive extracted").into()
+            tr("core.archive_extracted").into()
         };
         (title, open())
     } else if failed == 0 {
         let title = match (done, job.target == crate::jobs::CUTOUT) {
-            (1, true) => tr("Fond retiré", "Background removed").to_string(),
-            (n, true) => tr(format!("Fond retiré de {n} fichiers"), format!("Background removed from {n} files")),
-            (1, false) => tr(format!("Fichier converti en {target}"), format!("File converted to {target}")),
-            (n, false) => tr(format!("{n} fichiers convertis en {target}"), format!("{n} files converted to {target}")),
+            (1, true) => tr("core.background_removed").to_string(),
+            (n, true) => trn("core.background_removed_from", n, &[]),
+            (n, false) => trn("core.files_converted", n, &[("target", &target)]),
         };
         (title, open())
     } else {
         let total = job.files.len();
-        let body = tr(
-            format!("{done} sur {total} réussi{}, {failed} erreur{} : détails dans Morph.", s(done), s(failed)),
-            format!("{done} of {total} succeeded, {failed} error{}: details in Morph.", s(failed)),
+        let body = format!(
+            "{} {}",
+            trn("core.done_of_total", done, &[("total", &total)]),
+            trn("core.errors_details", failed, &[])
         );
         let title = if job.target == crate::jobs::CUTOUT {
-            tr("Détourage terminé avec des erreurs", "Background removal finished with errors")
+            tr("core.background_removal_finished_errors")
         } else {
-            tr("Conversion terminée avec des erreurs", "Conversion finished with errors")
+            tr("core.conversion_finished_errors")
         };
         (title.into(), body)
     }
@@ -78,8 +77,8 @@ fn activate(app: &AppHandle, click: &OnClick) {
 pub fn update_available(app: &AppHandle, version: &str) {
     show(
         app,
-        &tr(format!("Morph {version} est disponible"), format!("Morph {version} is available")),
-        tr("Clique pour voir les nouveautés et installer la mise à jour.", "Click to see what’s new and install the update."),
+        &trf("core.version_available", &[("version", &version)]),
+        tr("core.click_see_whats_new_install"),
         Some(OnClick::Updates),
     );
 }
@@ -121,11 +120,8 @@ pub fn count_success(app: &AppHandle, done: usize, after_notification: bool) {
             }
             show(
                 &app,
-                tr("Morph te rend service ?", "Is Morph useful to you?"),
-                tr(
-                    "Clique pour laisser un avis en 30 secondes : ça aide beaucoup Morph à se faire connaître.",
-                    "Click to leave a review in 30 seconds: it really helps Morph get known.",
-                ),
+                tr("core.morph_useful"),
+                tr("core.click_leave_review_30_seconds"),
                 Some(OnClick::Url(REVIEW_URL)),
             );
         });
@@ -172,13 +168,13 @@ fn show(app: &AppHandle, title: &str, body: &str, click: Option<OnClick>) {
         n.summary(&title).body(&body).appname("Morph");
         match &click {
             Some(OnClick::Reveal(_)) => {
-                n.action("default", tr("Ouvrir le dossier", "Open folder"));
+                n.action("default", tr("core.open_folder"));
             }
             Some(OnClick::Updates) => {
-                n.action("default", tr("Voir la mise à jour", "See the update"));
+                n.action("default", tr("core.see_update"));
             }
             Some(OnClick::Url(_)) => {
-                n.action("default", tr("Ouvrir", "Open"));
+                n.action("default", tr("core.open"));
             }
             None => {}
         }

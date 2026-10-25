@@ -42,15 +42,9 @@ pub enum SaveMode {
     Ask,
 }
 
-/// Langue de l'interface ; `System` suit celle de l'ordinateur.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Language {
-    #[default]
-    System,
-    Fr,
-    En,
-}
+/// Langue de l'interface : « system » (celle de l'ordinateur) ou le code d'une langue qui a
+/// un catalogue dans `locales/` (« fr », « en »…).
+pub type Language = String;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
@@ -83,7 +77,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Settings {
-            language: Language::System,
+            language: "system".into(),
             theme: ThemeMode::System,
             accent: None,
             background: None,
@@ -186,7 +180,7 @@ pub fn load(app: &AppHandle) {
     let s = get(app);
     if first_run {
         // Langue choisie dans l'installeur Windows ; sinon, celle du système.
-        let language = installer_language.unwrap_or(s.language);
+        let language = installer_language.unwrap_or(s.language.clone());
         if let Err(e) = set(app, Settings { autostart: true, language, ..s }) {
             eprintln!("[morph] réglages par défaut : {e}");
         }
@@ -199,11 +193,8 @@ fn take_installer_language(app: &AppHandle) -> Option<Language> {
     let path = app.path().app_config_dir().ok()?.join("installer-language");
     let text = std::fs::read_to_string(&path).ok()?;
     let _ = std::fs::remove_file(&path);
-    match text.trim() {
-        "fr" => Some(Language::Fr),
-        "en" => Some(Language::En),
-        _ => None,
-    }
+    let code = text.trim();
+    (!code.is_empty()).then(|| code.to_string())
 }
 
 pub fn get(app: &AppHandle) -> Settings {
@@ -214,7 +205,7 @@ pub fn get(app: &AppHandle) -> Settings {
     let mut slot = state.0.write().unwrap();
     slot.get_or_insert_with(|| {
         let s = read_from_disk(app);
-        crate::i18n::apply(s.language);
+        crate::i18n::apply(&s.language);
         cutout::set_gpu(s.gpu);
         s
     })
@@ -228,7 +219,7 @@ pub fn set(app: &AppHandle, new: Settings) -> Result<Settings, String> {
     if new.autostart != old.autostart {
         let launcher = app.autolaunch();
         let result = if new.autostart { launcher.enable() } else { launcher.disable() };
-        result.map_err(|e| format!("{}{e}", crate::i18n::tr("lancement au démarrage : ", "start at sign-in: ")))?;
+        result.map_err(|e| format!("{}{e}", crate::i18n::tr("core.start_at_sign")))?;
     }
     if let Some(path) = file(app) {
         if let Some(dir) = path.parent() {
@@ -237,7 +228,7 @@ pub fn set(app: &AppHandle, new: Settings) -> Result<Settings, String> {
         let json = serde_json::to_string_pretty(&new).map_err(|e| e.to_string())?;
         std::fs::write(&path, json).map_err(|e| e.to_string())?;
     }
-    crate::i18n::apply(new.language);
+    crate::i18n::apply(&new.language);
     cutout::set_gpu(new.gpu);
     *app.state::<State>().0.write().unwrap() = Some(new.clone());
     let _ = app.emit("settings-changed", &new);

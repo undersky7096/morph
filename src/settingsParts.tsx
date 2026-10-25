@@ -8,9 +8,9 @@ import type { Settings, ThemeMode } from "./settings";
 import type { Kind } from "./types";
 
 export const THEMES = (): [ThemeMode, string][] => [
-  ["system", t("Système", "System")],
-  ["light", t("Clair", "Light")],
-  ["dark", t("Sombre", "Dark")],
+  ["system", t("settings.system")],
+  ["light", t("settings.light")],
+  ["dark", t("settings.dark")],
 ];
 
 export const ACCENTS = ["#2f6bff", "#8b5cf6", "#ec4899", "#ef4444", "#f97316", "#eab308", "#10b981", "#06b6d4"];
@@ -18,11 +18,11 @@ export const BACKGROUNDS = ["#0b0d12", "#16112a", "#0d1f24", "#1f1414", "#f7f3ea
 
 /** Formats de sortie par type, pour choisir les favoris. */
 const OUTPUTS = (): [string, Kind][] => [
-  [t("Images", "Images"), "image"],
-  [t("Audio", "Audio"), "audio"],
-  [t("Vidéo", "Video"), "video"],
-  [t("Documents", "Documents"), "document"],
-  [t("Archives", "Archives"), "archive"],
+  [t("settings.images"), "image"],
+  [t("settings.audio"), "audio"],
+  [t("settings.video"), "video"],
+  [t("settings.documents"), "document"],
+  [t("settings.archives"), "archive"],
 ];
 
 /** Glissement de l'indicateur de sélection (navigation, choix du thème). */
@@ -59,7 +59,7 @@ export function ColorChoice(props: { value: string | null; colors: string[]; onC
   return (
     <div className="settings-colors">
       <button className={`settings-chip ${value === null ? "is-active" : ""}`} onClick={() => onChange(null)}>
-        {t("Par défaut", "Default")}
+        {t("settings.default")}
       </button>
       {colors.map((c) => (
         <button
@@ -72,7 +72,7 @@ export function ColorChoice(props: { value: string | null; colors: string[]; onC
       ))}
       <label
         className={`settings-swatch settings-picker ${custom ? "is-active" : ""}`}
-        title={t("Autre couleur", "Other colour")}
+        title={t("settings.other_colour")}
         style={custom ? { background: value } : undefined}
       >
         <input type="color" value={value ?? "#808080"} onChange={(e) => onChange(e.target.value)} />

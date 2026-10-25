@@ -13,7 +13,7 @@ pub fn show(app: &AppHandle) -> tauri::Result<()> {
         return window.show();
     }
     let window = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App("index.html".into()))
-        .title(crate::i18n::tr("Progression · Morph", "Progress · Morph"))
+        .title(crate::i18n::tr("core.progress_morph"))
         .inner_size(WIDTH, HEIGHT)
         .min_inner_size(320.0, 220.0)
         .decorations(false)

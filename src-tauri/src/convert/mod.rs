@@ -18,7 +18,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, Instant};
 
-use crate::i18n::tr;
+use crate::i18n::{tr, trf};
 
 use serde::Serialize;
 
@@ -68,15 +68,12 @@ pub struct ErrorInfo {
 }
 
 fn denied() -> String {
-    tr(
-        "Accès refusé : le fichier est peut-être ouvert ailleurs, ou le dossier est protégé.",
-        "Access denied: the file may be open elsewhere, or the folder is protected.",
-    )
+    tr("core.access_denied_file_may_be")
     .into()
 }
 
 fn disk_full() -> String {
-    tr("Disque plein : libère de la place puis réessaie.", "Disk full: free up some space, then try again.").into()
+    tr("core.disk_full_free_up_some").into()
 }
 
 impl ConvertError {
@@ -85,35 +82,29 @@ impl ConvertError {
         let (code, message) = match self {
             ConvertError::NotFound(_) => (
                 "not-found",
-                tr("Fichier introuvable : il a peut-être été déplacé ou supprimé.", "File not found: it may have been moved or deleted.").into(),
+                tr("core.file_not_found_may_have").into(),
             ),
-            ConvertError::Unsupported(_) => ("unsupported", tr("Format non pris en charge.", "Unsupported format.").into()),
+            ConvertError::Unsupported(_) => ("unsupported", tr("core.unsupported_format").into()),
             ConvertError::NoRoute { from, to } => (
                 "unsupported",
-                tr(
-                    format!("Impossible de convertir du {} en {}.", from.to_uppercase(), to.to_uppercase()),
-                    format!("Can’t convert {} to {}.", from.to_uppercase(), to.to_uppercase()),
-                ),
+                trf("core.cant_convert", &[("from", &from.to_uppercase()), ("to", &to.to_uppercase())]),
             ),
             ConvertError::Io(e) => io_message(e),
-            ConvertError::Image(_) => ("unreadable", tr("Image illisible ou endommagée.", "Unreadable or damaged image.").into()),
+            ConvertError::Image(_) => ("unreadable", tr("core.unreadable_damaged_image").into()),
             ConvertError::Ffmpeg(log) => ffmpeg_message(log),
             ConvertError::Compress(m) | ConvertError::Edit(m) => ("failed", sentence(m)),
             ConvertError::Download(_) => (
                 "download",
-                tr(
-                    "Téléchargement du modèle de détourage impossible : vérifie la connexion à internet, puis réessaie.",
-                    "Couldn’t download the background removal model: check your internet connection, then try again.",
-                )
+                tr("core.couldnt_download_background_removal_model")
                 .into(),
             ),
             ConvertError::EngineMissing(reason) => ("engine-missing", (*reason).into()),
             ConvertError::Document(log) => document_message(log),
             ConvertError::Archive(log) => archive_message(log),
-            ConvertError::Cancelled => ("cancelled", tr("Annulé.", "Cancelled.").into()),
+            ConvertError::Cancelled => ("cancelled", tr("core.cancelled").into()),
             ConvertError::Exists(p) => {
                 let name = p.file_name().map(|n| n.to_string_lossy()).unwrap_or_default();
-                ("exists", tr(format!("« {name} » existe déjà."), format!("“{name}” already exists.")))
+                ("exists", trf("core.already_exists", &[("name", &name)]))
             }
         };
         let path = match self {
@@ -135,8 +126,8 @@ fn io_message(e: &std::io::Error) -> (&'static str, String) {
     match e.kind() {
         ErrorKind::PermissionDenied => ("denied", denied()),
         ErrorKind::StorageFull => ("disk-full", disk_full()),
-        ErrorKind::NotFound => ("not-found", tr("Fichier ou dossier introuvable.", "File or folder not found.").into()),
-        _ => ("io", tr("Erreur de lecture ou d'écriture du fichier.", "Error reading or writing the file.").into()),
+        ErrorKind::NotFound => ("not-found", tr("core.file_folder_not_found").into()),
+        _ => ("io", tr("core.error_reading_writing_file").into()),
     }
 }
 
@@ -144,24 +135,24 @@ fn io_message(e: &std::io::Error) -> (&'static str, String) {
 fn archive_message(log: &str) -> (&'static str, String) {
     let l = log.to_lowercase();
     if ["password", "encrypted", "mot de passe", "chiffr"].iter().any(|w| l.contains(w)) {
-        ("protected", tr("Archive protégée par un mot de passe : non prise en charge.", "Password-protected archive: not supported.").into())
+        ("protected", tr("core.password_protected_archive_not_supported").into())
     } else if l.contains("archive vide") {
-        ("unsupported", tr("Archive vide : rien à extraire.", "Empty archive: nothing to extract.").into())
+        ("unsupported", tr("core.empty_archive_nothing_extract").into())
     } else {
-        ("unreadable", tr("Archive illisible ou endommagée.", "Unreadable or damaged archive.").into())
+        ("unreadable", tr("core.unreadable_damaged_archive").into())
     }
 }
 
 /// Cause probable d'un échec de conversion de document (pandoc, LibreOffice, PDF).
 fn document_message(log: &str) -> (&'static str, String) {
     if log.contains("mot de passe") {
-        ("protected", tr("PDF protégé par un mot de passe : retire la protection d'abord.", "Password-protected PDF: remove the protection first.").into())
+        ("protected", tr("core.password_protected_pdf_remove_protection").into())
     } else if log.contains("délai dépassé") {
-        ("failed", tr("LibreOffice ne répond pas : ferme ses fenêtres ouvertes, puis réessaie.", "LibreOffice isn’t responding: close its open windows, then try again.").into())
+        ("failed", tr("core.libreoffice_isnt_responding_close_its").into())
     } else if log.contains("impossible de lancer") {
-        ("engine-missing", tr("Le moteur de conversion des documents est introuvable : réinstalle Morph.", "The document conversion engine is missing: reinstall Morph.").into())
+        ("engine-missing", tr("core.document_conversion_engine_missing_reinstall").into())
     } else {
-        ("unreadable", tr("Conversion du document impossible : fichier illisible ou endommagé ?", "Couldn’t convert the document: unreadable or damaged file?").into())
+        ("unreadable", tr("core.couldnt_convert_document_unreadable_damaged").into())
     }
 }
 
@@ -174,13 +165,13 @@ fn ffmpeg_message(log: &str) -> (&'static str, String) {
     } else if any(&["permission denied"]) {
         ("denied", denied())
     } else if any(&["impossible de lancer ffmpeg"]) {
-        ("ffmpeg-missing", tr("Le moteur de conversion (ffmpeg) est introuvable : réinstalle Morph.", "The conversion engine (ffmpeg) is missing: reinstall Morph.").into())
+        ("ffmpeg-missing", tr("core.conversion_engine_ffmpeg_missing_reinstall").into())
     } else if any(&["does not contain any stream", "matches no streams"]) {
-        ("unsupported", tr("Ce fichier ne contient rien à convertir (ni image ni son).", "This file has nothing to convert (no picture or sound).").into())
+        ("unsupported", tr("core.file_has_nothing_convert_no").into())
     } else if any(&["invalid data", "moov atom not found", "could not find codec", "error while decoding"]) {
-        ("unreadable", tr("Fichier illisible ou endommagé.", "Unreadable or damaged file.").into())
+        ("unreadable", tr("core.unreadable_damaged_file").into())
     } else {
-        ("failed", tr("La conversion a échoué.", "Conversion failed.").into())
+        ("failed", tr("core.conversion_failed").into())
     }
 }
 

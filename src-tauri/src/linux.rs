@@ -17,17 +17,16 @@ fn mime_types() -> String {
     readable.flat_map(|f| f.mime).copied().collect::<Vec<_>>().join(";")
 }
 
-/// Actions du clic droit : (identifiant, libellé français, libellé anglais, option de la
-/// ligne de commande).
-const ACTION_TEXTS: [(&str, &str, &str, &str); 3] = [
-    ("convert", "Convertir avec Morph", "Convert with Morph", ""),
-    ("edit", "Éditer avec Morph", "Edit with Morph", "--edit"),
-    ("compress", "Compresser avec Morph", "Compress with Morph", "--compress"),
+/// Actions du clic droit : (identifiant, clé du libellé, option de la ligne de commande).
+const ACTION_TEXTS: [(&str, &str, &str); 3] = [
+    ("convert", "core.convert_with_morph", ""),
+    ("edit", "core.edit_with_morph", "--edit"),
+    ("compress", "core.compress_with_morph", "--compress"),
 ];
 
 /// Actions du clic droit dans la langue de l'interface : (identifiant, libellé, option).
 fn actions() -> [(&'static str, &'static str, &'static str); 3] {
-    ACTION_TEXTS.map(|(id, fr, en, arg)| (id, crate::i18n::tr(fr, en), arg))
+    ACTION_TEXTS.map(|(id, key, arg)| (id, crate::i18n::tr(key), arg))
 }
 
 /// Fichiers créés, relatifs à `~/.local/share`.
@@ -38,11 +37,12 @@ fn files() -> Vec<String> {
         "kio/servicemenus/morph.desktop".to_string(),
         "kservices5/ServiceMenus/morph.desktop".to_string(),
     ];
-    // Scripts Nautilus nommés d'après le libellé : ceux des deux langues, pour retirer aussi
-    // ceux créés avant un changement de langue.
-    for (id, fr, en, _) in ACTION_TEXTS {
-        list.push(format!("nautilus/scripts/{fr}"));
-        list.push(format!("nautilus/scripts/{en}"));
+    // Scripts Nautilus nommés d'après le libellé : ceux de toutes les langues, pour retirer
+    // aussi ceux créés avant un changement de langue.
+    for (id, key, _) in ACTION_TEXTS {
+        for label in crate::i18n::tr_all(key) {
+            list.push(format!("nautilus/scripts/{label}"));
+        }
         list.push(format!("nemo/actions/morph-{id}.nemo_action"));
     }
     list
@@ -84,7 +84,7 @@ fn desktop_entry(exe: &Path) -> String {
 /// Menu de service Dolphin (KDE).
 fn service_menu(exe: &Path) -> String {
     let exe = quoted(exe);
-    let ids: Vec<&str> = ACTION_TEXTS.iter().map(|(id, _, _, _)| *id).collect();
+    let ids: Vec<&str> = ACTION_TEXTS.iter().map(|(id, _, _)| *id).collect();
     let mut s = format!(
         "[Desktop Entry]\nType=Service\nMimeType={};\nActions={};\nX-KDE-Submenu=Morph\n",
         mime_types(),

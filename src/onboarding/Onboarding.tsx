@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { usePlatform, type Settings } from "../settings";
 import { ACCENTS, ColorChoice, FavoritesPicker, ThemePicker } from "../settingsParts";
 import Logo from "../Logo";
-import { t } from "../i18n";
+import { LANGUAGES, lang, t } from "../i18n";
 import LinuxIntegration from "./LinuxIntegration";
 import "./Onboarding.css";
 
@@ -16,7 +16,7 @@ interface Props {
   reviewing?: boolean;
 }
 
-const STEPS = () => [t("Bienvenue", "Welcome"), t("Apparence", "Appearance"), t("Favoris", "Favourites"), t("Prêt", "Ready")];
+const STEPS = () => [t("onboarding.welcome"), t("onboarding.appearance"), t("onboarding.favourites"), t("onboarding.ready")];
 
 /** Écran d'accueil du premier lancement : présentation du geste, thème, formats favoris,
  *  lancement au démarrage. Passable à tout moment ; rouvrable depuis les Réglages. */
@@ -43,7 +43,7 @@ export default function Onboarding({ settings, save, reviewing }: Props) {
   return (
     <div className="onboarding">
       <header className="onboarding-head">
-        <div className="onboarding-dots" aria-label={t(`Étape ${step + 1} sur ${steps.length}`, `Step ${step + 1} of ${steps.length}`)}>
+        <div className="onboarding-dots" aria-label={t("onboarding.step_of", { step: step + 1, total: steps.length })}>
           {steps.map((label, i) => (
             <button key={label} className={i === step ? "is-active" : i < step ? "is-done" : ""} onClick={() => go(i)} title={label}>
               {i === step && <motion.span layoutId="onboarding-dot" className="onboarding-dot-pill" />}
@@ -52,7 +52,7 @@ export default function Onboarding({ settings, save, reviewing }: Props) {
         </div>
         {!last && (
           <button className="onboarding-skip" onClick={finish}>
-            {t("Passer", "Skip")}
+            {t("onboarding.skip")}
           </button>
         )}
       </header>
@@ -71,29 +71,26 @@ export default function Onboarding({ settings, save, reviewing }: Props) {
             {step === 0 && (
               <>
                 <Logo className="onboarding-logo" />
-                <h1>{t("Bienvenue dans Morph", "Welcome to Morph")}</h1>
+                <h1>{t("onboarding.welcome_morph")}</h1>
                 <p className="onboarding-lead">
-                  {t(
-                    "Convertis et retouche tes images, sons et vidéos en un geste, sans ouvrir d'application.",
-                    "Convert and edit your images, sounds and videos in one gesture, without opening an app.",
-                  )}
+                  {t("onboarding.convert_edit_images_sounds_videos")}
                 </p>
                 <div className="onboarding-block">
-                  <LanguageChoice settings={settings} save={save} />
+                  <LanguageChoice save={save} />
                 </div>
                 <Demo linux={linux} />
                 <p className="onboarding-caption">
                   {linux ? (
                     <>
-                      {t("Clic droit sur des fichiers → ", "Right-click files → ")}
-                      <strong>{t("Convertir avec Morph", "Convert with Morph")}</strong>
-                      {t(" : les formats s'affichent en pétales.", ": formats appear as petals.")}
+                      {t("onboarding.right_click_files")}
+                      <strong>{t("onboarding.convert_morph")}</strong>
+                      {t("onboarding.formats_appear_as_petals")}
                     </>
                   ) : (
                     <>
-                      {t("Glisse des fichiers depuis le bureau ou l'explorateur en maintenant ", "Drag files from the desktop or Explorer while holding ")}
+                      {t("onboarding.drag_files_from_desktop_explorer")}
                       <kbd>Shift</kbd>
-                      {t(", puis lâche-les n'importe où : les formats s'affichent en pétales.", ", then drop them anywhere: formats appear as petals.")}
+                      {t("onboarding.then_drop_them_anywhere_formats")}
                     </>
                   )}
                 </p>
@@ -102,14 +99,14 @@ export default function Onboarding({ settings, save, reviewing }: Props) {
 
             {step === 1 && (
               <>
-                <h1>{t("Ton style", "Your style")}</h1>
-                <p className="onboarding-lead">{t("Modifiable à tout moment dans les Réglages.", "You can change it any time in Settings.")}</p>
+                <h1>{t("onboarding.style")}</h1>
+                <p className="onboarding-lead">{t("onboarding.can_change_any_time_settings")}</p>
                 <div className="onboarding-block">
-                  <h2>{t("Thème", "Theme")}</h2>
+                  <h2>{t("onboarding.theme")}</h2>
                   <ThemePicker settings={settings} save={save} id="onboarding-theme" />
                 </div>
                 <div className="onboarding-block">
-                  <h2>{t("Couleur d'accent", "Accent colour")}</h2>
+                  <h2>{t("onboarding.accent_colour")}</h2>
                   <ColorChoice value={settings.accent} colors={ACCENTS} onChange={(accent) => save({ accent })} />
                 </div>
                 <div className="onboarding-preview" aria-hidden>
@@ -122,9 +119,9 @@ export default function Onboarding({ settings, save, reviewing }: Props) {
 
             {step === 2 && (
               <>
-                <h1>{t("Tes formats favoris", "Your favourite formats")}</h1>
+                <h1>{t("onboarding.favourite_formats")}</h1>
                 <p className="onboarding-lead">
-                  {t("Ils apparaîtront en premier dans le menu, dans l'ordre choisi. Facultatif.", "They’ll appear first in the menu, in the order you pick. Optional.")}
+                  {t("onboarding.theyll_appear_first_menu_order")}
                 </p>
                 <div className="onboarding-block onboarding-favorites">
                   <FavoritesPicker settings={settings} save={save} />
@@ -134,32 +131,26 @@ export default function Onboarding({ settings, save, reviewing }: Props) {
 
             {step === 3 && (
               <>
-                <h1>{t("Tout est prêt", "You’re all set")}</h1>
+                <h1>{t("onboarding.youre_all_set")}</h1>
                 <p className="onboarding-lead">
                   {linux
-                    ? t(
-                        "Morph reste discret dans la zone de notification : clique sur son icône pour retrouver les Réglages.",
-                        "Morph stays quietly in the notification area: click its icon to get back to Settings.",
-                      )
-                    : t(
-                        "Morph reste discret dans la zone de notification, près de l'horloge : clique sur son icône pour retrouver les Réglages.",
-                        "Morph stays quietly in the notification area, next to the clock: click its icon to get back to Settings.",
-                      )}
+                    ? t("onboarding.morph_stays_quietly_notification_area")
+                    : t("onboarding.morph_stays_quietly_notification_area_2")}
                 </p>
                 <label className="settings-toggle onboarding-block">
                   <input type="checkbox" checked={settings.autostart} onChange={(e) => save({ autostart: e.target.checked })} />
                   <span>
-                    <strong>{t("Lancer Morph à l'ouverture de session", "Start Morph when I sign in")}</strong>
+                    <strong>{t("onboarding.start_morph_when_i_sign")}</strong>
                     <small>
                       {linux
-                        ? t("Recommandé : le menu n'est disponible que si Morph tourne.", "Recommended: the menu only works while Morph is running.")
-                        : t("Recommandé : le Shift + glisser n'est disponible que si Morph tourne.", "Recommended: Shift + drag only works while Morph is running.")}
+                        ? t("onboarding.recommended_menu_only_works_while")
+                        : t("onboarding.recommended_shift_drag_only_works")}
                     </small>
                   </span>
                 </label>
                 {linux && (
                   <div className="onboarding-block">
-                    <h2>{t("Intégration au bureau", "Desktop integration")}</h2>
+                    <h2>{t("onboarding.desktop_integration")}</h2>
                     <LinuxIntegration />
                   </div>
                 )}
@@ -172,28 +163,28 @@ export default function Onboarding({ settings, save, reviewing }: Props) {
       <footer className="onboarding-foot">
         {step > 0 ? (
           <button className="settings-button" onClick={() => go(step - 1)}>
-            {t("Retour", "Back")}
+            {t("onboarding.back")}
           </button>
         ) : (
           <span />
         )}
         <button className="settings-button is-primary" onClick={() => (last ? finish() : go(step + 1))}>
-          {last ? t("C'est parti", "Let’s go") : t("Suivant", "Next")}
+          {last ? t("onboarding.lets_go") : t("onboarding.next")}
         </button>
       </footer>
     </div>
   );
 }
 
-/** Choix de la langue dès l'accueil : Français / English. */
-function LanguageChoice({ settings, save }: Pick<Props, "settings" | "save">) {
-  const current = settings.language === "system" ? null : settings.language;
+/** Choix de la langue dès l'accueil (une par catalogue de `locales/`). */
+function LanguageChoice({ save }: Pick<Props, "save">) {
+  const active = lang();
   return (
     <div className="settings-segmented">
-      {(["fr", "en"] as const).map((l) => (
-        <button key={l} className={(current ?? document.documentElement.lang) === l ? "is-active" : ""} onClick={() => save({ language: l })}>
-          {(current ?? document.documentElement.lang) === l && <motion.span layoutId="onboarding-lang" className="settings-segmented-pill" />}
-          <span>{l === "fr" ? "Français" : "English"}</span>
+      {LANGUAGES.map(({ code, name }) => (
+        <button key={code} className={active === code ? "is-active" : ""} aria-pressed={active === code} onClick={() => save({ language: code })}>
+          {active === code && <motion.span layoutId="onboarding-lang" className="settings-segmented-pill" />}
+          <span lang={code}>{name}</span>
         </button>
       ))}
     </div>
@@ -221,7 +212,7 @@ function Demo({ linux }: { linux: boolean }) {
         animate={{ opacity: [0, 1, 1, 0, 0], scale: [0.8, 1, 1, 0.9, 0.8] }}
         transition={{ ...loop, times: [0, 0.1, 0.42, 0.5, 1] }}
       >
-        {linux ? t("Clic droit", "Right-click") : "Shift"}
+        {linux ? t("onboarding.right_click") : "Shift"}
       </motion.span>
       <div className="demo-drop">
         <motion.span

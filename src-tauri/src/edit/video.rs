@@ -447,12 +447,12 @@ pub fn edit(input: &Path, e: &VideoEdit, on_progress: &mut dyn FnMut(f32)) -> Re
     }
     let ext = formats::ext_of(input).ok_or_else(|| ConvertError::Unsupported(input.display().to_string()))?;
     if !(0.25..=4.0).contains(&e.speed) {
-        return Err(ConvertError::Edit(crate::i18n::tr("vitesse hors limites (0,25× à 4×)", "speed out of range (0.25× to 4×)").into()));
+        return Err(ConvertError::Edit(crate::i18n::tr("core.speed_out_range_0_25").into()));
     }
     let info = info(input)?;
     let segs = trim::normalize(&e.segments, info.duration);
     if segs.is_empty() {
-        return Err(ConvertError::Edit(crate::i18n::tr("aucun passage à garder", "no section to keep").into()));
+        return Err(ConvertError::Edit(crate::i18n::tr("core.no_section_keep").into()));
     }
 
     let dir = work_dir();

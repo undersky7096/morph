@@ -28,12 +28,12 @@ const SECTION_IDS: Section[] = ["appearance", "menu", "save", "tools", "system",
 
 const sectionLabel = (id: Section) =>
   ({
-    appearance: t("Apparence", "Appearance"),
-    menu: t("Menu des formats", "Format menu"),
-    save: t("Enregistrement", "Saving"),
-    tools: t("Outils", "Tools"),
-    system: t("Système", "System"),
-    about: t("À propos", "About"),
+    appearance: t("settings.appearance"),
+    menu: t("settings.format_menu"),
+    save: t("settings.saving"),
+    tools: t("settings.tools"),
+    system: t("settings.system"),
+    about: t("settings.about"),
   })[id];
 
 /** Section demandée à l'ouverture (`index.html#about`, depuis une notification). */
@@ -47,40 +47,40 @@ const CONTACT = "contact@underskydev.com";
 
 /** Composants libres embarqués : [nom, rôle, licence, site]. */
 const COMPONENTS = (): [string, string, string, string][] => [
-  ["FFmpeg", t("Conversion et édition audio / vidéo", "Audio / video conversion and editing"), "GPL-3.0", "https://ffmpeg.org"],
-  ["Tauri", t("Socle de l'application", "Application framework"), "MIT / Apache-2.0", "https://tauri.app"],
-  ["React", t("Interface", "User interface"), "MIT", "https://react.dev"],
-  ["Motion", t("Animations", "Animations"), "MIT", "https://motion.dev"],
-  ["Konva", t("Éditeur d'image", "Image editor"), "MIT", "https://konvajs.org"],
-  ["image-rs", t("Lecture et écriture des images", "Image reading and writing"), "MIT / Apache-2.0", "https://github.com/image-rs/image"],
-  ["oxipng", t("Compression PNG sans perte", "Lossless PNG compression"), "MIT", "https://github.com/shssoichiro/oxipng"],
-  ["libimagequant", t("Compression PNG par palette", "Palette-based PNG compression"), "GPL-3.0", "https://pngquant.org/lib/"],
-  ["ONNX Runtime", t("Exécution du modèle de détourage", "Runs the background removal model"), "MIT", "https://onnxruntime.ai"],
-  ["DirectML", t("Détourage sur la carte graphique (Windows)", "Background removal on the graphics card (Windows)"), t("Licence Microsoft (redistribuable)", "Microsoft license (redistributable)"), "https://github.com/microsoft/DirectML"],
-  ["IS-Net (DIS)", t("Modèle de détourage « Efficacité », téléchargé à la 1re utilisation", "“Speed” background removal model, downloaded on first use"), "Apache-2.0", "https://github.com/xuebinqin/DIS"],
-  ["BiRefNet", t("Modèle de détourage « Qualité », téléchargé à la 1re utilisation", "“Quality” background removal model, downloaded on first use"), "MIT", "https://github.com/ZhengPeng7/BiRefNet"],
-  ["resvg", t("Rendu des images SVG", "SVG rendering"), "Apache-2.0 / MIT", "https://github.com/linebender/resvg"],
-  ["pandoc", t("Conversion des documents texte", "Text document conversion"), "GPL-2.0", "https://pandoc.org"],
-  ["PDFium", t("Lecture et fusion des PDF", "PDF reading and merging"), "BSD-3-Clause", "https://pdfium.googlesource.com/pdfium/"],
-  ["lopdf", t("Création et compression des PDF", "PDF creation and compression"), "MIT", "https://github.com/J-F-Liu/lopdf"],
-  ["LibreOffice", t("Formats bureautiques et export PDF, s'il est installé", "Office formats and PDF export, if installed"), "MPL-2.0", "https://www.libreoffice.org"],
-  ["zip / sevenz-rust2", t("Archives ZIP et 7Z (TAR, GZ, BZ2, XZ en lecture)", "ZIP and 7Z archives (TAR, GZ, BZ2, XZ read-only)"), "MIT / Apache-2.0", "https://github.com/zip-rs/zip2"],
+  ["FFmpeg", t("settings.audio_video_conversion_editing"), "GPL-3.0", "https://ffmpeg.org"],
+  ["Tauri", t("settings.application_framework"), "MIT / Apache-2.0", "https://tauri.app"],
+  ["React", t("settings.user_interface"), "MIT", "https://react.dev"],
+  ["Motion", t("settings.animations"), "MIT", "https://motion.dev"],
+  ["Konva", t("settings.image_editor"), "MIT", "https://konvajs.org"],
+  ["image-rs", t("settings.image_reading_writing"), "MIT / Apache-2.0", "https://github.com/image-rs/image"],
+  ["oxipng", t("settings.lossless_png_compression"), "MIT", "https://github.com/shssoichiro/oxipng"],
+  ["libimagequant", t("settings.palette_based_png_compression"), "GPL-3.0", "https://pngquant.org/lib/"],
+  ["ONNX Runtime", t("settings.runs_background_removal_model"), "MIT", "https://onnxruntime.ai"],
+  ["DirectML", t("settings.background_removal_graphics_card_windows"), t("settings.microsoft_license_redistributable"), "https://github.com/microsoft/DirectML"],
+  ["IS-Net (DIS)", t("settings.speed_background_removal_model_downloaded"), "Apache-2.0", "https://github.com/xuebinqin/DIS"],
+  ["BiRefNet", t("settings.quality_background_removal_model_downloaded"), "MIT", "https://github.com/ZhengPeng7/BiRefNet"],
+  ["resvg", t("settings.svg_rendering"), "Apache-2.0 / MIT", "https://github.com/linebender/resvg"],
+  ["pandoc", t("settings.text_document_conversion"), "GPL-2.0", "https://pandoc.org"],
+  ["PDFium", t("settings.pdf_reading_merging"), "BSD-3-Clause", "https://pdfium.googlesource.com/pdfium/"],
+  ["lopdf", t("settings.pdf_creation_compression"), "MIT", "https://github.com/J-F-Liu/lopdf"],
+  ["LibreOffice", t("settings.office_formats_pdf_export_if"), "MPL-2.0", "https://www.libreoffice.org"],
+  ["zip / sevenz-rust2", t("settings.zip_7z_archives_tar_gz"), "MIT / Apache-2.0", "https://github.com/zip-rs/zip2"],
 ];
 
 const DUPLICATES = (): [Duplicates, string, string][] => [
-  ["keep", t("Garder les deux", "Keep both"), t("Le nouveau fichier reçoit un numéro : « Photo (2).webp ».", "The new file gets a number: “Photo (2).webp”.")],
-  ["replace", t("Remplacer", "Replace"), t("L'ancien fichier est remplacé (il est conservé si l'opération échoue).", "The old file is replaced (it’s kept if the operation fails).")],
-  ["ask", t("Demander à chaque fois", "Ask every time"), t("Remplacer, garder les deux ou ignorer, fichier par fichier ou pour tous.", "Replace, keep both or skip, file by file or for all.")],
+  ["keep", t("settings.keep_both"), t("settings.new_file_gets_number_photo")],
+  ["replace", t("settings.replace"), t("settings.old_file_replaced_kept_if")],
+  ["ask", t("settings.ask_every_time"), t("settings.replace_keep_both_skip_file")],
 ];
 
 const SAVE_MODES = (): [SaveMode, string, string][] => [
-  ["beside", t("À côté de l'original", "Next to the original"), t("Ex. : « Photo.png » donne « Photo.webp » dans le même dossier.", "E.g. “Photo.png” gives “Photo.webp” in the same folder.")],
-  ["folder", t("Dans un dossier fixe", "In a fixed folder"), t("Tous les résultats vont dans le dossier choisi.", "All results go to the chosen folder.")],
-  ["ask", t("Demander à chaque fois", "Ask every time"), t("Le dossier est choisi au moment d'enregistrer.", "The folder is chosen when saving.")],
+  ["beside", t("settings.next_original"), t("settings.e_g_photo_png_gives")],
+  ["folder", t("settings.fixed_folder"), t("settings.all_results_go_chosen_folder")],
+  ["ask", t("settings.ask_every_time"), t("settings.folder_chosen_when_saving")],
 ];
 
 const LANGUAGES = (): [Language, string][] => [
-  ["system", t("Système", "System")],
+  ["system", t("settings.system")],
   ["fr", "Français"],
   ["en", "English"],
 ];
@@ -154,19 +154,16 @@ function App() {
             {section === id && <motion.span layoutId="nav-active" className="settings-nav-pill" transition={PILL} />}
             <span>{sectionLabel(id)}</span>
             {id === "about" && update?.available && (
-              <span className="settings-nav-badge" title={t(`Mise à jour ${update.available.version} disponible`, `Update ${update.available.version} available`)}>
+              <span className="settings-nav-badge" title={t("settings.update_available_badge", { version: update.available.version })}>
                 1
               </span>
             )}
           </button>
         ))}
         <p className="settings-tip">
-          {t("Glisse des fichiers en maintenant ", "Drag files while holding ")}
+          {t("settings.drag_files_while_holding")}
           <kbd>Shift</kbd>
-          {t(
-            " depuis l'explorateur ou le bureau, et lâche-les n'importe où. Tu peux aussi les déposer sur cette fenêtre.",
-            " from Explorer or the desktop, and drop them anywhere. You can also drop them on this window.",
-          )}
+          {t("settings.from_explorer_desktop_drop_them")}
         </p>
       </nav>
 
@@ -184,7 +181,7 @@ function App() {
         {section === "about" && <AboutSection version={version} />}
         {error && <p className="settings-error">{error}</p>}
       </main>
-      {over && <div className="settings-drop">{t("Lâche pour ouvrir le menu des formats", "Drop to open the format menu")}</div>}
+      {over && <div className="settings-drop">{t("settings.drop_open_format_menu")}</div>}
     </div>
   );
 }
@@ -207,19 +204,19 @@ function Group({ title, hint, children }: { title: string; hint?: string; childr
 function Appearance({ settings, save }: SectionProps) {
   return (
     <>
-      <Group title={t("Langue", "Language")}>
+      <Group title={t("settings.language")}>
         <LanguagePicker settings={settings} save={save} />
       </Group>
-      <Group title={t("Thème", "Theme")}>
+      <Group title={t("settings.theme")}>
         <ThemePicker settings={settings} save={save} />
       </Group>
-      <Group title={t("Couleur d'accent", "Accent colour")} hint={t("Boutons, sélections, progression et halo.", "Buttons, selections, progress and halo.")}>
+      <Group title={t("settings.accent_colour")} hint={t("settings.buttons_selections_progress_halo")}>
         <ColorChoice value={settings.accent} colors={ACCENTS} onChange={(accent) => save({ accent })} />
       </Group>
-      <Group title={t("Fond", "Background")} hint={t("Teinte des fenêtres et des menus.", "Tint of windows and menus.")}>
+      <Group title={t("settings.background")} hint={t("settings.tint_windows_menus")}>
         <ColorChoice value={settings.background} colors={BACKGROUNDS} onChange={(background) => save({ background })} />
       </Group>
-      <Group title={t("Transparence des menus", "Menu transparency")}>
+      <Group title={t("settings.menu_transparency")}>
         <div className="settings-opacity">
           <div className="settings-opacity-preview">
             <span className="settings-petal">PNG</span>
@@ -227,7 +224,7 @@ function Appearance({ settings, save }: SectionProps) {
           </div>
           <label className="settings-range">
             <span>
-              {t("Opacité", "Opacity")} <strong>{settings.radialOpacity} %</strong>
+              {t("settings.opacity")} <strong>{settings.radialOpacity} %</strong>
             </span>
             <input
               type="range"
@@ -247,32 +244,29 @@ function MenuSection({ settings, save }: SectionProps) {
   return (
     <>
       <Group
-        title={t("Formats favoris", "Favourite formats")}
-        hint={t("Ils apparaissent en premier dans le menu, dans l'ordre où tu les choisis.", "They appear first in the menu, in the order you pick them.")}
+        title={t("settings.favourite_formats")}
+        hint={t("settings.they_appear_first_menu_order")}
       >
         <FavoritesPicker settings={settings} save={save} />
         {settings.favorites.length > 0 && (
           <button className="settings-link" onClick={() => save({ favorites: [] })}>
-            {t("Retirer tous les favoris", "Clear all favourites")}
+            {t("settings.clear_all_favourites")}
           </button>
         )}
       </Group>
-      <Group title={t("Lots de types mélangés", "Mixed batches")} hint={t("Ex. : des images et des sons déposés ensemble.", "E.g. images and sounds dropped together.")}>
+      <Group title={t("settings.mixed_batches")} hint={t("settings.e_g_images_sounds_dropped")}>
         <div className="settings-options">
           <Option
             checked={settings.mixedBatch === "groups"}
             onChange={() => save({ mixedBatch: "groups" })}
-            title={t("Un sous-menu par type", "One submenu per type")}
-            hint={t("Formats communs à tous, plus « Images → … », « Audio → … ».", "Formats common to all, plus “Images → …”, “Audio → …”.")}
+            title={t("settings.one_submenu_per_type")}
+            hint={t("settings.formats_common_all_plus_images")}
           />
           <Option
             checked={settings.mixedBatch === "common"}
             onChange={() => save({ mixedBatch: "common" })}
-            title={t("Formats communs seulement", "Common formats only")}
-            hint={t(
-              "Un seul niveau de menu. S'il n'y a aucun format commun, les sous-menus sont proposés.",
-              "A single menu level. If there’s no common format, submenus are shown.",
-            )}
+            title={t("settings.common_formats_only")}
+            hint={t("settings.single_menu_level_if_theres")}
           />
         </div>
       </Group>
@@ -295,13 +289,13 @@ function Option(props: { checked: boolean; onChange: () => void; title: string; 
 
 function SaveSection({ settings, save }: SectionProps) {
   async function pickFolder() {
-    const dir = await open({ directory: true, title: t("Dossier des résultats", "Results folder") });
+    const dir = await open({ directory: true, title: t("settings.results_folder") });
     if (typeof dir === "string") save({ saveMode: "folder", saveFolder: dir });
   }
   return (
     <Group
-      title={t("Où enregistrer les résultats", "Where to save results")}
-      hint={t("Conversions et outils (Recadrer, Détourer, Compresser, Éditer).", "Conversions and tools (Crop, Remove background, Compress, Edit).")}
+      title={t("settings.where_save_results")}
+      hint={t("settings.conversions_tools_crop_remove_background")}
     >
       <div className="settings-options">
         {SAVE_MODES().map(([id, title, hint]) => (
@@ -314,8 +308,8 @@ function SaveSection({ settings, save }: SectionProps) {
           >
             {id === "folder" && (
               <span className="settings-folder">
-                <code>{settings.saveFolder ?? t("Aucun dossier choisi", "No folder chosen")}</code>
-                <button onClick={(e) => (e.preventDefault(), pickFolder())}>{t("Choisir…", "Choose…")}</button>
+                <code>{settings.saveFolder ?? t("settings.no_folder_chosen")}</code>
+                <button onClick={(e) => (e.preventDefault(), pickFolder())}>{t("settings.choose")}</button>
               </span>
             )}
           </Option>
@@ -327,7 +321,7 @@ function SaveSection({ settings, save }: SectionProps) {
 
 function DuplicatesSection({ settings, save }: SectionProps) {
   return (
-    <Group title={t("Si le fichier existe déjà", "If the file already exists")} hint={t("Ex. : « Photo.webp » est déjà dans le dossier.", "E.g. “Photo.webp” is already in the folder.")}>
+    <Group title={t("settings.if_file_already_exists")} hint={t("settings.e_g_photo_webp_already")}>
       <div className="settings-options">
         {DUPLICATES().map(([id, title, hint]) => (
           <Option key={id} checked={settings.duplicates === id} onChange={() => save({ duplicates: id })} title={title} hint={hint} />
@@ -342,44 +336,32 @@ function ToolsSection({ settings, save }: SectionProps) {
   return (
     <>
       <Group
-        title={t("Détourer", "Remove background")}
-        hint={t(
-          "Modèle utilisé pour retirer le fond des images et des vidéos (une vidéo est traitée image par image, en WebM transparent). Tout reste sur ton ordinateur.",
-          "Model used to remove the background of images and videos (a video is processed frame by frame, into a transparent WebM). Everything stays on your computer.",
-        )}
+        title={t("settings.remove_background")}
+        hint={t("settings.model_used_remove_background_images")}
       >
         <div className="settings-options">
           <Option
             checked={settings.cutout === "fast"}
             onChange={() => save({ cutout: "fast" })}
-            title={t("Efficacité", "Speed")}
-            hint={t(
-              "Une à deux secondes par image. Vidéo : environ 1 s par image de la vidéo, 10 fois moins avec la carte graphique. Modèle de 170 Mo.",
-              "One or two seconds per image. Video: about 1 s per video frame, 10 times less with the graphics card. 170 MB model.",
-            )}
+            title={t("settings.speed")}
+            hint={t("settings.one_two_seconds_per_image")}
           />
           <Option
             checked={settings.cutout === "best"}
             onChange={() => save({ cutout: "best" })}
-            title={t("Qualité", "Quality")}
-            hint={t(
-              "Contours bien plus fins (cheveux, objets détaillés), mais plus lent : environ 4 s par image avec la carte graphique, 15 s sans. Modèle de 490 Mo avec la carte graphique, 970 Mo sans, téléchargé au premier détourage.",
-              "Much finer edges (hair, detailed objects), but slower: about 4 s per frame with the graphics card, 15 s without. 490 MB model with the graphics card, 970 MB without, downloaded on first use.",
-            )}
+            title={t("settings.quality")}
+            hint={t("settings.much_finer_edges_hair_detailed")}
           />
         </div>
       </Group>
       {platform === "windows" && (
-        <Group title={t("Accélération", "Acceleration")}>
+        <Group title={t("settings.acceleration")}>
           <label className="settings-toggle">
             <input type="checkbox" checked={settings.gpu} onChange={(e) => save({ gpu: e.target.checked })} />
             <span>
-              <strong>{t("Utiliser la carte graphique", "Use the graphics card")}</strong>
+              <strong>{t("settings.use_graphics_card")}</strong>
               <small>
-                {t(
-                  "Détourage jusqu'à 10 fois plus rapide (DirectX 12). Si la carte n'y arrive pas (pilote, mémoire vidéo insuffisante…), Morph passe tout seul au processeur.",
-                  "Background removal up to 10 times faster (DirectX 12). If the card can't handle it (driver, not enough video memory…), Morph switches to the processor by itself.",
-                )}
+                {t("settings.background_removal_up_10_times")}
               </small>
             </span>
           </label>
@@ -395,32 +377,32 @@ function SystemSection({ settings, save }: SectionProps) {
     <>
       {platform === "linux" && (
         <Group
-          title={t("Intégration au bureau", "Desktop integration")}
-          hint={t("Menu des applications, « Ouvrir avec Morph » et clic droit des gestionnaires de fichiers.", "Applications menu, “Open with Morph” and file manager right-click.")}
+          title={t("settings.desktop_integration")}
+          hint={t("settings.applications_menu_open_morph_file")}
         >
           <LinuxIntegration />
         </Group>
       )}
-      <Group title={t("Démarrage", "Startup")}>
+      <Group title={t("settings.startup")}>
         <label className="settings-toggle">
           <input type="checkbox" checked={settings.autostart} onChange={(e) => save({ autostart: e.target.checked })} />
           <span>
-            <strong>{t("Lancer Morph à l'ouverture de session", "Start Morph when I sign in")}</strong>
-            <small>{t("Morph reste discret dans la zone de notification, prêt pour le Shift + glisser.", "Morph stays quietly in the notification area, ready for Shift + drag.")}</small>
+            <strong>{t("settings.start_morph_when_i_sign")}</strong>
+            <small>{t("settings.morph_stays_quietly_notification_area")}</small>
           </span>
         </label>
       </Group>
       <Group title="Morph">
         <div>
           <button className="settings-button" onClick={() => save({ onboarded: false })}>
-            {t("Revoir l'écran d'accueil", "Show the welcome screen again")}
+            {t("settings.show_welcome_screen_again")}
           </button>{" "}
           <button className="settings-button" onClick={() => invoke("quit")}>
-            {t("Quitter Morph", "Quit Morph")}
+            {t("settings.quit_morph")}
           </button>
         </div>
         <p className="settings-hint">
-          {t("Fermer cette fenêtre laisse Morph actif ; l'icône de la zone de notification la rouvre.", "Closing this window keeps Morph running; the notification area icon reopens it.")}
+          {t("settings.closing_window_keeps_morph_running")}
         </p>
       </Group>
     </>
@@ -435,28 +417,28 @@ function AboutSection({ version }: { version: string }) {
         <Logo className="about-logo" />
         <div>
           <h2>Morph</h2>
-          <p className="settings-hint">Version {version} · {t("convertir et retoucher en un geste", "convert and edit in one gesture")}</p>
+          <p className="settings-hint">Version {version} · {t("settings.convert_edit_one_gesture")}</p>
           <div className="about-links">
             <button className="settings-button" onClick={() => open(SITE)}>
-              {t("Site de présentation ↗", "Website ↗")}
+              {t("settings.website")}
             </button>
             <button className="settings-button" onClick={() => open(`${SITE}/reviews/#write`)}>
-              {t("Laisser un avis ↗", "Leave a review ↗")}
+              {t("settings.leave_review")}
             </button>
             <button className="settings-button" onClick={() => open(`${SITE}/roadmap/`)}>
-              {t("Proposer une idée ↗", "Suggest an idea ↗")}
+              {t("settings.suggest_idea")}
             </button>
             <button className="settings-button" onClick={() => open(`mailto:${CONTACT}`)}>
-              {t("Contact : ", "Contact: ")}{CONTACT}
+              {t("settings.contact")}{CONTACT}
             </button>
           </div>
         </div>
       </section>
       <UpdatesGroup />
-      <Group title={t("Licence", "License")} hint={t("Morph est un logiciel libre, distribué sous licence GPL-3.0-or-later.", "Morph is free software, released under the GPL-3.0-or-later license.")}>
+      <Group title={t("settings.license")} hint={t("settings.morph_free_software_released_under")}>
         <p className="settings-hint">© 2026 UnderSkyDev.</p>
       </Group>
-      <Group title={t("Composants libres", "Open-source components")} hint={t("Morph s'appuie sur ces projets, merci à leurs auteurs.", "Morph builds on these projects, thanks to their authors.")}>
+      <Group title={t("settings.open_source_components")} hint={t("settings.morph_builds_these_projects_thanks")}>
         <ul className="about-components">
           {COMPONENTS().map(([name, role, license, url]) => (
             <li key={name}>
@@ -485,7 +467,7 @@ interface UpdateStatus {
 function ago(ms: number) {
   const rtf = new Intl.RelativeTimeFormat(locale(), { numeric: "auto" });
   const min = Math.round((Date.now() - ms) / 60000);
-  if (min < 1) return t("à l'instant", "just now");
+  if (min < 1) return t("settings.just_now");
   if (min < 60) return rtf.format(-min, "minute");
   const h = Math.round(min / 60);
   return h < 24 ? rtf.format(-h, "hour") : rtf.format(-Math.round(h / 24), "day");
@@ -521,42 +503,42 @@ function UpdatesGroup() {
   if (!status) return null;
   const { available, checking, installing, lastCheckMs } = status;
   return (
-    <Group title={t("Mises à jour", "Updates")}>
+    <Group title={t("settings.updates")}>
       {installing !== null ? (
         <div className="about-update">
           <p>
-            {t("Téléchargement de Morph", "Downloading Morph")} {available?.version}… {Math.round(installing * 100)} %
+            {t("settings.downloading_morph")} {available?.version}… {Math.round(installing * 100)} %
           </p>
           <div className="about-bar">
             <span style={{ transform: `scaleX(${installing})` }} />
           </div>
-          <p className="settings-hint">{t("Morph redémarrera tout seul une fois la mise à jour installée.", "Morph will restart by itself once the update is installed.")}</p>
+          <p className="settings-hint">{t("settings.morph_will_restart_by_itself")}</p>
         </div>
       ) : available ? (
         <div className="about-update">
           <p>
-            <strong>{t(`Morph ${available.version} est disponible.`, `Morph ${available.version} is available.`)}</strong>
+            <strong>{t("settings.version_available", { version: available.version })}</strong>
           </p>
           {available.notes && <p className="about-notes">{available.notes}</p>}
           <div className="about-links">
             <button className="settings-button is-primary" onClick={install}>
-              {t("Installer et redémarrer", "Install and restart")}
+              {t("settings.install_restart")}
             </button>
             <button className="settings-button" onClick={() => invoke("open_link", { url: `${SITE}/changelog/` })}>
-              {t("Toutes les nouveautés ↗", "All release notes ↗")}
+              {t("settings.all_release_notes")}
             </button>
           </div>
         </div>
       ) : (
         <div className="about-update">
-          <p>{checking ? t("Recherche d'une mise à jour…", "Checking for updates…") : t("Morph est à jour.", "Morph is up to date.")}</p>
+          <p>{checking ? t("settings.checking_updates") : t("settings.morph_up_date")}</p>
           {lastCheckMs !== null && !checking && (
             <p className="settings-hint">
-              {t("Dernière vérification", "Last checked")} {ago(lastCheckMs)}.
+              {t("settings.last_checked")} {ago(lastCheckMs)}.
             </p>
           )}
           <button className="settings-button" disabled={checking} onClick={() => invoke("check_update")}>
-            {t("Rechercher maintenant", "Check now")}
+            {t("settings.check_now")}
           </button>
         </div>
       )}

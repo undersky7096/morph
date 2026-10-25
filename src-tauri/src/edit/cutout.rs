@@ -265,7 +265,7 @@ fn download(model: &Model, to: &Path, on_progress: &mut dyn FnMut(f32)) -> Resul
     file.flush()?;
     let digest: String = hasher.finalize().iter().map(|b| format!("{b:02x}")).collect();
     if received != model.size || digest != model.sha256 {
-        return Err(failed(&crate::i18n::tr("fichier du modèle incomplet ou altéré", "model file incomplete or corrupted")));
+        return Err(failed(&crate::i18n::tr("core.model_file_incomplete_corrupted")));
     }
     Ok(())
 }
@@ -283,7 +283,7 @@ static ENGINE: Mutex<Option<Engine>> = Mutex::new(None);
 static RELEASER: AtomicBool = AtomicBool::new(false);
 
 fn engine_error(e: impl std::fmt::Display) -> ConvertError {
-    ConvertError::Edit(crate::i18n::tr(format!("détourage impossible : {e}"), format!("background removal failed: {e}")))
+    ConvertError::Edit(crate::i18n::trf("core.cutout_failed", &[("error", &e)]))
 }
 
 /// Libère le modèle (de 200 Mo à 2 Go en mémoire) quand il ne sert plus.

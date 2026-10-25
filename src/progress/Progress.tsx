@@ -4,7 +4,7 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { AnimatePresence, motion } from "motion/react";
 
 import { basename } from "../formats";
-import { t } from "../i18n";
+import { plural, t } from "../i18n";
 import { CloseIcon, MinimizeIcon } from "../icons";
 import { countStatus, CUTOUT, formatDuration, type Job, type JobFile, jobLabel, jobProgress, jobRemaining } from "../jobs";
 // Barre de titre commune avec les fenêtres d'outils.
@@ -61,10 +61,10 @@ export default function Progress() {
   const ordered = [...jobs].reverse();
   const active = jobs.filter((j) => !j.finished);
   const title = !running
-    ? t("Terminé", "Done")
+    ? t("progress.done")
     : active.every((j) => j.target === CUTOUT)
-      ? t("Détourage en cours", "Removing background")
-      : t("Conversion en cours", "Converting");
+      ? t("progress.removing_background")
+      : t("progress.converting");
 
   return (
     <div className="progress" onPointerEnter={() => setHover(true)} onPointerLeave={() => setHover(false)}>
@@ -73,13 +73,13 @@ export default function Progress() {
           <strong data-tauri-drag-region>{title}</strong>
         </span>
         <div className="titlebar-buttons">
-          <button aria-label={t("Réduire", "Minimize")} onClick={() => win.minimize()}>
+          <button aria-label={t("progress.minimize")} onClick={() => win.minimize()}>
             <MinimizeIcon />
           </button>
           <button
-            aria-label={t("Fermer", "Close")}
+            aria-label={t("progress.close")}
             className="is-close"
-            title={running ? t("Fermer (le traitement continue)", "Close (processing continues)") : t("Fermer", "Close")}
+            title={running ? t("progress.close_processing_continues") : t("progress.close")}
             onClick={closeWindow}
           >
             <CloseIcon />
@@ -103,7 +103,7 @@ export default function Progress() {
             </motion.section>
           ))}
         </AnimatePresence>
-        {!jobs.length && <p className="progress-empty">{t("Rien en cours.", "Nothing in progress.")}</p>}
+        {!jobs.length && <p className="progress-empty">{t("progress.nothing_progress")}</p>}
       </main>
     </div>
   );
@@ -120,13 +120,13 @@ function JobCard({ job, now }: { job: Job; now: number }) {
 
   let status: string;
   if (!job.finished) {
-    status = `${done}/${total}${remaining !== null ? ` · ${t(`encore ${formatDuration(remaining)}`, `${formatDuration(remaining)} left`)}` : ""}`;
+    status = `${done}/${total}${remaining !== null ? ` · ${t("progress.time_left", { time: formatDuration(remaining) })}` : ""}`;
   } else if (errors || conflicts) {
-    status = `${done}/${total} ${t(done > 1 ? "réussis" : "réussi", "succeeded")}`;
+    status = `${done}/${total} ${plural(done, "progress.succeeded")}`;
   } else if (!done) {
-    status = t("Annulée", "Cancelled");
+    status = t("progress.cancelled");
   } else {
-    status = t("Terminé", "Done");
+    status = t("progress.done");
   }
 
   return (
@@ -135,13 +135,13 @@ function JobCard({ job, now }: { job: Job; now: number }) {
         <span className="job-title">
           {jobLabel(job.target)}{" "}
           <small>
-            · {total} {t(total > 1 ? "fichiers" : "fichier", total === 1 ? "file" : "files")}
+            · {plural(total, "common.files")}
           </small>
         </span>
         <span className="job-status">{status}</span>
         {!job.finished && (
           <button className="job-cancel" onClick={() => invoke("cancel_job", { id: job.id })}>
-            {t("Annuler", "Cancel")}
+            {t("progress.cancel")}
           </button>
         )}
       </div>
@@ -152,7 +152,7 @@ function JobCard({ job, now }: { job: Job; now: number }) {
 
       {conflicts > 1 && (
         <div className="job-conflicts">
-          <span>{t(`${conflicts} fichiers existent déjà :`, `${conflicts} files already exist:`)}</span>
+          <span>{t("progress.files_already_exist", { n: conflicts })}</span>
           <ConflictButtons id={job.id} />
         </div>
       )}
@@ -165,9 +165,9 @@ function JobCard({ job, now }: { job: Job; now: number }) {
 
       {job.finished && outputs.length > 0 && (
         <div className="job-actions">
-          <button onClick={() => invoke("reveal", { path: outputs[0] })}>{t("Ouvrir le dossier", "Open folder")}</button>
-          <button onClick={() => invoke("open_actions", { paths: outputs })}>{t("Éditer…", "Edit…")}</button>
-          {errors > 1 && <button onClick={() => invoke("retry_job", { id: job.id })}>{t("Tout réessayer", "Retry all")}</button>}
+          <button onClick={() => invoke("reveal", { path: outputs[0] })}>{t("progress.open_folder")}</button>
+          <button onClick={() => invoke("open_actions", { paths: outputs })}>{t("progress.edit")}</button>
+          {errors > 1 && <button onClick={() => invoke("retry_job", { id: job.id })}>{t("progress.retry_all")}</button>}
         </div>
       )}
     </>
@@ -178,9 +178,9 @@ function JobCard({ job, now }: { job: Job; now: number }) {
 function ConflictButtons({ id, index }: { id: number; index?: number }) {
   return (
     <span className="conflict-buttons">
-      <button onClick={() => invoke("retry_job", { id, index, duplicates: "replace" })}>{t("Remplacer", "Replace")}</button>
-      <button onClick={() => invoke("retry_job", { id, index, duplicates: "keep" })}>{t("Garder les deux", "Keep both")}</button>
-      <button onClick={() => invoke("skip_conflicts", { id, index })}>{t("Ignorer", "Skip")}</button>
+      <button onClick={() => invoke("retry_job", { id, index, duplicates: "replace" })}>{t("progress.replace")}</button>
+      <button onClick={() => invoke("retry_job", { id, index, duplicates: "keep" })}>{t("progress.keep_both")}</button>
+      <button onClick={() => invoke("skip_conflicts", { id, index })}>{t("progress.skip")}</button>
     </span>
   );
 }
@@ -213,7 +213,7 @@ function FileRow({ id, index, file, single }: { id: number; index: number; file:
       <span className="file-main">
         <button
           className="file-name"
-          title={file.output ? t("Montrer dans l'explorateur", "Show in folder") : file.input}
+          title={file.output ? t("progress.show_folder") : file.input}
           disabled={!file.output}
           onClick={() => file.output && invoke("reveal", { path: file.output })}
         >
@@ -228,8 +228,8 @@ function FileRow({ id, index, file, single }: { id: number; index: number; file:
           <span className="file-error">
             {file.error.message}
             <span className="file-links">
-              <button onClick={() => invoke("retry_job", { id, index })}>{t("Réessayer", "Retry")}</button>
-              <button onClick={copy}>{copied ? t("Copié ✓", "Copied ✓") : t("Copier le détail", "Copy details")}</button>
+              <button onClick={() => invoke("retry_job", { id, index })}>{t("progress.retry")}</button>
+              <button onClick={copy}>{copied ? t("progress.copied") : t("progress.copy_details")}</button>
             </span>
           </span>
         )}
@@ -240,15 +240,15 @@ function FileRow({ id, index, file, single }: { id: number; index: number; file:
           </span>
         )}
         {file.status === "skipped" && (
-          <span className="file-note">{t("Ignoré : le fichier existant est conservé.", "Skipped: the existing file is kept.")}</span>
+          <span className="file-note">{t("progress.skipped_existing_file_kept")}</span>
         )}
-        {file.status === "cancelled" && <span className="file-note">{t("Annulé.", "Cancelled.")}</span>}
+        {file.status === "cancelled" && <span className="file-note">{t("progress.cancelled_2")}</span>}
       </span>
       {cancellable && (
         <button
           className="file-cancel"
-          aria-label={t("Annuler ce fichier", "Cancel this file")}
-          title={t("Annuler ce fichier", "Cancel this file")}
+          aria-label={t("progress.cancel_file")}
+          title={t("progress.cancel_file")}
           onClick={() => invoke("cancel_job", { id, index })}
         >
           ×

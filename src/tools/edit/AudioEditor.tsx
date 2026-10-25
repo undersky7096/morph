@@ -65,7 +65,7 @@ export default function AudioEditor({ path, onSaved, footerExtra }: Props) {
     const ext = path.split(".").pop()?.toLowerCase() ?? "";
     let fellBack = NOT_PLAYABLE.has(ext);
     player.onerror = () => {
-      if (fellBack) return setError(t("Lecture impossible pour ce fichier (la découpe reste possible).", "This file can’t be played (trimming still works)."));
+      if (fellBack) return setError(t("editor.file_cant_be_played_trimming"));
       fellBack = true;
       load(true).catch((e) => setError(describe(e).message));
     };
@@ -137,10 +137,10 @@ export default function AudioEditor({ path, onSaved, footerExtra }: Props) {
   const status =
     error ??
     (busy !== null
-      ? `${t("Enregistrement…", "Saving…")} ${Math.round(busy * 100)} %`
+      ? `${t("editor.saving")} ${Math.round(busy * 100)} %`
       : track
-        ? `${t("Résultat : ", "Result: ")}${keptSummary(segments, track.duration)}`
-        : t("Analyse du fichier…", "Analysing file…"));
+        ? `${t("editor.result")}${keptSummary(segments, track.duration)}`
+        : t("editor.analysing_file"));
 
   return (
     <div className="editor audio-editor">
@@ -148,21 +148,21 @@ export default function AudioEditor({ path, onSaved, footerExtra }: Props) {
         {track ? (
           <TrimTimeline trimmer={trimmer} peaks={track.peaks} />
         ) : (
-          <p className="tool-hint audio-loading">{error ? "" : t("Analyse de la forme d'onde…", "Analysing waveform…")}</p>
+          <p className="tool-hint audio-loading">{error ? "" : t("editor.analysing_waveform")}</p>
         )}
         <TrimTransport trimmer={trimmer} history={history} ready={!!track} />
       </div>
 
       <aside className="tool-panel">
         <section>
-          <h2>{t("Passages gardés", "Kept sections")}</h2>
+          <h2>{t("editor.kept_sections")}</h2>
           <SegmentList trimmer={trimmer} ready={!!track} />
         </section>
 
         <section>
-          <h2>{t("Volume", "Volume")}</h2>
+          <h2>{t("editor.volume")}</h2>
           <Slider
-            label={t("Volume", "Volume")}
+            label={t("editor.volume")}
             min={0}
             max={200}
             neutral={100}
@@ -170,26 +170,26 @@ export default function AudioEditor({ path, onSaved, footerExtra }: Props) {
             value={volume}
             onChange={(v) => update((s) => ({ ...s, volume: v }), "volume")}
           />
-          <p className="tool-hint">{t("Au-delà de 100 %, un limiteur évite la saturation.", "Above 100%, a limiter prevents clipping.")}</p>
+          <p className="tool-hint">{t("editor.above_100_limiter_prevents_clipping")}</p>
         </section>
 
         <section>
-          <h2>{t("Mode d'emploi", "How to use")}</h2>
+          <h2>{t("editor.how_use")}</h2>
           <ul className="audio-help">
             <li>
-              {t("Glissez sur la forme d'onde pour sélectionner, puis ", "Drag on the waveform to select, then ")}
-              <kbd>{t("Suppr", "Delete")}</kbd>
-              {t(" pour retirer ce passage.", " to remove that section.")}
+              {t("editor.drag_waveform_select_then")}
+              <kbd>{t("editor.delete")}</kbd>
+              {t("editor.remove_that_section")}
             </li>
-            <li>{t("Tirez les bords violets pour ajuster le début et la fin.", "Drag the purple edges to adjust the start and end.")}</li>
+            <li>{t("editor.drag_purple_edges_adjust_start")}</li>
             <li>
               <kbd>S</kbd>
-              {t(" coupe au curseur de lecture ; double-clic : sélectionne un passage.", " cuts at the playhead; double-click selects a section.")}
+              {t("editor.cuts_at_playhead_double_click")}
             </li>
-            <li>{t("La lecture saute les passages retirés : vous entendez le résultat.", "Playback skips removed sections: you hear the result.")}</li>
+            <li>{t("editor.playback_skips_removed_sections_hear")}</li>
             <li>
               <kbd>Ctrl</kbd>
-              {t(" + molette pour zoomer.", " + scroll wheel to zoom.")}
+              {t("editor.scroll_wheel_zoom")}
             </li>
           </ul>
         </section>
@@ -200,7 +200,7 @@ export default function AudioEditor({ path, onSaved, footerExtra }: Props) {
         <SaveExtras flow={flow} />
         {footerExtra}
         <button className="primary" onClick={() => save()} disabled={!track || !segments.length || busy !== null}>
-          {busy !== null ? t("Enregistrement…", "Saving…") : t("Enregistrer", "Save")}
+          {busy !== null ? t("editor.saving") : t("editor.save")}
         </button>
       </footer>
     </div>

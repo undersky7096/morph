@@ -113,7 +113,7 @@ pub async fn check(app: &AppHandle) -> Status {
             Ok(available) => s.available = available,
             Err(e) => {
                 eprintln!("[morph] mise à jour : {e}");
-                s.error = Some(tr("Impossible de vérifier les mises à jour (connexion ?).", "Couldn’t check for updates (connection?).").into());
+                s.error = Some(tr("core.couldnt_check_updates_connection").into());
             }
         }
     })
@@ -122,10 +122,10 @@ pub async fn check(app: &AppHandle) -> Status {
 /// Raison d'attendre avant d'installer (l'application redémarre).
 fn busy(app: &AppHandle) -> Option<&'static str> {
     if jobs::any_running(app) {
-        return Some(tr("Un traitement est en cours : la mise à jour pourra s'installer à la fin.", "A task is running: the update can be installed when it’s done."));
+        return Some(tr("core.task_running_update_can_be"));
     }
     if app.get_webview_window(tools::LABEL).is_some() {
-        return Some(tr("Un outil est ouvert : ferme-le avant d'installer la mise à jour.", "A tool is open: close it before installing the update."));
+        return Some(tr("core.tool_open_close_before_installing"));
     }
     None
 }
@@ -136,7 +136,7 @@ pub async fn install(app: &AppHandle) -> Result<(), String> {
         return Err(reason.into());
     }
     let Some(update) = app.state::<State>().update.lock().unwrap().clone() else {
-        return Err(tr("Aucune mise à jour à installer.", "No update to install.").into());
+        return Err(tr("core.no_update_install").into());
     };
     change(app, |s| {
         s.installing = Some(0.0);
@@ -162,7 +162,7 @@ pub async fn install(app: &AppHandle) -> Result<(), String> {
             eprintln!("[morph] installation de la mise à jour : {e}");
             change(app, |s| {
                 s.installing = None;
-                s.error = Some(tr("Le téléchargement de la mise à jour a échoué : réessaie plus tard.", "The update download failed: try again later.").into());
+                s.error = Some(tr("core.update_download_failed_try_again").into());
             });
             Err(e.to_string())
         }

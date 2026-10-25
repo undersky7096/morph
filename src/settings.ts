@@ -173,6 +173,6 @@ export async function saveSettings(patch: Partial<Settings>): Promise<Settings> 
  */
 export async function chooseOutputDir(): Promise<string | null | undefined> {
   if (current.saveMode !== "ask") return undefined;
-  const dir = await open({ directory: true, title: t("Enregistrer dans…", "Save to…") });
+  const dir = await open({ directory: true, title: t("settings.save") });
   return typeof dir === "string" ? dir : null;
 }

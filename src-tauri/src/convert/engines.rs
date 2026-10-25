@@ -11,38 +11,35 @@ use super::catalog::Engine;
 use super::{archive, ffmpeg, office, pandoc, pdf};
 use crate::i18n::tr;
 
-/// Moteur indisponible : le message à montrer (en français et en anglais), et une page
+/// Moteur indisponible : le message à montrer (clé du catalogue de langue), et une page
 /// pour l'obtenir.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Missing {
-    fr: &'static str,
-    en: &'static str,
+    key: &'static str,
     pub link: Option<&'static str>,
 }
 
 impl Missing {
     /// Message dans la langue de l'interface.
     pub fn reason(&self) -> &'static str {
-        tr(self.fr, self.en)
+        tr(self.key)
     }
 }
 
 const REINSTALL: Option<&str> = None;
 pub const LIBREOFFICE_URL: &str = "https://www.libreoffice.org/download/download-libreoffice/";
 pub const LIBREOFFICE_MISSING: Missing = Missing {
-    fr: "Nécessite LibreOffice (gratuit) : clique pour l'installer, puis réessaie.",
-    en: "Requires LibreOffice (free): click to install it, then try again.",
+    key: "core.requires_libreoffice",
     link: Some(LIBREOFFICE_URL),
 };
 
 pub const RAR_MISSING: Missing = Missing {
-    fr: "Pour ouvrir les RAR, installe bsdtar (paquet libarchive-tools), unrar ou 7-Zip, puis réessaie.",
-    en: "To open RAR files, install bsdtar (libarchive-tools package), unrar or 7-Zip, then try again.",
+    key: "core.rar_tool_missing",
     link: None,
 };
 
 fn check(engine: Engine) -> Option<Missing> {
-    let missing = |fr, en, link| Some(Missing { fr, en, link });
+    let missing = |key, link| Some(Missing { key, link });
     match engine {
         Engine::Image | Engine::Svg | Engine::Archive => None,
         Engine::Rar => archive::rar_tool().is_none().then_some(RAR_MISSING),
@@ -51,11 +48,7 @@ fn check(engine: Engine) -> Option<Missing> {
             if ok {
                 None
             } else {
-                missing(
-                    "Le moteur de conversion (ffmpeg) est introuvable : réinstalle Morph.",
-                    "The conversion engine (ffmpeg) is missing: reinstall Morph.",
-                    REINSTALL,
-                )
+                missing("core.ffmpeg_missing", REINSTALL)
             }
         }
         Engine::Pandoc => {
@@ -63,18 +56,14 @@ fn check(engine: Engine) -> Option<Missing> {
             if ok {
                 None
             } else {
-                missing(
-                    "Le moteur de documents (pandoc) est introuvable : réinstalle Morph.",
-                    "The document engine (pandoc) is missing: reinstall Morph.",
-                    REINSTALL,
-                )
+                missing("core.pandoc_missing", REINSTALL)
             }
         }
         Engine::Pdf => {
             if pdf::library_present() {
                 None
             } else {
-                missing("Le moteur PDF (pdfium) est introuvable : réinstalle Morph.", "The PDF engine (pdfium) is missing: reinstall Morph.", REINSTALL)
+                missing("core.pdfium_missing", REINSTALL)
             }
         }
         Engine::Office => office::soffice().is_none().then_some(LIBREOFFICE_MISSING),
