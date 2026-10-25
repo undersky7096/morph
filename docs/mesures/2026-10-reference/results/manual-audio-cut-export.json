@@ -1,0 +1,27 @@
+{
+  "label": "audio-cut-export",
+  "duration_s": 63.23,
+  "memory": {
+    "samples": 250,
+    "duration_s": 62.92,
+    "private_mb_peak": 768.5,
+    "private_mb_mean": 320.4,
+    "private_mb_last": 215.6,
+    "ws_mb_peak": 907.2,
+    "webview_private_mb_peak": 572.7,
+    "morph_private_mb_peak": 505.8,
+    "worker_private_mb_peak": 22.6,
+    "cpu_pct_mean": 58.2,
+    "cpu_pct_peak": 506.5,
+    "workers_peak": 1,
+    "procs_peak": 12
+  },
+  "outputs": {
+    "A2 Edited.mp3": {
+      "first_s": 21.42,
+      "last_change_s": 25.95,
+      "size": 14107436,
+      "gone_s": null
+    }
+  }
+}

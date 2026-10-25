@@ -1,0 +1,1199 @@
+{
+  "site": "http://localhost:4321",
+  "delay_s": 0,
+  "blocked": false,
+  "shots": [
+    {
+      "path": "/",
+      "width": 375,
+      "theme": "dark",
+      "file": "home-375-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "pageHeight": 7159,
+      "wide": [
+        "div.ml-auto.flex.items-center",
+        "button.text-muted.grid.size-9",
+        "svg",
+        "path",
+        "div.wall-plane"
+      ]
+    },
+    {
+      "path": "/",
+      "width": 375,
+      "theme": "light",
+      "file": "home-375-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "pageHeight": 7159,
+      "wide": [
+        "div.ml-auto.flex.items-center",
+        "button.text-muted.grid.size-9",
+        "svg",
+        "path",
+        "div.wall-plane"
+      ]
+    },
+    {
+      "path": "/",
+      "width": 768,
+      "theme": "dark",
+      "file": "home-768-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "pageHeight": 5818,
+      "wide": [
+        "div.wall-plane",
+        "div.wall-col",
+        "div.wall-col",
+        "div.wall-col",
+        "img.wall-shot"
+      ]
+    },
+    {
+      "path": "/",
+      "width": 768,
+      "theme": "light",
+      "file": "home-768-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "pageHeight": 5818,
+      "wide": [
+        "div.wall-plane",
+        "div.wall-col",
+        "div.wall-col",
+        "div.wall-col",
+        "img.wall-shot"
+      ]
+    },
+    {
+      "path": "/",
+      "width": 1024,
+      "theme": "dark",
+      "file": "home-1024-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1024,
+      "clientWidth": 1024,
+      "pageHeight": 6082,
+      "wide": [
+        "div.wall-plane",
+        "div.wall-col",
+        "div.wall-col",
+        "div.wall-col",
+        "img.wall-shot"
+      ]
+    },
+    {
+      "path": "/",
+      "width": 1024,
+      "theme": "light",
+      "file": "home-1024-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1024,
+      "clientWidth": 1024,
+      "pageHeight": 6082,
+      "wide": [
+        "div.wall-plane",
+        "div.wall-col",
+        "div.wall-col",
+        "div.wall-col",
+        "div.wall-col"
+      ]
+    },
+    {
+      "path": "/",
+      "width": 1440,
+      "theme": "dark",
+      "file": "home-1440-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "pageHeight": 6168,
+      "wide": [
+        "div.wall-plane",
+        "div.wall-col",
+        "div.wall-col",
+        "img.wall-shot",
+        "img.wall-shot"
+      ]
+    },
+    {
+      "path": "/",
+      "width": 1440,
+      "theme": "light",
+      "file": "home-1440-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "pageHeight": 6168,
+      "wide": [
+        "div.wall-plane",
+        "div.wall-col",
+        "img.wall-shot",
+        "img.wall-shot",
+        "div.wall-col"
+      ]
+    },
+    {
+      "path": "/",
+      "width": 1920,
+      "theme": "dark",
+      "file": "home-1920-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "pageHeight": 6168,
+      "wide": [
+        "div.wall-plane",
+        "img.wall-shot",
+        "img.wall-shot",
+        "div.wall-col",
+        "img.wall-shot"
+      ]
+    },
+    {
+      "path": "/",
+      "width": 1920,
+      "theme": "light",
+      "file": "home-1920-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "pageHeight": 6168,
+      "wide": [
+        "div.wall-plane",
+        "img.wall-shot",
+        "img.wall-shot",
+        "div.wall-col",
+        "img.wall-shot"
+      ]
+    },
+    {
+      "path": "/download/",
+      "width": 375,
+      "theme": "dark",
+      "file": "download-375-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "pageHeight": 5096,
+      "wide": [
+        "div.ml-auto.flex.items-center",
+        "button.text-muted.grid.size-9",
+        "svg",
+        "path"
+      ]
+    },
+    {
+      "path": "/download/",
+      "width": 375,
+      "theme": "light",
+      "file": "download-375-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "pageHeight": 5096,
+      "wide": [
+        "div.ml-auto.flex.items-center",
+        "button.text-muted.grid.size-9",
+        "svg",
+        "path"
+      ]
+    },
+    {
+      "path": "/download/",
+      "width": 768,
+      "theme": "dark",
+      "file": "download-768-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "pageHeight": 3040,
+      "wide": []
+    },
+    {
+      "path": "/download/",
+      "width": 768,
+      "theme": "light",
+      "file": "download-768-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "pageHeight": 3040,
+      "wide": []
+    },
+    {
+      "path": "/download/",
+      "width": 1024,
+      "theme": "dark",
+      "file": "download-1024-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1024,
+      "clientWidth": 1024,
+      "pageHeight": 3017,
+      "wide": []
+    },
+    {
+      "path": "/download/",
+      "width": 1024,
+      "theme": "light",
+      "file": "download-1024-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1024,
+      "clientWidth": 1024,
+      "pageHeight": 3017,
+      "wide": []
+    },
+    {
+      "path": "/download/",
+      "width": 1440,
+      "theme": "dark",
+      "file": "download-1440-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "pageHeight": 3017,
+      "wide": []
+    },
+    {
+      "path": "/download/",
+      "width": 1440,
+      "theme": "light",
+      "file": "download-1440-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "pageHeight": 3017,
+      "wide": []
+    },
+    {
+      "path": "/download/",
+      "width": 1920,
+      "theme": "dark",
+      "file": "download-1920-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "pageHeight": 3017,
+      "wide": []
+    },
+    {
+      "path": "/download/",
+      "width": 1920,
+      "theme": "light",
+      "file": "download-1920-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "pageHeight": 3017,
+      "wide": []
+    },
+    {
+      "path": "/formats/",
+      "width": 375,
+      "theme": "dark",
+      "file": "formats-375-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "pageHeight": 12398,
+      "wide": [
+        "div.ml-auto.flex.items-center",
+        "button.text-muted.grid.size-9",
+        "svg",
+        "path"
+      ]
+    },
+    {
+      "path": "/formats/",
+      "width": 375,
+      "theme": "light",
+      "file": "formats-375-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "pageHeight": 12398,
+      "wide": [
+        "div.ml-auto.flex.items-center",
+        "button.text-muted.grid.size-9",
+        "svg",
+        "path"
+      ]
+    },
+    {
+      "path": "/formats/",
+      "width": 768,
+      "theme": "dark",
+      "file": "formats-768-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "pageHeight": 6519,
+      "wide": []
+    },
+    {
+      "path": "/formats/",
+      "width": 768,
+      "theme": "light",
+      "file": "formats-768-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "pageHeight": 6519,
+      "wide": []
+    },
+    {
+      "path": "/formats/",
+      "width": 1024,
+      "theme": "dark",
+      "file": "formats-1024-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1024,
+      "clientWidth": 1024,
+      "pageHeight": 4846,
+      "wide": []
+    },
+    {
+      "path": "/formats/",
+      "width": 1024,
+      "theme": "light",
+      "file": "formats-1024-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1024,
+      "clientWidth": 1024,
+      "pageHeight": 4846,
+      "wide": []
+    },
+    {
+      "path": "/formats/",
+      "width": 1440,
+      "theme": "dark",
+      "file": "formats-1440-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "pageHeight": 4718,
+      "wide": []
+    },
+    {
+      "path": "/formats/",
+      "width": 1440,
+      "theme": "light",
+      "file": "formats-1440-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "pageHeight": 4718,
+      "wide": []
+    },
+    {
+      "path": "/formats/",
+      "width": 1920,
+      "theme": "dark",
+      "file": "formats-1920-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "pageHeight": 4718,
+      "wide": []
+    },
+    {
+      "path": "/formats/",
+      "width": 1920,
+      "theme": "light",
+      "file": "formats-1920-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "pageHeight": 4718,
+      "wide": []
+    },
+    {
+      "path": "/convert/png-to-webp/",
+      "width": 375,
+      "theme": "dark",
+      "file": "convert_png-to-webp-375-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "pageHeight": 3611,
+      "wide": [
+        "div.ml-auto.flex.items-center",
+        "button.text-muted.grid.size-9",
+        "svg",
+        "path"
+      ]
+    },
+    {
+      "path": "/convert/png-to-webp/",
+      "width": 375,
+      "theme": "light",
+      "file": "convert_png-to-webp-375-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "pageHeight": 3611,
+      "wide": [
+        "div.ml-auto.flex.items-center",
+        "button.text-muted.grid.size-9",
+        "svg",
+        "path"
+      ]
+    },
+    {
+      "path": "/convert/png-to-webp/",
+      "width": 768,
+      "theme": "dark",
+      "file": "convert_png-to-webp-768-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "pageHeight": 2321,
+      "wide": []
+    },
+    {
+      "path": "/convert/png-to-webp/",
+      "width": 768,
+      "theme": "light",
+      "file": "convert_png-to-webp-768-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "pageHeight": 2321,
+      "wide": []
+    },
+    {
+      "path": "/convert/png-to-webp/",
+      "width": 1024,
+      "theme": "dark",
+      "file": "convert_png-to-webp-1024-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1024,
+      "clientWidth": 1024,
+      "pageHeight": 2292,
+      "wide": []
+    },
+    {
+      "path": "/convert/png-to-webp/",
+      "width": 1024,
+      "theme": "light",
+      "file": "convert_png-to-webp-1024-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1024,
+      "clientWidth": 1024,
+      "pageHeight": 2292,
+      "wide": []
+    },
+    {
+      "path": "/convert/png-to-webp/",
+      "width": 1440,
+      "theme": "dark",
+      "file": "convert_png-to-webp-1440-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "pageHeight": 2292,
+      "wide": []
+    },
+    {
+      "path": "/convert/png-to-webp/",
+      "width": 1440,
+      "theme": "light",
+      "file": "convert_png-to-webp-1440-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "pageHeight": 2292,
+      "wide": []
+    },
+    {
+      "path": "/convert/png-to-webp/",
+      "width": 1920,
+      "theme": "dark",
+      "file": "convert_png-to-webp-1920-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "pageHeight": 2292,
+      "wide": []
+    },
+    {
+      "path": "/convert/png-to-webp/",
+      "width": 1920,
+      "theme": "light",
+      "file": "convert_png-to-webp-1920-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "pageHeight": 2292,
+      "wide": []
+    },
+    {
+      "path": "/en/",
+      "width": 375,
+      "theme": "dark",
+      "file": "en-375-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "pageHeight": 7006,
+      "wide": [
+        "div.wall-plane",
+        "div.wall-col",
+        "div.wall-col",
+        "div.wall-col",
+        "span.blob.b2"
+      ]
+    },
+    {
+      "path": "/en/",
+      "width": 375,
+      "theme": "light",
+      "file": "en-375-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "pageHeight": 7006,
+      "wide": [
+        "div.wall-plane",
+        "div.wall-col",
+        "div.wall-col",
+        "div.wall-col",
+        "div.wall-col"
+      ]
+    },
+    {
+      "path": "/en/",
+      "width": 768,
+      "theme": "dark",
+      "file": "en-768-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "pageHeight": 5891,
+      "wide": [
+        "div.wall-plane",
+        "div.wall-col",
+        "div.wall-col",
+        "div.wall-col",
+        "img.wall-shot"
+      ]
+    },
+    {
+      "path": "/en/",
+      "width": 768,
+      "theme": "light",
+      "file": "en-768-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "pageHeight": 5891,
+      "wide": [
+        "div.wall-plane",
+        "div.wall-col",
+        "div.wall-col",
+        "div.wall-col",
+        "div.wall-col"
+      ]
+    },
+    {
+      "path": "/en/",
+      "width": 1024,
+      "theme": "dark",
+      "file": "en-1024-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1024,
+      "clientWidth": 1024,
+      "pageHeight": 6024,
+      "wide": [
+        "div.wall-plane",
+        "div.wall-col",
+        "div.wall-col",
+        "div.wall-col",
+        "img.wall-shot"
+      ]
+    },
+    {
+      "path": "/en/",
+      "width": 1024,
+      "theme": "light",
+      "file": "en-1024-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1024,
+      "clientWidth": 1024,
+      "pageHeight": 6024,
+      "wide": [
+        "div.wall-plane",
+        "div.wall-col",
+        "div.wall-col",
+        "div.wall-col",
+        "img.wall-shot"
+      ]
+    },
+    {
+      "path": "/en/",
+      "width": 1440,
+      "theme": "dark",
+      "file": "en-1440-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "pageHeight": 6135,
+      "wide": [
+        "div.wall-plane",
+        "div.wall-col",
+        "img.wall-shot",
+        "img.wall-shot",
+        "div.wall-col"
+      ]
+    },
+    {
+      "path": "/en/",
+      "width": 1440,
+      "theme": "light",
+      "file": "en-1440-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "pageHeight": 6135,
+      "wide": [
+        "div.wall-plane",
+        "div.wall-col",
+        "img.wall-shot",
+        "img.wall-shot",
+        "div.wall-col"
+      ]
+    },
+    {
+      "path": "/en/",
+      "width": 1920,
+      "theme": "dark",
+      "file": "en-1920-dark.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "pageHeight": 6135,
+      "wide": [
+        "div.wall-plane",
+        "img.wall-shot",
+        "img.wall-shot",
+        "div.wall-col",
+        "img.wall-shot"
+      ]
+    },
+    {
+      "path": "/en/",
+      "width": 1920,
+      "theme": "light",
+      "file": "en-1920-light.jpg",
+      "horizontal_overflow": false,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "pageHeight": 6135,
+      "wide": [
+        "div.wall-plane",
+        "img.wall-shot",
+        "img.wall-shot",
+        "div.wall-col",
+        "img.wall-shot"
+      ]
+    }
+  ],
+  "keyboard": {
+    "/": [
+      {
+        "tag": "a",
+        "text": "Morph",
+        "href": "/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Fonctionnalités",
+        "href": "/#features",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Télécharger",
+        "href": "/download/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Avis",
+        "href": "/reviews/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "FAQ",
+        "href": "/faq/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "EN",
+        "href": "/en/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "button",
+        "text": "Changer de thème",
+        "href": null,
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "GitHub",
+        "href": "https://github.com/undersky7096/morph",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Connexion",
+        "href": "/account/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Nouveau · v1.4 : Morph parle anglais →",
+        "href": "/changelog/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Télécharger Morph",
+        "href": "/download/",
+        "outline": true,
+        "boxShadow": true,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Voir sur GitHub\n★ 1",
+        "href": "https://github.com/undersky7096/morph",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      }
+    ],
+    "/download/": [
+      {
+        "tag": "a",
+        "text": "Morph",
+        "href": "/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Fonctionnalités",
+        "href": "/#features",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Télécharger",
+        "href": "/download/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Avis",
+        "href": "/reviews/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "FAQ",
+        "href": "/faq/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "EN",
+        "href": "/en/download/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "button",
+        "text": "Changer de thème",
+        "href": null,
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "GitHub",
+        "href": "https://github.com/undersky7096/morph",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Connexion",
+        "href": "/account/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Télécharger pour Windows",
+        "href": "https://github.com/undersky7096/morph/releases/download/v1.6.1/Morph_1.6.1_x64-setup.exe",
+        "outline": true,
+        "boxShadow": true,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Installeur .exe\n92 Mo",
+        "href": "https://github.com/undersky7096/morph/releases/download/v1.6.1/Morph_1.6.1_x64-setup.exe",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "AppImage\n252 Mo",
+        "href": "https://github.com/undersky7096/morph/releases/download/v1.6.1/Morph_1.6.1_amd64.AppImage",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      }
+    ],
+    "/formats/": [
+      {
+        "tag": "a",
+        "text": "Morph",
+        "href": "/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Fonctionnalités",
+        "href": "/#features",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Télécharger",
+        "href": "/download/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Avis",
+        "href": "/reviews/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "FAQ",
+        "href": "/faq/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "EN",
+        "href": "/en/formats/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "button",
+        "text": "Changer de thème",
+        "href": null,
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "GitHub",
+        "href": "https://github.com/undersky7096/morph",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Connexion",
+        "href": "/account/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "input",
+        "text": "",
+        "href": null,
+        "outline": false,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "input",
+        "text": "",
+        "href": null,
+        "outline": false,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "button",
+        "text": "Tous",
+        "href": null,
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      }
+    ],
+    "/convert/png-to-webp/": [
+      {
+        "tag": "a",
+        "text": "Morph",
+        "href": "/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Fonctionnalités",
+        "href": "/#features",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Télécharger",
+        "href": "/download/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Avis",
+        "href": "/reviews/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "FAQ",
+        "href": "/faq/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "EN",
+        "href": "/en/convert/png-to-webp/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "button",
+        "text": "Changer de thème",
+        "href": null,
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "GitHub",
+        "href": "https://github.com/undersky7096/morph",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Connexion",
+        "href": "/account/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Conversions",
+        "href": "/convert/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Télécharger Morph gratuitement",
+        "href": "/download/",
+        "outline": true,
+        "boxShadow": true,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Ou convertir ici, dans le navigateur",
+        "href": "#try",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      }
+    ],
+    "/en/": [
+      {
+        "tag": "a",
+        "text": "Morph",
+        "href": "/en/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Features",
+        "href": "/en/#features",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Download",
+        "href": "/en/download/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Reviews",
+        "href": "/en/reviews/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "FAQ",
+        "href": "/en/faq/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "FR",
+        "href": "/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "button",
+        "text": "Toggle theme",
+        "href": null,
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "GitHub",
+        "href": "https://github.com/undersky7096/morph",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Sign in",
+        "href": "/en/account/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "New · v1.4 now in English →",
+        "href": "/en/changelog/",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "Download Morph",
+        "href": "/en/download/",
+        "outline": true,
+        "boxShadow": true,
+        "visible": true
+      },
+      {
+        "tag": "a",
+        "text": "View on GitHub\n★ 1",
+        "href": "https://github.com/undersky7096/morph",
+        "outline": true,
+        "boxShadow": false,
+        "visible": true
+      }
+    ]
+  }
+}

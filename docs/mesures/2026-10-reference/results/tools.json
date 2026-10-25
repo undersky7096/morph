@@ -1,0 +1,47 @@
+{
+  "crop-jpg": {
+    "values": [
+      0.034,
+      0.031,
+      0.055
+    ],
+    "median": 0.034,
+    "spread_pct": 68.4
+  },
+  "compress-jpg": {
+    "values": [
+      0.034,
+      0.03,
+      0.03
+    ],
+    "median": 0.03,
+    "spread_pct": 13.8
+  },
+  "edit-jpg": {
+    "values": [
+      0.057,
+      0.054,
+      0.055
+    ],
+    "median": 0.055,
+    "spread_pct": 5.8
+  },
+  "edit-mp3": {
+    "values": [
+      0.058,
+      0.055,
+      0.03
+    ],
+    "median": 0.055,
+    "spread_pct": 51.5
+  },
+  "edit-mp4": {
+    "values": [
+      0.037,
+      0.033,
+      0.03
+    ],
+    "median": 0.033,
+    "spread_pct": 21.7
+  }
+}

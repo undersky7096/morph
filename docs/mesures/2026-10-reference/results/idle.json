@@ -1,0 +1,15 @@
+{
+  "samples": 457,
+  "duration_s": 119.54,
+  "private_mb_peak": 342.8,
+  "private_mb_mean": 342.1,
+  "private_mb_last": 342.1,
+  "ws_mb_peak": 243.0,
+  "webview_private_mb_peak": 263.4,
+  "morph_private_mb_peak": 79.5,
+  "worker_private_mb_peak": 0.0,
+  "cpu_pct_mean": 25.7,
+  "cpu_pct_peak": 101.5,
+  "workers_peak": 0,
+  "procs_peak": 9
+}

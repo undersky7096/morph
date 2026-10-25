@@ -1,0 +1,18 @@
+{
+  "visible_s": 0.6145101000001887,
+  "memory_first_30s": {
+    "samples": 117,
+    "duration_s": 29.49,
+    "private_mb_peak": 237.6,
+    "private_mb_mean": 228.3,
+    "private_mb_last": 227.1,
+    "ws_mb_peak": 525.9,
+    "webview_private_mb_peak": 229.1,
+    "morph_private_mb_peak": 9.5,
+    "worker_private_mb_peak": 0.0,
+    "cpu_pct_mean": 25.7,
+    "cpu_pct_peak": 148.8,
+    "workers_peak": 0,
+    "procs_peak": 9
+  }
+}

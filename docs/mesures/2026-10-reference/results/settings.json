@@ -1,0 +1,41 @@
+{
+  "memory_open": {
+    "samples": 460,
+    "duration_s": 119.73,
+    "private_mb_peak": 422.8,
+    "private_mb_mean": 401.9,
+    "private_mb_last": 400.3,
+    "ws_mb_peak": 410.1,
+    "webview_private_mb_peak": 328.5,
+    "morph_private_mb_peak": 94.3,
+    "worker_private_mb_peak": 0.0,
+    "cpu_pct_mean": 22.7,
+    "cpu_pct_peak": 82.5,
+    "workers_peak": 0,
+    "procs_peak": 10
+  },
+  "memory_after_close": {
+    "samples": 458,
+    "duration_s": 119.69,
+    "private_mb_peak": 367.6,
+    "private_mb_mean": 366.8,
+    "private_mb_last": 366.4,
+    "ws_mb_peak": 342.2,
+    "webview_private_mb_peak": 273.4,
+    "morph_private_mb_peak": 94.2,
+    "worker_private_mb_peak": 0.0,
+    "cpu_pct_mean": 25.4,
+    "cpu_pct_peak": 101.1,
+    "workers_peak": 0,
+    "procs_peak": 9
+  },
+  "visible_s": {
+    "values": [
+      0.405,
+      0.308,
+      0.31
+    ],
+    "median": 0.31,
+    "spread_pct": 31.5
+  }
+}

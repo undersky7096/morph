@@ -1,0 +1,173 @@
+{
+  "pages": {
+    "/": {
+      "status": 200,
+      "bytes": 49121,
+      "versions": [
+        "v1.4"
+      ],
+      "hits": {
+        "macOS": [
+          "lécharger Morph Voir sur GitHub Windows · Linux — gratuit · macOS bientôt 21 téléchargements 71 extensions reconnues 7 v"
+        ],
+        "v1.": [
+          "en Connexion Fonctionnalités Télécharger Avis FAQ Nouveau · v1.4 : Morph parle anglais → Convertis tout. Sans quitter to"
+        ],
+        "parallèle": [
+          "vidéos. Lots rapides Convertis des dizaines de fichiers en parallèle avec une estimation du temps restant. À ton image"
+        ],
+        "centaines": [
+          "r internet. Tes fichiers ne quittent jamais ta machine. Des centaines de formats → PNG, WEBP, AVIF, HEIC, MP4, MOV, MKV,"
+        ],
+        "gratuit": [
+          "ages, vidéos, audio, documents, PDF et archives — en local, gratuit et open source. Télécharger Morph Voir sur GitHub Wi",
+          "source. Télécharger Morph Voir sur GitHub Windows · Linux — gratuit · macOS bientôt 21 téléchargements 71 extensions rec"
+        ]
+      }
+    },
+    "/en/": {
+      "status": 200,
+      "bytes": 48677,
+      "versions": [
+        "v1.4"
+      ],
+      "hits": {
+        "macOS": [
+          "rce. Download Morph View on GitHub Windows · Linux — free · macOS soon 21 downloads 71 recognised extensions 7 releases"
+        ],
+        "v1.": [
+          "Reviews FAQ fr Sign in Features Download Reviews FAQ New · v1.4 now in English → Convert anything. Without leaving your"
+        ],
+        "parallel": [
+          "und of your videos. Fast batches Convert dozens of files in parallel with a time-remaining estimate. Make it yours Light"
+        ],
+        "free": [
+          "Images, video, audio, documents, PDF and archives — local, free and open source. Download Morph View on GitHub Windows",
+          "pen source. Download Morph View on GitHub Windows · Linux — free · macOS soon 21 downloads 71 recognised extensions 7 re"
+        ]
+      }
+    },
+    "/download/": {
+      "status": 200,
+      "bytes": 43129,
+      "versions": [
+        "1.6.1",
+        "1.6.0",
+        "1.3",
+        "1.5.0",
+        "1.4.0",
+        "1.3.2",
+        "1.3.1",
+        "1.0.0"
+      ],
+      "hits": {
+        "macOS": [
+          "nux AppImage · x86-64, toutes distributions AppImage 252 Mo macOS Bientôt disponible Bientôt Installation · Windows Lanc"
+        ],
+        "gratuit": [
+          "eautiques (DOCX, XLSX, PPTX…), installe aussi LibreOffice , gratuit. Historique des versions Toutes les versions publiée",
+          "s bureautiques utilisent LibreOffice s&#39;il est installé (gratuit) ; sinon, ils apparaissent grisés et un clic mène à"
+        ],
+        "carte graphique": [
+          "92 Mo Détourage jusqu&#39;à 10 fois plus rapide grâce à la carte graphique (Windows). Morph utilise maintenant la carte",
+          "à la carte graphique (Windows). Morph utilise maintenant la carte graphique (toute carte compatible DirectX 12 : NVIDIA,"
+        ]
+      }
+    },
+    "/en/download/": {
+      "status": 200,
+      "bytes": 42916,
+      "versions": [
+        "1.6.1",
+        "1.6.0",
+        "1.3",
+        "1.5.0",
+        "1.4.0",
+        "1.3.2",
+        "1.3.1",
+        "1.0.0"
+      ],
+      "hits": {
+        "macOS": [
+          "e 92 Mo Linux AppImage · x86-64, any distro AppImage 252 Mo macOS Coming soon Soon Installation · Windows Run Morph_x64-"
+        ],
+        "gratuit": [
+          "s bureautiques utilisent LibreOffice s&#39;il est installé (gratuit) ; sinon, ils apparaissent grisés et un clic mène à"
+        ],
+        "free": [
+          "vert office documents (DOCX, XLSX, PPTX…), also install the free LibreOffice . Version history Every published version,"
+        ],
+        "carte graphique": [
+          "92 Mo Détourage jusqu&#39;à 10 fois plus rapide grâce à la carte graphique (Windows). Morph utilise maintenant la carte",
+          "à la carte graphique (Windows). Morph utilise maintenant la carte graphique (toute carte compatible DirectX 12 : NVIDIA,"
+        ]
+      }
+    },
+    "/faq/": {
+      "status": 200,
+      "bytes": 21138,
+      "versions": [],
+      "hits": {
+        "macOS": [
+          "10 et 11 (64 bits) et Linux (AppImage x86-64). Une version macOS est prévue. Comment ouvrir le menu radial ? Sous Windo"
+        ],
+        "hors ligne": [
+          "un modèle de 970 Mo au premier usage. Ensuite, tout se fait hors ligne. Le mode standard est plus rapide. Compte et avis"
+        ],
+        "gratuit": [
+          "ou ouvre une issue GitHub . Démarrer Morph est-il vraiment gratuit ? Oui. Morph est gratuit, open source et sans public",
+          "b . Démarrer Morph est-il vraiment gratuit ? Oui. Morph est gratuit, open source et sans publicité. Il n’y a ni abonneme",
+          "utiques (DOCX vers PDF, XLSX, PPTX…) utilisent LibreOffice, gratuit. Installe-le puis relance Morph : ils deviennent dis"
+        ]
+      }
+    },
+    "/en/faq/": {
+      "status": 200,
+      "bytes": 20225,
+      "versions": [],
+      "hits": {
+        "macOS": [
+          "? Windows 10 and 11 (64-bit) and Linux (x86-64 AppImage). A macOS version is planned. How do I open the radial menu? On"
+        ],
+        "offline": [
+          "ds a 970 MB model on first use. After that, everything runs offline. Standard mode is faster. Account and reviews Do I n"
+        ],
+        "free": [
+          "h or open an issue GitHub . Getting started Is Morph really free? Yes. Morph is free, open source and ad-free. There is",
+          "itHub . Getting started Is Morph really free? Yes. Morph is free, open source and ad-free. There is no subscription and",
+          "s Morph really free? Yes. Morph is free, open source and ad-free. There is no subscription and no paid tier. Which syste",
+          "reyed out Office formats (DOCX to PDF, XLSX, PPTX…) use the free LibreOffice. Install it and restart Morph to enable the"
+        ]
+      }
+    },
+    "/formats/": {
+      "status": 200,
+      "bytes": 96739,
+      "versions": [],
+      "hits": {}
+    },
+    "/changelog/": {
+      "status": 200,
+      "bytes": 27055,
+      "versions": [
+        "1.6.1",
+        "1.6.0",
+        "1.3",
+        "1.5.0",
+        "1.4.0",
+        "1.3.2",
+        "1.3.1",
+        "1.0.0"
+      ],
+      "hits": {
+        "gratuit": [
+          "s bureautiques utilisent LibreOffice s&#39;il est installé (gratuit) ; sinon, ils apparaissent grisés et un clic mène à"
+        ],
+        "carte graphique": [
+          "1.6.0 Détourage jusqu&#39;à 10 fois plus rapide grâce à la carte graphique (Windows). Morph utilise maintenant la carte",
+          "à la carte graphique (Windows). Morph utilise maintenant la carte graphique (toute carte compatible DirectX 12 : NVIDIA,"
+        ]
+      }
+    }
+  }
+}

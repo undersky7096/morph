@@ -1,0 +1,27 @@
+{
+  "label": "cancel-v1-webm",
+  "duration_s": 165.14,
+  "memory": {
+    "samples": 654,
+    "duration_s": 164.83,
+    "private_mb_peak": 863.6,
+    "private_mb_mean": 599.6,
+    "private_mb_last": 231.4,
+    "ws_mb_peak": 1180.2,
+    "webview_private_mb_peak": 294.3,
+    "morph_private_mb_peak": 11.1,
+    "worker_private_mb_peak": 562.6,
+    "cpu_pct_mean": 486.2,
+    "cpu_pct_peak": 1524.8,
+    "workers_peak": 1,
+    "procs_peak": 12
+  },
+  "outputs": {
+    "V1.webm": {
+      "first_s": 11.12,
+      "last_change_s": 96.53,
+      "size": 25952256,
+      "gone_s": 111.1
+    }
+  }
+}
