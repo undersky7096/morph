@@ -162,20 +162,37 @@ pub fn decode_still(input: &Path) -> Result<DynamicImage, ConvertError> {
 /// Enregistre une image en AVIF (libaom, image fixe). La transparence, s'il y en a, part
 /// dans un second flux comme le prévoit le format.
 pub fn encode_avif(img: &DynamicImage, output: &Path) -> Result<(), ConvertError> {
+    encode_still(img, output, |cmd, alpha| {
+        if alpha {
+            cmd.args(["-filter_complex", "[0]format=yuva420p,split[c][a];[a]alphaextract[al]", "-map", "[c]", "-map", "[al]"]);
+        } else {
+            cmd.args(["-pix_fmt", "yuv420p"]);
+        }
+        cmd.args(["-c:v", "libaom-av1", "-still-picture", "1", "-crf", "28", "-cpu-used", "6", "-row-mt", "1"])
+            .args(["-f", "avif"]);
+    })
+}
+
+/// WebP avec perte (libwebp, qualité 82, transparence gardée). L'encodeur de la crate
+/// `image` ne fait que du sans perte, souvent plus lourd que la photo d'origine.
+pub fn encode_webp(img: &DynamicImage, output: &Path) -> Result<(), ConvertError> {
+    encode_still(img, output, |cmd, alpha| {
+        cmd.args(["-pix_fmt", if alpha { "yuva420p" } else { "yuv420p" }])
+            .args(["-c:v", "libwebp", "-quality", "82", "-compression_level", "4", "-f", "webp"]);
+    })
+}
+
+/// Encode une image fixe : pixels RGBA envoyés à ffmpeg par stdin, `codec` ajoute les
+/// arguments d'encodage (son second paramètre dit si l'image a de la transparence).
+fn encode_still(img: &DynamicImage, output: &Path, codec: impl FnOnce(&mut Command, bool)) -> Result<(), ConvertError> {
     use std::io::Write;
     let rgba = img.to_rgba8();
     let alpha = rgba.pixels().any(|p| p.0[3] < 255);
     let size = format!("{}x{}", rgba.width(), rgba.height());
     let mut cmd = command();
     cmd.args(["-loglevel", "error", "-n", "-f", "rawvideo", "-pix_fmt", "rgba", "-s", &size, "-i", "-"]);
-    if alpha {
-        cmd.args(["-filter_complex", "[0]format=yuva420p,split[c][a];[a]alphaextract[al]", "-map", "[c]", "-map", "[al]"]);
-    } else {
-        cmd.args(["-pix_fmt", "yuv420p"]);
-    }
-    cmd.args(["-c:v", "libaom-av1", "-still-picture", "1", "-crf", "28", "-cpu-used", "6", "-row-mt", "1"])
-        .args(["-f", "avif"])
-        .arg(output)
+    codec(&mut cmd, alpha);
+    cmd.arg(output)
         .stdin(Stdio::piped())
         .stdout(Stdio::null())
         .stderr(Stdio::piped());
@@ -361,6 +378,36 @@ mod tests {
         });
         assert!(matches!(result, Err(ConvertError::Cancelled)), "{result:?}");
         assert!(!output.exists());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// Nécessite ffmpeg avec libwebp ; ignoré sinon.
+    #[test]
+    fn webp_is_lossy_and_keeps_transparency() {
+        if command().arg("-version").output().is_err() {
+            return;
+        }
+        let dir = std::env::temp_dir().join("morph-test-webp");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        // Photo bruitée (proche d'une vraie photo), puis la même avec un coin transparent.
+        let photo = image::RgbaImage::from_fn(640, 480, |x, y| {
+            let n = ((x * 7919 + y * 104_729) % 251) as u8;
+            image::Rgba([(x / 3) as u8 ^ n, (y / 2) as u8, n, if x < 64 && y < 64 { 0 } else { 255 }])
+        });
+        let img = DynamicImage::ImageRgba8(photo);
+
+        let lossy = dir.join("lossy.webp");
+        encode_webp(&img, &lossy).unwrap();
+        let lossless = dir.join("lossless.webp");
+        img.save_with_format(&lossless, image::ImageFormat::WebP).unwrap();
+        let size = |p: &Path| std::fs::metadata(p).unwrap().len();
+        assert!(size(&lossy) * 2 < size(&lossless), "{} contre {}", size(&lossy), size(&lossless));
+
+        let back = image::open(&lossy).unwrap().to_rgba8();
+        assert_eq!(back.dimensions(), (640, 480));
+        assert!(back.get_pixel(10, 10).0[3] < 32, "le coin transparent doit le rester");
+        assert!(back.get_pixel(320, 240).0[3] > 223);
         std::fs::remove_dir_all(&dir).unwrap();
     }
 

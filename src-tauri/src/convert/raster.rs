@@ -43,6 +43,9 @@ pub fn save(img: &DynamicImage, output: &Path, ext: &str) -> Result<(), ConvertE
         "jpg" => encode_jpeg(img, JPEG_QUALITY).and_then(|data| Ok(std::fs::write(output, data)?)),
         "ico" => encode_ico(img).and_then(|data| Ok(std::fs::write(output, data)?)),
         "avif" => ffmpeg::encode_avif(img, output),
+        // Sans libwebp dans ffmpeg (selon la plateforme) : WebP sans perte de la crate `image`.
+        "webp" => ffmpeg::encode_webp(img, output)
+            .or_else(|_| img.save_with_format(output, ImageFormat::WebP).map_err(Into::into)),
         _ => ImageFormat::from_extension(ext)
             .ok_or_else(|| ConvertError::Unsupported(ext.to_string()))
             .and_then(|format| img.save_with_format(output, format).map_err(Into::into)),
