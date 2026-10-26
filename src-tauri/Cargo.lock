@@ -2773,7 +2773,7 @@ dependencies = [
 
 [[package]]
 name = "morph"
-version = "1.7.0"
+version = "1.8.0"
 dependencies = [
  "bzip2",
  "flate2",
