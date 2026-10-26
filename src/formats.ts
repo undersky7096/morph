@@ -74,3 +74,10 @@ export function formatBytes(bytes: number): string {
   if (bytes >= 1e3) return `${fmt(bytes / 1e3)} ${t("formats.kb")}`;
   return `${bytes} ${t("formats.b")}`;
 }
+
+/** Extensions lisibles des formats retenus (filtres des boîtes de dialogue d'ouverture). */
+export const readableExts = (keep: (f: FormatInfo) => boolean) =>
+  catalog.filter((f) => f.read && keep(f)).flatMap((f) => [f.ext, ...f.aliases]);
+
+/** Nombre de formats reconnus en entrée, par type. */
+export const readableCount = (kind?: Kind) => catalog.filter((f) => f.read && (!kind || f.kind === kind)).length;

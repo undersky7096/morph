@@ -74,6 +74,11 @@ fn current() -> &'static str {
     *CURRENT.read().unwrap()
 }
 
+/// Code de la langue effective (« fr », « en »…).
+pub fn code() -> &'static str {
+    current()
+}
+
 fn entry(key: &str) -> Option<&'static Entry> {
     let all = catalogs();
     [current(), FALLBACK, SOURCE].iter().find_map(|code| all.get(code)?.get(key))

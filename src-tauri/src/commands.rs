@@ -532,3 +532,36 @@ mod tests {
         assert_eq!(super::percent_decode("50%"), "50%");
     }
 }
+
+// --- Compte Morph (facultatif) : voir account.rs. Les appels réseau partent hors du fil de
+// l'interface.
+
+#[tauri::command]
+pub fn account_status(app: AppHandle) -> crate::account::Status {
+    crate::account::status(&app)
+}
+
+#[tauri::command]
+pub async fn account_link_start(app: AppHandle) {
+    tauri::async_runtime::spawn_blocking(move || crate::account::start_link(&app)).await.ok();
+}
+
+#[tauri::command]
+pub fn account_link_cancel(app: AppHandle) {
+    crate::account::cancel_link(&app);
+}
+
+#[tauri::command]
+pub async fn account_refresh(app: AppHandle) {
+    tauri::async_runtime::spawn_blocking(move || crate::account::refresh(&app)).await.ok();
+}
+
+#[tauri::command]
+pub async fn account_logout(app: AppHandle) {
+    tauri::async_runtime::spawn_blocking(move || crate::account::logout(&app)).await.ok();
+}
+
+#[tauri::command]
+pub fn account_set_sync(app: AppHandle, enabled: bool) {
+    crate::account::set_sync(&app, enabled);
+}

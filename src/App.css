@@ -1,64 +1,121 @@
+/* Système visuel de Morph (application). Mêmes tokens que le site : voir
+   docs/design/SYSTEME.md. Encre #151515, blanc cassé #F1F0EB, gris chauds, un seul accent
+   (bleu outremer) réservé aux états actifs, au focus et à la progression. */
+
 :root {
   color-scheme: light;
-  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font: "Geist Variable", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "Cascadia Mono", Consolas, monospace;
 
-  --bg: #f4f5f8;
-  --text: #12141c;
-  --muted: #5b6273;
-  --line: rgba(18, 20, 28, 0.14);
+  /* Surfaces, du fond aux éléments posés dessus. */
+  --bg: #f1f0eb;
+  --surface-1: #f7f6f2;
+  --surface-2: #ffffff;
+  --surface-sunken: #e8e7e1;
+  --text: #151515;
+  --text-2: #3d3c39;
+  --muted: #6b6964;
+  --faint: #9a9892;
+  --line: rgba(21, 21, 21, 0.12);
+  --line-strong: rgba(21, 21, 21, 0.24);
+  --hover: rgba(21, 21, 21, 0.05);
+  --press: rgba(21, 21, 21, 0.09);
 
-  --kind-image: #0fb98a;
-  --kind-video: #2f6bff;
-  --kind-audio: #8b5cf6;
-  --kind-document: #f59e0b;
-  --kind-archive: #e0457b;
-  --danger: #e5484d;
+  /* Bouton principal : plein, de la couleur du texte (l'accent reste pour les états). */
+  --primary: #151515;
+  --on-primary: #f1f0eb;
 
-  /* Couleur d'accent de l'interface (réglable) ; --accent-2 l'accompagne dans les dégradés. */
-  --accent: var(--kind-video);
-  --accent-2: var(--kind-image);
+  /* Accent (réglable dans Réglages > Apparence). */
+  --accent: #2d45e0;
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+  --on-accent: #ffffff;
+
+  /* États. */
+  --success: #2f7d4f;
+  --warning: #9a6200;
+  --danger: #c2362b;
+
+  /* Couleurs de reconnaissance des types de fichiers, accordées à la palette. */
+  --kind-image: #2e8f5e;
+  --kind-video: #1f7fb8;
+  --kind-audio: #7656d6;
+  --kind-document: #b97d12;
+  --kind-archive: #c4466f;
+
+  /* Formes et mouvement. */
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --ease: cubic-bezier(0.3, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --t-fast: 0.12s;
+  --t-base: 0.2s;
+  --t-slow: 0.32s;
+  --shadow-float: 0 1px 2px rgba(21, 21, 21, 0.06), 0 10px 28px rgba(21, 21, 21, 0.14);
 
   /* Menus radiaux : surface translucide, opacité réglable (Réglages > Apparence). */
   --surface-base: #ffffff;
   --radial-opacity: 82%;
   --radial-surface: color-mix(in srgb, var(--surface-base) var(--radial-opacity), transparent);
   --radial-surface-strong: color-mix(in srgb, var(--surface-base) min(100%, calc(var(--radial-opacity) + 12%)), transparent);
-  --radial-border: rgba(18, 20, 28, 0.1);
-  --radial-text: #12141c;
-  --radial-muted: #5b6273;
-  --radial-shadow: rgba(18, 20, 28, 0.18);
-  --radial-halo: rgba(255, 255, 255, 0.35);
+  --radial-border: rgba(21, 21, 21, 0.12);
+  --radial-text: #151515;
+  --radial-muted: #6b6964;
+  --radial-shadow: rgba(21, 21, 21, 0.16);
+  --radial-halo: rgba(255, 255, 255, 0.3);
 
   /* Logo (comme l'icône de l'application) : carré blanc et M noir, inversés en sombre ;
      un fond personnalisé colore le carré (voir settings.ts). */
   --logo-tile: #ffffff;
-  --logo-ink: #181818;
+  --logo-ink: #151515;
 }
 
-/* Thème sombre : posé par `data-theme` (le mode « Système » suit Windows, voir settings.ts). */
+/* Thème sombre : posé par `data-theme` (le mode « Système » suit Windows, voir settings.ts).
+   Pas une inversion : surfaces qui s'éclaircissent en montant, bordures plus présentes que
+   les ombres, accent éclairci pour garder son contraste. */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0f1015;
-  --text: #eef1f7;
-  --muted: #9aa3b5;
-  --line: rgba(238, 241, 247, 0.14);
+  --bg: #151515;
+  --surface-1: #1b1b1a;
+  --surface-2: #232321;
+  --surface-sunken: #101010;
+  --text: #f1f0eb;
+  --text-2: #cfcdc6;
+  --muted: #9b9992;
+  --faint: #6d6b66;
+  --line: rgba(241, 240, 235, 0.1);
+  --line-strong: rgba(241, 240, 235, 0.2);
+  --hover: rgba(241, 240, 235, 0.06);
+  --press: rgba(241, 240, 235, 0.1);
 
-  --kind-image: #5ef2c2;
-  --kind-video: #4d8bff;
-  --kind-audio: #b98bff;
-  --kind-document: #fcc35a;
-  --kind-archive: #f77fa8;
-  --danger: #ff6369;
+  --primary: #f1f0eb;
+  --on-primary: #151515;
 
-  --surface-base: #14161e;
-  --radial-border: rgba(255, 255, 255, 0.1);
-  --radial-text: #eef1f7;
-  --radial-muted: #9aa3b5;
+  --accent: #7b8cff;
+  --on-accent: #151515;
+
+  --success: #5fbf84;
+  --warning: #e0a63a;
+  --danger: #ff6b5e;
+
+  --kind-image: #5cc791;
+  --kind-video: #4fb0e6;
+  --kind-audio: #a58cf5;
+  --kind-document: #e3ab45;
+  --kind-archive: #ee7aa0;
+
+  --shadow-float: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px rgba(0, 0, 0, 0.45);
+
+  --surface-base: #1b1b1a;
+  --radial-border: rgba(241, 240, 235, 0.12);
+  --radial-text: #f1f0eb;
+  --radial-muted: #9b9992;
   --radial-shadow: rgba(0, 0, 0, 0.45);
-  --radial-halo: rgba(10, 11, 16, 0.35);
+  --radial-halo: rgba(10, 10, 10, 0.3);
 
-  --logo-tile: #111111;
-  --logo-ink: #ffffff;
+  --logo-tile: #101010;
+  --logo-ink: #f1f0eb;
 }
 
 .logo {
@@ -81,11 +138,19 @@
   mask-position: center;
 }
 
+/* Extension de fichier : toujours en chasse fixe et capitales (« .PNG → .WEBP »). */
+.ext {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
 /* Changement de thème ou de couleurs : fondu de toute la fenêtre (voir settings.ts). */
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation-duration: 0.3s;
-  animation-timing-function: ease;
+  animation-timing-function: var(--ease);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -102,4 +167,10 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
+  font-feature-settings: "ss01" 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
 }

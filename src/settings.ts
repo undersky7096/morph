@@ -98,10 +98,16 @@ function setVars(s: Settings) {
   const set = (name: string, value: string | null) =>
     value === null ? root.style.removeProperty(name) : root.style.setProperty(name, value);
   set("--accent", s.accent);
-  set("--accent-2", s.accent && `color-mix(in srgb, ${s.accent} 55%, white)`);
-  // Texte posé sur l'accent (pastilles) : sombre si l'accent choisi est clair.
-  set("--on-accent", s.accent && luminance(s.accent) > 0.5 ? "#181818" : null);
+  // Texte posé sur l'accent (pastilles) : encre si l'accent choisi est clair, blanc sinon.
+  set("--on-accent", s.accent && (luminance(s.accent) > 0.4 ? "#151515" : "#ffffff"));
+  // Fond personnalisé : les surfaces en dérivent (plus claires en thème clair, un cran
+  // au-dessus en sombre), pour garder la même hiérarchie que les thèmes prédéfinis.
+  const dark = effectiveTheme(s) === "dark";
+  const tint = (amount: number) => s.background && `color-mix(in srgb, ${dark ? "#f1f0eb" : "#ffffff"} ${amount}%, ${s.background})`;
   set("--bg", s.background);
+  set("--surface-1", tint(dark ? 3 : 35));
+  set("--surface-2", tint(dark ? 7 : 75));
+  set("--surface-sunken", s.background && `color-mix(in srgb, #000000 ${dark ? 25 : 5}%, ${s.background})`);
   set("--surface-base", s.background);
   set("--logo-tile", s.background);
   set("--radial-opacity", `${s.radialOpacity}%`);

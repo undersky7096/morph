@@ -236,6 +236,7 @@ pub fn set(app: &AppHandle, new: Settings) -> Result<Settings, String> {
         crate::tray::relabel(app);
     }
     crate::icon::refresh(app);
+    crate::account::settings_changed(app, &old, &new);
     Ok(new)
 }
 

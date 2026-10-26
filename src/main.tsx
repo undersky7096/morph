@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { loadCatalog } from "./formats";
 import { initSettings } from "./settings";
+import "./fonts.css";
 import "./App.css";
 
 // Une seule page pour toutes les fenêtres : on choisit l'interface selon le label.

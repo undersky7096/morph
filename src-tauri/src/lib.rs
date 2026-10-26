@@ -1,3 +1,4 @@
+mod account;
 mod commands;
 mod i18n;
 pub mod convert;
@@ -75,6 +76,7 @@ pub fn run() {
         .manage(jobs::Jobs::default())
         .manage(jobs::Tasks::default())
         .manage(updates::State::default())
+        .manage(account::State::default())
         .setup(|app| {
             settings::load(app.handle());
             if let Ok(dir) = app.path().app_local_data_dir() {
@@ -90,6 +92,7 @@ pub fn run() {
             #[cfg(windows)]
             shift_drag::start(app.handle().clone());
             updates::start(app.handle());
+            account::init(app.handle());
 
             let args: Vec<String> = std::env::args().skip(1).collect();
             handle_args(app.handle(), &args)?;
@@ -148,6 +151,12 @@ pub fn run() {
             commands::system_integrated,
             commands::set_system_integration,
             commands::log_frontend_error,
+            commands::account_status,
+            commands::account_link_start,
+            commands::account_link_cancel,
+            commands::account_refresh,
+            commands::account_logout,
+            commands::account_set_sync,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Morph");

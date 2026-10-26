@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactElement, type ReactNode, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getVersion } from "@tauri-apps/api/app";
@@ -19,19 +19,34 @@ import {
 } from "./settings";
 import { ACCENTS, BACKGROUNDS, ColorChoice, FavoritesPicker, PILL, ThemePicker } from "./settingsParts";
 import Logo from "./Logo";
-import { type Language, t, locale } from "./i18n";
+import { LANGUAGES, t, locale } from "./i18n";
+import HomeSection, { SITE } from "./HomeSection";
+import AccountSection, { useAccount } from "./AccountSection";
+import { HomeIcon, InfoIcon, PaletteIcon, RingIcon, FolderIcon, ToolsIcon, UserIcon, SystemIcon } from "./icons";
 import "./Settings.css";
 
-type Section = "appearance" | "menu" | "save" | "tools" | "system" | "about";
+type Section = "home" | "appearance" | "menu" | "save" | "tools" | "account" | "system" | "about";
 
-const SECTION_IDS: Section[] = ["appearance", "menu", "save", "tools", "system", "about"];
+const SECTIONS: [Section, () => ReactElement][] = [
+  ["home", HomeIcon],
+  ["appearance", PaletteIcon],
+  ["menu", RingIcon],
+  ["save", FolderIcon],
+  ["tools", ToolsIcon],
+  ["account", UserIcon],
+  ["system", SystemIcon],
+  ["about", InfoIcon],
+];
+const SECTION_IDS = SECTIONS.map(([id]) => id);
 
 const sectionLabel = (id: Section) =>
   ({
+    home: t("home.nav"),
     appearance: t("settings.appearance"),
     menu: t("settings.format_menu"),
     save: t("settings.saving"),
     tools: t("settings.tools"),
+    account: t("account.nav"),
     system: t("settings.system"),
     about: t("settings.about"),
   })[id];
@@ -39,10 +54,9 @@ const sectionLabel = (id: Section) =>
 /** Section demandée à l'ouverture (`index.html#about`, depuis une notification). */
 const initialSection = (): Section => {
   const hash = window.location.hash.slice(1);
-  return SECTION_IDS.includes(hash as Section) ? (hash as Section) : "appearance";
+  return SECTION_IDS.includes(hash as Section) ? (hash as Section) : "home";
 };
 
-const SITE = "https://morph.underskydev.com";
 const CONTACT = "contact@underskydev.com";
 
 /** Composants libres embarqués : [nom, rôle, licence, site]. */
@@ -79,11 +93,8 @@ const SAVE_MODES = (): [SaveMode, string, string][] => [
   ["ask", t("settings.ask_every_time"), t("settings.folder_chosen_when_saving")],
 ];
 
-const LANGUAGES = (): [Language, string][] => [
-  ["system", t("settings.system")],
-  ["fr", "Français"],
-  ["en", "English"],
-];
+/** Système, puis une entrée par catalogue de `locales/` (chacune écrite dans sa langue). */
+const languageChoices = (): [string, string][] => [["system", t("settings.system")], ...LANGUAGES.map(({ code, name }): [string, string] => [code, name])];
 
 /** Fenêtre des Réglages (ouverte depuis l'icône de la zone de notification). Chaque
  *  changement s'applique aussitôt à toutes les fenêtres. Déposer des fichiers ici ouvre
@@ -99,6 +110,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [over, setOver] = useState(false);
   const update = useUpdateStatus();
+  const account = useAccount();
 
   useEffect(() => {
     getVersion().then(setVersion);
@@ -142,32 +154,40 @@ function App() {
 
   return (
     <div className={`settings ${over ? "is-over" : ""}`}>
-      <nav className="settings-nav">
+      <nav className="settings-nav" aria-label={t("settings.sections")}>
         <div className="settings-brand">
           <Logo className="settings-logo" />
-          <span>
-            Morph <small>v{version}</small>
-          </span>
+          <span>Morph</span>
         </div>
-        {SECTION_IDS.map((id) => (
-          <button key={id} className={section === id ? "is-active" : ""} onClick={() => setSection(id)}>
+        {SECTIONS.map(([id, Icon]) => (
+          <button
+            key={id}
+            className={section === id ? "is-active" : ""}
+            aria-current={section === id ? "page" : undefined}
+            title={sectionLabel(id)}
+            onClick={() => setSection(id)}
+          >
             {section === id && <motion.span layoutId="nav-active" className="settings-nav-pill" transition={PILL} />}
-            <span>{sectionLabel(id)}</span>
+            <span className="settings-nav-icon">
+              <Icon />
+            </span>
+            <span className="settings-nav-label">{sectionLabel(id)}</span>
             {id === "about" && update?.available && (
               <span className="settings-nav-badge" title={t("settings.update_available_badge", { version: update.available.version })}>
                 1
               </span>
             )}
+            {id === "account" && account?.user && <span className="settings-nav-dot" title={account.user.name} />}
           </button>
         ))}
-        <p className="settings-tip">
-          {t("settings.drag_files_while_holding")}
-          <kbd>Shift</kbd>
-          {t("settings.from_explorer_desktop_drop_them")}
-        </p>
+        <p className="settings-nav-version ext">v{version}</p>
       </nav>
 
       <main className="settings-body" key={section}>
+        {section === "home" && (
+          <HomeSection settings={settings} version={version} update={update} account={account} goTo={setSection} />
+        )}
+        {section === "account" && <AccountSection status={account} />}
         {section === "appearance" && <Appearance settings={settings} save={save} />}
         {section === "menu" && <MenuSection settings={settings} save={save} />}
         {section === "save" && (
@@ -551,12 +571,12 @@ function UpdatesGroup() {
 function LanguagePicker({ settings, save }: SectionProps) {
   return (
     <div className="settings-segmented">
-      {LANGUAGES().map(([language, label]) => {
+      {languageChoices().map(([language, label]) => {
         const active = settings.language === language;
         return (
           <button key={language} className={active ? "is-active" : ""} onClick={() => save({ language })}>
             {active && <motion.span layoutId="language-active" className="settings-segmented-pill" transition={PILL} />}
-            <span>{label}</span>
+            <span lang={language === "system" ? undefined : language}>{label}</span>
           </button>
         );
       })}

@@ -227,3 +227,88 @@ export const FitIcon = () => (
     <path d="M3 12h18M7 8l-4 4 4 4M17 8l4 4-4 4" />
   </svg>
 );
+
+// Réglages : navigation et accueil (même trait que les outils, plus fin).
+const nav = { ...base, width: 16, height: 16, strokeWidth: 1.7 };
+
+export const HomeIcon = () => (
+  <svg {...nav}>
+    <path d="M3 10.5 12 3l9 7.5" />
+    <path d="M5 9v11h5v-6h4v6h5V9" />
+  </svg>
+);
+
+export const PaletteIcon = () => (
+  <svg {...nav}>
+    <path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.9 1.2-1.8l-.4-.8c-.5-1 .2-2.4 1.4-2.4H17a4 4 0 0 0 4-4c0-5-4-9-9-9Z" />
+    <circle cx="7.5" cy="11" r="1" />
+    <circle cx="10.5" cy="7" r="1" />
+    <circle cx="15.5" cy="8" r="1" />
+  </svg>
+);
+
+/** Anneau de pétales : le menu des formats. */
+export const RingIcon = () => (
+  <svg {...nav}>
+    <circle cx="12" cy="12" r="2.5" />
+    <circle cx="12" cy="4" r="1.6" />
+    <circle cx="19" cy="9" r="1.6" />
+    <circle cx="17" cy="18" r="1.6" />
+    <circle cx="7" cy="18" r="1.6" />
+    <circle cx="5" cy="9" r="1.6" />
+  </svg>
+);
+
+export const FolderIcon = () => (
+  <svg {...nav}>
+    <path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2.5h8.5A1.5 1.5 0 0 1 21 9v9.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5Z" />
+  </svg>
+);
+
+export const ToolsIcon = () => (
+  <svg {...nav}>
+    <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />
+    <circle cx="16" cy="7" r="2" />
+    <circle cx="8" cy="17" r="2" />
+  </svg>
+);
+
+export const UserIcon = () => (
+  <svg {...nav}>
+    <circle cx="12" cy="8.5" r="3.5" />
+    <path d="M5 20a7 7 0 0 1 14 0" />
+  </svg>
+);
+
+export const SystemIcon = () => (
+  <svg {...nav}>
+    <rect x="3" y="4" width="18" height="12" rx="1.5" />
+    <path d="M9 20h6M12 16v4" />
+  </svg>
+);
+
+export const InfoIcon = () => (
+  <svg {...nav}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 11v5M12 8h.01" />
+  </svg>
+);
+
+/** Conversion : un format devient un autre. */
+export const ConvertIcon = () => (
+  <svg {...base}>
+    <path d="M4 8h13l-3-3M20 16H7l3 3" />
+  </svg>
+);
+
+export const ArrowRightIcon = () => (
+  <svg {...nav} width={14} height={14}>
+    <path d="M5 12h14M13 6l6 6-6 6" />
+  </svg>
+);
+
+export const ExternalIcon = () => (
+  <svg {...nav} width={13} height={13}>
+    <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+  </svg>
+);

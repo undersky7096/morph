@@ -13,8 +13,8 @@ export const THEMES = (): [ThemeMode, string][] => [
   ["dark", t("settings.dark")],
 ];
 
-export const ACCENTS = ["#2f6bff", "#8b5cf6", "#ec4899", "#ef4444", "#f97316", "#eab308", "#10b981", "#06b6d4"];
-export const BACKGROUNDS = ["#0b0d12", "#16112a", "#0d1f24", "#1f1414", "#f7f3ea", "#eef3ff", "#fdf0f4", "#eefaf3"];
+export const ACCENTS = ["#d9542b", "#b07d12", "#2f7d4f", "#0f7c86", "#2b7fd9", "#7a4fc9", "#c43d6b", "#5b5a56"];
+export const BACKGROUNDS = ["#0c0c0c", "#12151c", "#0f1716", "#1a1512", "#faf9f6", "#eef1f6", "#f6eff0", "#eef4ef"];
 
 /** Formats de sortie par type, pour choisir les favoris. */
 const OUTPUTS = (): [string, Kind][] => [
