@@ -79,14 +79,19 @@ pub fn code() -> &'static str {
     current()
 }
 
-fn entry(key: &str) -> Option<&'static Entry> {
+/// Entrée d'une clé dans la langue `code`, avec repli anglais puis français.
+fn entry(code: &str, key: &str) -> Option<&'static Entry> {
     let all = catalogs();
-    [current(), FALLBACK, SOURCE].iter().find_map(|code| all.get(code)?.get(key))
+    [code, FALLBACK, SOURCE].iter().find_map(|code| all.get(*code)?.get(key))
 }
 
 /// Texte dans la langue de l'interface (la clé elle-même si elle n'existe nulle part).
 pub fn tr(key: &'static str) -> &'static str {
-    match entry(key) {
+    tr_in(current(), key)
+}
+
+fn tr_in(code: &str, key: &'static str) -> &'static str {
+    match entry(code, key) {
         Some(Entry::Text(s)) => s,
         Some(Entry::Plural { other, .. }) => other,
         None => key,
@@ -124,9 +129,13 @@ pub fn trf(key: &'static str, args: &[(&str, &dyn Display)]) -> String {
 /// Pluriel : `trn("core.files_converted", n, &[…])` ; `{n}` = le nombre. En français 0 et 1
 /// sont au singulier, dans les autres langues seulement 1.
 pub fn trn(key: &'static str, n: usize, args: &[(&str, &dyn Display)]) -> String {
-    let text = match entry(key) {
+    trn_in(current(), key, n, args)
+}
+
+fn trn_in(code: &str, key: &'static str, n: usize, args: &[(&str, &dyn Display)]) -> String {
+    let text = match entry(code, key) {
         Some(Entry::Plural { one, other }) => {
-            let singular = if current() == "fr" { n <= 1 } else { n == 1 };
+            let singular = if code == "fr" { n <= 1 } else { n == 1 };
             match one {
                 Some(one) if singular => one.as_str(),
                 _ => other.as_str(),
@@ -159,16 +168,17 @@ mod tests {
     }
 
     #[test]
+    // Sans toucher à la langue globale : les autres tests, lancés en parallèle, attendent
+    // le français (langue par défaut).
     fn langue_et_pluriel() {
-        apply("fr");
-        assert_eq!(tr("core.settings"), "Réglages");
-        assert_eq!(trn("core.files_converted", 1, &[("target", &"WEBP")]), "1 fichier converti en WEBP");
-        assert_eq!(trn("core.files_converted", 3, &[("target", &"WEBP")]), "3 fichiers convertis en WEBP");
-        apply("en");
-        assert_eq!(tr("core.settings"), "Settings");
-        assert_eq!(trn("core.files_converted", 1, &[("target", &"WEBP")]), "1 file converted to WEBP");
-        apply("xx");
-        assert!(["fr", "en"].contains(&current()));
-        assert_eq!(tr("core.cle_inexistante"), "core.cle_inexistante");
+        assert_eq!(tr_in("fr", "core.settings"), "Réglages");
+        assert_eq!(trn_in("fr", "core.files_converted", 1, &[("target", &"WEBP")]), "1 fichier converti en WEBP");
+        assert_eq!(trn_in("fr", "core.files_converted", 3, &[("target", &"WEBP")]), "3 fichiers convertis en WEBP");
+        assert_eq!(tr_in("en", "core.settings"), "Settings");
+        assert_eq!(trn_in("en", "core.files_converted", 1, &[("target", &"WEBP")]), "1 file converted to WEBP");
+        // Langue sans catalogue : repli sur l'anglais.
+        assert!(available("xx").is_none());
+        assert_eq!(tr_in("xx", "core.settings"), "Settings");
+        assert_eq!(tr_in("fr", "core.cle_inexistante"), "core.cle_inexistante");
     }
 }
