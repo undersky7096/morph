@@ -34,7 +34,20 @@ export interface Settings {
   autostart: boolean;
   /** Écran d'accueil déjà vu (ou passé). */
   onboarded: boolean;
+  /** Préréglages de Compresser (compte Morph, synchronisés entre ordinateurs). */
+  compressPresets: CompressPreset[];
 }
+
+/** Miroir de `settings::CompressPreset`. */
+export interface CompressPreset {
+  name: string;
+  level: "light" | "medium" | "strong";
+  reduceColors: boolean;
+  targetMb: number | null;
+}
+
+/** Au plus autant de préréglages (`settings::MAX_PRESETS`). */
+export const MAX_PRESETS = 12;
 
 export const DEFAULT_SETTINGS: Settings = {
   language: "system",
@@ -51,6 +64,7 @@ export const DEFAULT_SETTINGS: Settings = {
   gpu: true,
   autostart: false,
   onboarded: true,
+  compressPresets: [],
 };
 
 let current: Settings = DEFAULT_SETTINGS;

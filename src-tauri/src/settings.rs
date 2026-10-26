@@ -72,7 +72,25 @@ pub struct Settings {
     pub autostart: bool,
     /// Écran d'accueil déjà vu (ou passé).
     pub onboarded: bool,
+    /// Préréglages de l'outil Compresser (compte Morph : synchronisés entre ordinateurs).
+    pub compress_presets: Vec<CompressPreset>,
 }
+
+/// Réglages de Compresser enregistrés sous un nom (« Discord », « Envoi par mail »…).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompressPreset {
+    pub name: String,
+    pub level: crate::edit::compress::Level,
+    #[serde(default)]
+    pub reduce_colors: bool,
+    /// Taille visée (audio, vidéo), en Mo ; aucune : par niveau.
+    #[serde(default)]
+    pub target_mb: Option<f64>,
+}
+
+/// Au plus autant de préréglages (la synchronisation est limitée à 8 Ko).
+pub const MAX_PRESETS: usize = 12;
 
 impl Default for Settings {
     fn default() -> Self {
@@ -91,6 +109,7 @@ impl Default for Settings {
             gpu: true,
             autostart: false,
             onboarded: false,
+            compress_presets: Vec::new(),
         }
     }
 }
@@ -108,6 +127,15 @@ impl Settings {
         if self.save_mode == SaveMode::Folder && self.save_folder.as_deref().is_none_or(str::is_empty) {
             self.save_mode = SaveMode::Beside;
         }
+        self.compress_presets = std::mem::take(&mut self.compress_presets)
+            .into_iter()
+            .filter_map(|mut p| {
+                p.name = p.name.trim().chars().take(40).collect();
+                p.target_mb = p.target_mb.filter(|t| t.is_finite() && *t > 0.0 && *t < 100_000.0);
+                (!p.name.is_empty()).then_some(p)
+            })
+            .take(MAX_PRESETS)
+            .collect();
         self
     }
 

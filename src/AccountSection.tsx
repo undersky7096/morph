@@ -3,40 +3,14 @@
 
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
 
 import { locale, t } from "./i18n";
 import { initials, SITE } from "./HomeSection";
+import type { AccountStatus } from "./account";
+import { IdeasGroup, ReviewGroup } from "./AccountCommunity";
 
-export interface AccountUser {
-  name: string;
-  email: string | null;
-  avatar: string | null;
-  createdAt: string | null;
-}
-
-export interface AccountStatus {
-  user: AccountUser | null;
-  link: { userCode: string; verifyUrl: string; expiresAtMs: number } | null;
-  busy: boolean;
-  error: string | null;
-  errorCode: string | null;
-  sync: boolean;
-  lastSyncMs: number | null;
-}
-
-/** État du compte, suivi en direct (événement `account-changed`). */
-export function useAccount(): AccountStatus | null {
-  const [status, setStatus] = useState<AccountStatus | null>(null);
-  useEffect(() => {
-    invoke<AccountStatus>("account_status").then(setStatus);
-    const unlisten = listen<AccountStatus>("account-changed", ({ payload }) => setStatus(payload));
-    return () => {
-      unlisten.then((fn) => fn());
-    };
-  }, []);
-  return status;
-}
+export type { AccountStatus } from "./account";
+export { useAccount } from "./account";
 
 /** Secondes restantes avant l'expiration du code (mise à jour chaque seconde). */
 function useRemaining(until: number | null) {
@@ -150,6 +124,9 @@ export default function AccountSection({ status }: { status: AccountStatus | nul
           </label>
         </section>
       )}
+
+      {user && <ReviewGroup />}
+      {user && <IdeasGroup />}
 
       <section className="settings-group">
         <h2>{t("account.privacy_title")}</h2>

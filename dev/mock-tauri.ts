@@ -57,9 +57,18 @@ const settings = {
   gpu: true,
   autostart: true,
   onboarded: params.get("onboarding") !== "1",
+  compressPresets: accountPresets(),
 };
 
 const accountMode = params.get("account") ?? "out";
+function accountPresets() {
+  return params.get("account") === "in"
+    ? [
+        { name: "Discord", level: "medium", reduceColors: false, targetMb: 10 },
+        { name: "Envoi par mail", level: "strong", reduceColors: true, targetMb: null },
+      ]
+    : [];
+}
 const account = {
   user: accountMode === "in" ? { name: "Camille Exemple", email: "camille@example.com", avatar: null, createdAt: "2026-10-21 18:00:00" } : null,
   link: accountMode === "linking" ? { userCode: "K7QX-3MPA", verifyUrl: "#", expiresAtMs: Date.now() + 9 * 60_000 } : null,
@@ -123,6 +132,21 @@ const handlers: Record<string, Handler> = {
   }),
   get_targets: () => (MENU),
   "plugin:app|version": () => "1.7.0-dev",
+  take_tool_payload: () => ({ tool: params.get("tool") ?? "compress", paths: ["C:/Exemple/clip.mp4", "C:/Exemple/photo.png"] }),
+  file_sizes: () => [48_200_000, 3_100_000],
+  account_anonymize: ({ text }) => text,
+  account_call: ({ action }) =>
+    ({
+      review: { review: { rating: 4, title: "Exemple", body: "Avis d'exemple pour l'aperçu.", version: "1.7.0", hidden: false }, canPost: true },
+      ideas: {
+        items: [
+          { id: 1, title: "Idée d'exemple : renommer par lot", titleEn: null, status: "planned", votes: 12, voted: true },
+          { id: 2, title: "Idée d'exemple : conversion en HEIC", titleEn: null, status: "suggested", votes: 4, voted: false },
+          { id: 3, title: "Idée d'exemple : sous-titres vidéo", titleEn: null, status: "in_progress", votes: 9, voted: false },
+        ],
+        canPost: true,
+      },
+    })[action as string] ?? { ok: true },
   "plugin:event|listen": () => 1,
   "plugin:event|unlisten": () => null,
   "plugin:window|theme": () => theme,

@@ -16,7 +16,7 @@ const SUFFIX: &str = "Compressed";
 /// Conteneurs vidéo conservés ; les autres (wmv, flv, mpeg, 3gp, ts) sont réencodés en MP4.
 const VIDEO_KEPT: &[&str] = &["mp4", "mov", "mkv", "webm", "avi"];
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Level {
     Light,

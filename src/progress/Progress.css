@@ -279,3 +279,51 @@ html[data-window="progress"] body {
   gap: 6px;
   margin-top: 8px;
 }
+
+/* Signalement d'une erreur (compte Morph). */
+.report-form {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+  color: var(--text);
+}
+
+.report-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+}
+
+.report-form summary {
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.report-form pre {
+  max-height: 120px;
+  margin: 4px 0 0;
+  padding: 6px 8px;
+  overflow: auto;
+  border-radius: var(--r-sm);
+  background: var(--surface-sunken);
+  color: var(--text-2);
+  font: 11px/1.45 var(--font-mono);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.report-sent {
+  display: block;
+  margin-top: 4px;
+  color: var(--success);
+}
+
+.report-error {
+  color: var(--danger);
+}

@@ -25,7 +25,11 @@ use crate::settings::{self, Settings};
 
 const SITE: &str = "https://morph.underskydev.com";
 /// Préférences synchronisées (mêmes clés que `SYNCED_KEYS` côté site).
-const SYNCED: [&str; 9] = ["language", "theme", "accent", "background", "radialOpacity", "favorites", "mixedBatch", "duplicates", "cutout"];
+const SYNCED: [&str; 10] = [
+    "language", "theme", "accent", "background", "radialOpacity", "favorites", "mixedBatch", "duplicates", "cutout", "compressPresets",
+];
+/// Actions de l'API que l'interface peut demander avec le jeton (voir [`call`]).
+const CALLABLE: [&str; 5] = ["review", "ideas", "idea", "vote", "report"];
 
 /// Adresse du site ; `MORPH_SITE_URL` la remplace dans les versions de développement
 /// (serveur PHP local pour les essais).
@@ -206,7 +210,8 @@ enum ApiError {
     Network,
     /// Jeton refusé : révoqué depuis le site, compte supprimé ou suspendu.
     Unauthorized,
-    Status(u16),
+    /// Code HTTP et code d'erreur renvoyé par le site (« not_verified »…).
+    Status(u16, Option<String>),
 }
 
 fn agent() -> ureq::Agent {
@@ -243,7 +248,7 @@ fn api(method: &str, action: &str, token: Option<&str>, body: Option<Value>) -> 
     match status {
         200..=299 => Ok(data),
         401 => Err(ApiError::Unauthorized),
-        _ => Err(ApiError::Status(status)),
+        _ => Err(ApiError::Status(status, data["error"].as_str().map(str::to_string))),
     }
 }
 
@@ -251,7 +256,7 @@ fn error_text(e: &ApiError) -> (&'static str, &'static str) {
     match e {
         ApiError::Network => ("network", tr("core.account_network")),
         ApiError::Unauthorized => ("session_expired", tr("core.account_session_expired")),
-        ApiError::Status(429) => ("too_many_requests", tr("core.account_too_many")),
+        ApiError::Status(429, _) => ("too_many_requests", tr("core.account_too_many")),
         ApiError::Status(..) => ("server", tr("core.account_server_error")),
     }
 }
@@ -365,11 +370,11 @@ pub fn start_link(app: &AppHandle) {
     let (Some(device_code), Some(user_code), Some(verify_url)) =
         (data["deviceCode"].as_str(), data["userCode"].as_str(), data["verifyUrl"].as_str())
     else {
-        return set_error(app, &ApiError::Status(500));
+        return set_error(app, &ApiError::Status(500, None));
     };
     // N'ouvre que des pages du site lui-même.
     if !verify_url.starts_with(&format!("{}/", site())) {
-        return set_error(app, &ApiError::Status(500));
+        return set_error(app, &ApiError::Status(500, None));
     }
     let interval = data["interval"].as_u64().unwrap_or(3).clamp(2, 30);
     let expires_in = data["expiresIn"].as_u64().unwrap_or(600).min(1800);
@@ -397,7 +402,7 @@ pub fn start_link(app: &AppHandle) {
                         let token = d["token"].as_str().unwrap_or_default();
                         if let Err(e) = store_token(&app, token) {
                             eprintln!("[morph] compte : jeton non enregistré : {e}");
-                            return set_error(&app, &ApiError::Status(500));
+                            return set_error(&app, &ApiError::Status(500, None));
                         }
                         let user: Option<User> = serde_json::from_value(d["user"].clone()).ok();
                         let s = change(&app, |s| {
@@ -536,7 +541,7 @@ fn push_settings(app: &AppHandle) {
             write_saved(app, &s);
         }
         // Le site a plus récent (autre ordinateur) : on le récupère.
-        Err(ApiError::Status(409)) => {
+        Err(ApiError::Status(409, _)) => {
             pull_settings(app);
         }
         Err(e) => set_error(app, &e),
@@ -562,6 +567,47 @@ pub fn settings_changed(app: &AppHandle, old: &Settings, new: &Settings) {
     });
 }
 
+/// Appel de l'API du site avec le jeton, pour l'interface (avis, idées, signalement).
+/// Réponse JSON, ou code d'erreur : « signed_out », « network », « session_expired », ou le
+/// code renvoyé par le site (« not_verified », « review_too_short »…).
+pub fn call(app: &AppHandle, method: &str, action: &str, body: Option<Value>) -> Result<Value, String> {
+    if !CALLABLE.contains(&action) {
+        return Err("forbidden".into());
+    }
+    let token = load_token(app).ok_or("signed_out")?;
+    match api(method, action, Some(&token), body) {
+        Ok(v) => Ok(v),
+        Err(ApiError::Unauthorized) => {
+            // Jeton révoqué depuis le site : même traitement qu'à la vérification du profil.
+            refresh(app);
+            Err("session_expired".into())
+        }
+        Err(ApiError::Network) => Err("network".into()),
+        Err(ApiError::Status(status, code)) => Err(code.unwrap_or_else(|| format!("http_{status}"))),
+    }
+}
+
+/// Retire du texte d'un signalement ce qui désigne l'utilisateur : dossier personnel et nom
+/// d'utilisateur (les chemins des journaux de ffmpeg, par exemple).
+pub fn anonymize(text: &str) -> String {
+    let mut out = text.to_string();
+    for var in ["USERPROFILE", "HOME"] {
+        if let Ok(home) = std::env::var(var) {
+            if home.len() > 3 {
+                out = out.replace(&home, "~").replace(&home.replace('\\', "/"), "~");
+            }
+        }
+    }
+    for var in ["USERNAME", "USER"] {
+        if let Ok(name) = std::env::var(var) {
+            if name.len() > 2 {
+                out = out.replace(&name, "<utilisateur>");
+            }
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -575,6 +621,22 @@ mod tests {
         assert!(v.get("saveFolder").is_none());
         assert!(v.get("autostart").is_none());
         assert!(v.get("gpu").is_none());
+    }
+
+    #[test]
+    fn signalement_sans_dossier_personnel() {
+        let home = std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")).unwrap();
+        let text = format!("Impossible d'ouvrir {home}{}Images{}photo.heic", std::path::MAIN_SEPARATOR, std::path::MAIN_SEPARATOR);
+        let clean = anonymize(&text);
+        assert!(!clean.contains(&home), "{clean}");
+        assert!(clean.contains("photo.heic"));
+    }
+
+    #[test]
+    fn actions_appelables_limitees() {
+        assert!(CALLABLE.contains(&"review"));
+        assert!(!CALLABLE.contains(&"logout"));
+        assert!(!CALLABLE.contains(&"settings"));
     }
 
     #[test]

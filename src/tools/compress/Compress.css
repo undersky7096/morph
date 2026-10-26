@@ -187,3 +187,55 @@
 .chip-wide {
   width: 100%;
 }
+
+/* Préréglages (compte Morph) : une puce par réglage enregistré, × pour le retirer. */
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.chip.preset {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  overflow: hidden;
+}
+
+.chip.preset > button {
+  padding: 6px 10px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.chip.preset > .preset-remove {
+  padding: 6px 8px 6px 2px;
+  color: var(--muted);
+}
+
+.chip.preset > .preset-remove:hover {
+  color: var(--danger);
+}
+
+.preset-form {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.preset-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+}
+
+.preset-form .chip {
+  padding: 6px 12px;
+}

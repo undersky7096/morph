@@ -565,3 +565,28 @@ pub async fn account_logout(app: AppHandle) {
 pub fn account_set_sync(app: AppHandle, enabled: bool) {
     crate::account::set_sync(&app, enabled);
 }
+
+/// Appel de l'API du compte (avis, idées, signalement) ; voir account::call.
+#[tauri::command]
+pub async fn account_call(
+    app: AppHandle,
+    method: String,
+    action: String,
+    body: Option<serde_json::Value>,
+) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || crate::account::call(&app, &method, &action, body))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+/// Texte d'un signalement sans dossier personnel ni nom d'utilisateur.
+#[tauri::command]
+pub fn account_anonymize(text: String) -> String {
+    crate::account::anonymize(&text)
+}
+
+/// Ouvre les Réglages sur une section (depuis un outil : « Compte »…).
+#[tauri::command]
+pub async fn open_settings(app: AppHandle, section: Option<String>) -> Result<(), String> {
+    crate::tray::show_settings_at(&app, section.as_deref()).map_err(|e| e.to_string())
+}

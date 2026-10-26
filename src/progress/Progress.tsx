@@ -3,6 +3,9 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { AnimatePresence, motion } from "motion/react";
 
+import { getVersion } from "@tauri-apps/api/app";
+
+import { accountErrorText, callAccount, useAccount } from "../account";
 import { basename } from "../formats";
 import { plural, t } from "../i18n";
 import { CloseIcon, MinimizeIcon } from "../icons";
@@ -159,7 +162,7 @@ function JobCard({ job, now }: { job: Job; now: number }) {
 
       <ul className="files">
         {job.files.map((f, i) => (
-          <FileRow key={i} id={job.id} index={i} file={f} single={conflicts <= 1} />
+          <FileRow key={i} id={job.id} index={i} file={f} single={conflicts <= 1} target={job.target} />
         ))}
       </ul>
 
@@ -185,6 +188,58 @@ function ConflictButtons({ id, index }: { id: number; index?: number }) {
   );
 }
 
+/** Signalement d'une erreur au développeur (compte Morph) : on montre exactement ce qui part
+ *  (sans dossier personnel ni nom d'utilisateur), jamais le fichier. */
+function ReportForm({ file, target, onClose }: { file: JobFile; target: string; onClose: () => void }) {
+  const [detail, setDetail] = useState<string | null>(null);
+  const [comment, setComment] = useState("");
+  const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
+  const [error, setError] = useState<string | null>(null);
+  const inputExt = file.input.includes(".") ? file.input.split(".").pop()!.toLowerCase().slice(0, 12) : "";
+
+  useEffect(() => {
+    invoke<string>("account_anonymize", { text: `${basename(file.input)}\n${file.error?.detail ?? ""}` }).then(setDetail);
+  }, [file]);
+
+  async function send() {
+    setState("sending");
+    setError(null);
+    try {
+      const [version, os] = await Promise.all([getVersion(), invoke<string>("platform")]);
+      await callAccount("POST", "report", { code: file.error?.code, message: file.error?.message, detail, target, inputExt, version, os, comment });
+      setState("sent");
+    } catch (e) {
+      setError(accountErrorText(e));
+      setState("idle");
+    }
+  }
+
+  if (state === "sent") return <span className="report-sent">{t("progress.report_sent")}</span>;
+  return (
+    <span className="report-form">
+      <textarea
+        rows={2}
+        maxLength={1000}
+        value={comment}
+        placeholder={t("progress.report_comment")}
+        aria-label={t("progress.report_comment")}
+        onChange={(e) => setComment(e.target.value)}
+      />
+      <details>
+        <summary>{t("progress.report_what")}</summary>
+        <pre>{detail ?? "…"}</pre>
+      </details>
+      <span className="file-links">
+        <button onClick={send} disabled={state === "sending" || detail === null}>
+          {state === "sending" ? t("progress.report_sending") : t("progress.report_send")}
+        </button>
+        <button onClick={onClose}>{t("progress.cancel")}</button>
+      </span>
+      {error && <span className="report-error">{error}</span>}
+    </span>
+  );
+}
+
 const ICONS: Record<JobFile["status"], string> = {
   pending: "·",
   running: "",
@@ -195,8 +250,10 @@ const ICONS: Record<JobFile["status"], string> = {
   skipped: "–",
 };
 
-function FileRow({ id, index, file, single }: { id: number; index: number; file: JobFile; single: boolean }) {
+function FileRow({ id, index, file, single, target }: { id: number; index: number; file: JobFile; single: boolean; target: string }) {
   const [copied, setCopied] = useState(false);
+  const [reporting, setReporting] = useState(false);
+  const account = useAccount();
   const name = basename(file.output ?? file.input) + (file.output || file.count < 2 ? "" : ` + ${file.count - 1}`);
   const cancellable = file.status === "pending" || file.status === "running";
 
@@ -230,7 +287,9 @@ function FileRow({ id, index, file, single }: { id: number; index: number; file:
             <span className="file-links">
               <button onClick={() => invoke("retry_job", { id, index })}>{t("progress.retry")}</button>
               <button onClick={copy}>{copied ? t("progress.copied") : t("progress.copy_details")}</button>
+              {account?.user && !reporting && <button onClick={() => setReporting(true)}>{t("progress.report")}</button>}
             </span>
+            {reporting && <ReportForm file={file} target={target} onClose={() => setReporting(false)} />}
           </span>
         )}
         {file.status === "conflict" && file.error && (

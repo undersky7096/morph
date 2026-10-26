@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
@@ -7,6 +7,8 @@ import { basename, formatBytes, hasBitrate, isPng, kindOfPath } from "../../form
 import type { ConvertProgress } from "../../types";
 import { plural, t } from "../../i18n";
 import { type Duplicates, SaveExtras, useSaveFlow } from "../save";
+import { openAccountSettings, useAccount } from "../../account";
+import { type CompressPreset, MAX_PRESETS, saveSettings, useSettings } from "../../settings";
 import "./Compress.css";
 
 type Level = "light" | "medium" | "strong";
@@ -134,6 +136,18 @@ export default function Compress({ paths, onDone }: Props) {
       )}
 
       <aside className="tool-panel">
+        <Presets
+          current={{ level, reduceColors, targetMb: mode === "target" ? targetMb : null }}
+          apply={(p) => {
+            setLevel(p.level);
+            setReduceColors(p.reduceColors);
+            if (p.targetMb !== null) {
+              setMode("target");
+              setTargetText(String(p.targetMb));
+            } else setMode("quality");
+          }}
+        />
+
         {(mode === "quality" || hasImages) && (
           <section>
             <h2>{t("compress.level")}</h2>
@@ -223,6 +237,89 @@ export default function Compress({ paths, onDone }: Props) {
         </button>
       </footer>
     </div>
+  );
+}
+
+type PresetValues = Omit<CompressPreset, "name">;
+
+const samePreset = (a: PresetValues, b: PresetValues) =>
+  a.level === b.level && a.reduceColors === b.reduceColors && a.targetMb === b.targetMb;
+
+/** Préréglages enregistrés sous un nom (compte Morph) : un clic les applique. Sans compte,
+ *  une ligne explique comment les obtenir ; tout le reste de l'outil reste disponible. */
+function Presets({ current, apply }: { current: PresetValues; apply: (p: PresetValues) => void }) {
+  const account = useAccount();
+  const { compressPresets: presets } = useSettings();
+  const [naming, setNaming] = useState(false);
+  const [name, setName] = useState("");
+  if (!account) return null;
+
+  if (!account.user) {
+    return (
+      <section>
+        <h2>{t("compress.presets")}</h2>
+        <p className="tool-hint">
+          {t("compress.presets_signed_out")}{" "}
+          <button className="link" onClick={openAccountSettings}>
+            {t("account.sign_in")}
+          </button>
+        </p>
+      </section>
+    );
+  }
+
+  const valid = current.targetMb === null || (Number.isFinite(current.targetMb) && current.targetMb > 0);
+  const save = (e: FormEvent) => {
+    e.preventDefault();
+    const n = name.trim();
+    if (!n || !valid) return;
+    saveSettings({ compressPresets: [...presets.filter((p) => p.name !== n), { ...current, name: n }].slice(-MAX_PRESETS) });
+    setNaming(false);
+    setName("");
+  };
+  const remove = (n: string) => saveSettings({ compressPresets: presets.filter((p) => p.name !== n) });
+
+  return (
+    <section>
+      <h2>{t("compress.presets")}</h2>
+      {presets.length > 0 && (
+        <div className="presets">
+          {presets.map((p) => (
+            <span key={p.name} className={`chip preset ${samePreset(p, current) ? "is-active" : ""}`}>
+              <button onClick={() => apply(p)} title={t("compress.apply_preset")}>
+                {p.name}
+              </button>
+              <button className="preset-remove" aria-label={t("compress.remove_preset", { name: p.name })} onClick={() => remove(p.name)}>
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      {naming ? (
+        <form className="preset-form" onSubmit={save}>
+          <input
+            autoFocus
+            maxLength={40}
+            value={name}
+            placeholder={t("compress.preset_name")}
+            aria-label={t("compress.preset_name")}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => e.key === "Escape" && setNaming(false)}
+          />
+          <button type="submit" className="chip" disabled={!name.trim() || !valid}>
+            OK
+          </button>
+        </form>
+      ) : (
+        presets.length < MAX_PRESETS && (
+          <button className="link" onClick={() => setNaming(true)}>
+            + {t("compress.save_preset")}
+          </button>
+        )
+      )}
+      <p className="tool-hint">{account.sync ? t("compress.presets_synced") : t("compress.presets_not_synced")}</p>
+    </section>
   );
 }
 

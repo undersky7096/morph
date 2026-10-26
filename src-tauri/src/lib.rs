@@ -157,6 +157,9 @@ pub fn run() {
             commands::account_refresh,
             commands::account_logout,
             commands::account_set_sync,
+            commands::account_call,
+            commands::account_anonymize,
+            commands::open_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Morph");
