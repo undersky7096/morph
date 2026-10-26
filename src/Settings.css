@@ -1037,12 +1037,6 @@ kbd {
   margin: 10px 0 0;
 }
 
-.home-columns {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-  gap: 28px;
-}
-
 .home-tips {
   display: grid;
   gap: 8px;
@@ -1061,26 +1055,46 @@ kbd {
   background: linear-gradient(var(--faint), var(--faint)) 0 0.6em / 6px 1px no-repeat;
 }
 
+/* Compte, en tête de l'Accueil : une ligne, l'action à droite. Liseré à l'accent tant
+   qu'on n'est pas connecté (c'est l'action proposée), neutre une fois connecté. */
 .home-account {
-  align-self: start;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-}
-
-.home-account-who {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0 0 12px;
-}
-
-.home-account-who > span:last-child {
   display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
 }
 
-.home-account-who small {
+.home-account.is-signed-in {
+  border-left-color: var(--success);
+}
+
+.home-account-avatar {
+  width: 36px;
+  height: 36px;
+}
+
+.home-account:not(.is-signed-in) .home-account-avatar {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.home-account-text {
+  min-width: 0;
+}
+
+.home-account-text h2 {
+  margin: 0;
+}
+
+.home-account-text p {
+  margin: 2px 0 0;
   color: var(--muted);
+  font-size: 12.5px;
 }
 
 .avatar {
@@ -1259,9 +1273,17 @@ kbd {
     right: 3px;
   }
 
-  .home-gesture,
-  .home-columns {
+  .home-gesture {
     grid-template-columns: 1fr;
+  }
+
+  .home-account {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .home-account > button {
+    grid-column: 1 / -1;
+    justify-self: start;
   }
 
   .home-head {

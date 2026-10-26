@@ -17,6 +17,7 @@ import {
   EditIcon,
   ExternalIcon,
   ExtractIcon,
+  UserIcon,
 } from "./icons";
 import type { Settings } from "./settings";
 import type { AccountStatus } from "./AccountSection";
@@ -140,6 +141,8 @@ export default function HomeSection({ settings, version, update, account, goTo }
         </button>
       </header>
 
+      <AccountBanner account={account} goTo={goTo} />
+
       <section className="home-gesture" aria-labelledby="home-gesture-title">
         <GestureFigure />
         <div className="home-gesture-text">
@@ -193,61 +196,32 @@ export default function HomeSection({ settings, version, update, account, goTo }
         <p className="settings-hint home-local">{t("home.local_note")}</p>
       </section>
 
-      <div className="home-columns">
-        <section className="home-block" aria-labelledby="home-tips-title">
-          <h2 id="home-tips-title">{t("home.tips_title")}</h2>
-          <ul className="home-tips">
-            <li>
-              <span>{t("home.tip_favorites")}</span>
-              <button className="settings-link" onClick={() => goTo("menu")}>
-                {t("settings.format_menu")}
-              </button>
-            </li>
-            <li>
-              <span>{t("home.tip_escape")}</span>
-            </li>
-            <li>
-              <span>{t("home.tip_duplicates")}</span>
-              <button className="settings-link" onClick={() => goTo("save")}>
-                {t("settings.saving")}
-              </button>
-            </li>
-            <li>
-              <span>{t("home.tip_cutout")}</span>
-              <button className="settings-link" onClick={() => goTo("tools")}>
-                {t("settings.tools")}
-              </button>
-            </li>
-          </ul>
-        </section>
-
-        <section className="home-block home-account" aria-labelledby="home-account-title">
-          <h2 id="home-account-title">{t("account.title")}</h2>
-          {account?.user ? (
-            <>
-              <p className="home-account-who">
-                <span className="avatar" aria-hidden>
-                  {initials(account.user.name)}
-                </span>
-                <span>
-                  <strong>{account.user.name}</strong>
-                  <small>{account.sync ? t("account.sync_on_short") : t("account.sync_off_short")}</small>
-                </span>
-              </p>
-              <button className="settings-button" onClick={() => goTo("account")}>
-                {t("account.manage")}
-              </button>
-            </>
-          ) : (
-            <>
-              <p className="settings-hint">{t("account.pitch")}</p>
-              <button className="settings-button" onClick={() => goTo("account")}>
-                {t("account.sign_in")}
-              </button>
-            </>
-          )}
-        </section>
-      </div>
+      <section className="home-block" aria-labelledby="home-tips-title">
+        <h2 id="home-tips-title">{t("home.tips_title")}</h2>
+        <ul className="home-tips">
+          <li>
+            <span>{t("home.tip_favorites")}</span>
+            <button className="settings-link" onClick={() => goTo("menu")}>
+              {t("settings.format_menu")}
+            </button>
+          </li>
+          <li>
+            <span>{t("home.tip_escape")}</span>
+          </li>
+          <li>
+            <span>{t("home.tip_duplicates")}</span>
+            <button className="settings-link" onClick={() => goTo("save")}>
+              {t("settings.saving")}
+            </button>
+          </li>
+          <li>
+            <span>{t("home.tip_cutout")}</span>
+            <button className="settings-link" onClick={() => goTo("tools")}>
+              {t("settings.tools")}
+            </button>
+          </li>
+        </ul>
+      </section>
 
       <footer className="home-links">
         {(
@@ -265,6 +239,47 @@ export default function HomeSection({ settings, version, update, account, goTo }
         ))}
       </footer>
     </div>
+  );
+}
+
+/** Compte Morph, en tête de l'Accueil : se connecter en un clic, ou qui est connecté. */
+function AccountBanner({ account, goTo }: Pick<Props, "account" | "goTo">) {
+  if (!account) return null;
+  const { user, link, busy } = account;
+  return (
+    <section className={`home-account ${user ? "is-signed-in" : ""}`} aria-labelledby="home-account-title">
+      <span className="avatar home-account-avatar" aria-hidden>
+        {user ? initials(user.name) : <UserIcon />}
+      </span>
+      <div className="home-account-text">
+        <h2 id="home-account-title">{user ? user.name : t("account.title")}</h2>
+        <p>
+          {user
+            ? account.sync
+              ? t("account.sync_on_short")
+              : t("account.sync_off_short")
+            : link
+              ? t("account.banner_waiting", { code: link.userCode })
+              : t("account.pitch")}
+        </p>
+      </div>
+      {user || link ? (
+        <button className="settings-button" onClick={() => goTo("account")}>
+          {user ? t("account.manage") : t("account.banner_see_code")}
+        </button>
+      ) : (
+        <button
+          className="settings-button is-primary"
+          disabled={busy}
+          onClick={() => {
+            invoke("account_link_start");
+            goTo("account");
+          }}
+        >
+          {t("account.sign_in")}
+        </button>
+      )}
+    </section>
   );
 }
 

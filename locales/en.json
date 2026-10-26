@@ -3,6 +3,8 @@
     "name": "English",
     "locale": "en-GB"
   },
+  "account.banner_see_code": "See the code",
+  "account.banner_waiting": "Waiting for your approval on the website, code {code}.",
   "account.benefit_optional": "No file is ever sent: signing in only concerns your preferences.",
   "account.benefit_site": "Use the same account as on the website (reviews, ideas and votes).",
   "account.benefit_sync": "Sync appearance, language, favourites and menu settings between your computers.",

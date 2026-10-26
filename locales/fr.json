@@ -3,6 +3,8 @@
     "name": "Français",
     "locale": "fr-FR"
   },
+  "account.banner_see_code": "Voir le code",
+  "account.banner_waiting": "En attente de ton accord sur le site, code {code}.",
   "account.benefit_optional": "Aucun fichier n'est envoyé : la connexion ne concerne que tes préférences.",
   "account.benefit_site": "Utiliser le même compte que sur le site (avis, idées et votes).",
   "account.benefit_sync": "Synchroniser l'apparence, la langue, les favoris et les réglages du menu entre tes ordinateurs.",
