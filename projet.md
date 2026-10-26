@@ -186,6 +186,26 @@ premium qu'un assistant NSIS custom, et identique entre Windows/Linux).
    incrément testable indépendamment.
 
 ## Chemin à suivre pour la suite (instructions pour Claude)
+- **Refonte d'octobre 2026 (après 1.6.1, non publiée)** — brief dans `prompt.md`, mesures de
+  référence dans `docs/mesures/2026-10-reference/`, mesures après dans `docs/mesures/2026-10-apres/`.
+  Décisions validées par l'utilisateur : garder le fonctionnement (zone de notification, Maj + glisser,
+  menu radial, fenêtres d'outils), **pas** de fenêtre principale avec liste de fichiers ; onglet
+  **Accueil** dans les Réglages ; compte **facultatif** lié au site ; aucune promesse macOS ; aucun
+  déploiement ni changement serveur sans accord explicite.
+  - Système visuel commun app + site : `docs/design/SYSTEME.md` (encre `#151515`, blanc cassé
+    `#F1F0EB`, accent outremer `#2D45E0` / `#7B8CFF`, Geist + Geist Mono embarquées, tokens de
+    surface, d'état et de type de fichier). Plus aucun halo, dégradé décoratif ni lueur.
+  - Langues : catalogues `locales/<code>.json` partagés interface (`t("ns.clé", {params})`,
+    `plural(n, clé)`) et cœur Rust (`tr`, `trf`, `trn`, clés `core.*`, liste générée par
+    `build.rs`). Ajouter une langue = ajouter un fichier. Repli anglais puis français. Le réglage
+    `language` est devenu une chaîne (compatible avec les anciens fichiers).
+  - Compte : `src-tauri/src/account.rs` (liaison par code, jeton DPAPI dans `account.key`, profil et
+    préférences synchronisées), API du site `public/api/app.php` + page `/account/link/`. Le site
+    n'est **pas déployé** : la liaison ne fonctionnera qu'après mise en ligne (DEPLOIEMENT.md §11).
+  - Performances : éditeur audio en flux depuis le disque, halo qui ne dessine plus rien masqué,
+    WebP avec perte (libwebp q82), lots d'images en parallèle (app et morph-cli, `convert::parallelism`).
+  - Banc d'aperçu : `npm run dev` puis `/dev/preview.html?window=main|radial|progress&theme=…`
+    (IPC simulé, données d'exemple, jamais livré).
 - **M6a fait** (2026-10-20, version toujours 0.5.0 jusqu'à 6c) : éditeur image
   `src/tools/edit/` — rendu WebGL (`renderer.ts` : flou 2 passes, netteté,
   couleurs, filtres, vignettage, grain, quarts de tour/miroirs/redressement
