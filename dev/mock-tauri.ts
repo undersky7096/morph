@@ -73,20 +73,37 @@ const account = {
 const job = {
   id: 1,
   target: "webp",
+  note: null,
+  detached: true,
   finished: false,
   startedMs: Date.now() - 4000,
   files: [
-    { input: "C:/Exemple/vacances-01.jpg", output: "C:/Exemple/vacances-01.webp", status: "done", progress: 1, error: null },
-    { input: "C:/Exemple/vacances-02.jpg", output: null, status: "running", progress: 0.42, error: null },
-    { input: "C:/Exemple/un nom de fichier vraiment très long pour vérifier la coupure.png", output: null, status: "queued", progress: 0, error: null },
+    { input: "C:/Exemple/vacances-01.jpg", output: "C:/Exemple/vacances-01.webp", status: "done", progress: 1, error: null, count: 1 },
+    { input: "C:/Exemple/vacances-02.jpg", output: null, status: "running", progress: 0.42, error: null, count: 1 },
+    { input: "C:/Exemple/un nom de fichier vraiment très long pour vérifier la coupure.png", output: null, status: "pending", progress: 0, error: null, count: 1 },
     {
       input: "C:/Exemple/abimé.png",
       output: null,
       status: "error",
       progress: 0,
       error: { code: "unreadable", message: "Image illisible ou endommagée.", detail: "exemple", path: null },
+      count: 1,
     },
   ],
+};
+
+const MENU = {
+  common: ["png", "jpg", "webp", "avif", "gif", "pdf"],
+  groups: [
+    {
+      kind: "image",
+      targets: ["png", "jpg", "webp", "avif", "gif", "bmp", "tiff", "ico", "pdf"],
+      blocked: [],
+      paths: ["C:/Exemple/photo.heic"],
+    },
+  ],
+  folders: [],
+  unsupported: [],
 };
 
 const handlers: Record<string, Handler> = {
@@ -101,10 +118,10 @@ const handlers: Record<string, Handler> = {
   take_radial_payload: () => ({
     id: 1,
     paths: ["C:/Exemple/photo.heic"],
-    menu: { common: ["png", "jpg", "webp", "avif", "gif", "pdf"], groups: [], folders: [], unsupported: [] },
+    menu: MENU,
     ring: "formats",
   }),
-  get_targets: () => ({ common: ["png", "jpg", "webp", "avif", "gif", "pdf"], groups: [], folders: [], unsupported: [] }),
+  get_targets: () => (MENU),
   "plugin:app|version": () => "1.7.0-dev",
   "plugin:event|listen": () => 1,
   "plugin:event|unlisten": () => null,

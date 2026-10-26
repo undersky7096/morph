@@ -3,10 +3,7 @@
   flex-direction: column;
   height: 100vh;
   font-size: 13px;
-  background:
-    radial-gradient(60% 50% at 15% 0%, color-mix(in srgb, var(--accent-2) 14%, transparent), transparent),
-    radial-gradient(60% 50% at 100% 100%, color-mix(in srgb, var(--accent) 14%, transparent), transparent),
-    var(--bg);
+  background: var(--bg);
 }
 
 .onboarding button {
@@ -106,7 +103,7 @@
   margin-bottom: 18px;
   box-shadow:
     inset 0 0 0 1px var(--line),
-    0 10px 30px color-mix(in srgb, var(--accent) 30%, transparent);
+    var(--shadow-float);
 }
 
 .onboarding-block {
@@ -143,8 +140,9 @@
   align-items: center;
   gap: 14px;
   padding: 18px 26px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, rgba(255, 95, 95, 0.55), rgba(95, 140, 255, 0.55));
+  border-radius: var(--r-lg);
+  background: repeating-conic-gradient(var(--surface-sunken) 0% 25%, var(--surface-2) 0% 50%) 0 0 / 14px 14px;
+  box-shadow: inset 0 0 0 1px var(--line);
 }
 
 .onboarding-hub {
@@ -167,16 +165,9 @@
   padding: 18px 28px 22px;
 }
 
-.settings-button.is-primary {
-  border-color: transparent;
-  background: linear-gradient(135deg, var(--accent-2), var(--accent));
-  color: #06121a !important;
-  font-weight: 600;
-  padding: 8px 20px;
-}
-
-.settings-button.is-primary:hover {
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 40%, transparent);
+.onboarding-foot .settings-button {
+  min-height: 34px;
+  padding: 0 20px;
 }
 
 .linux-integration {
@@ -193,10 +184,10 @@
   width: 420px;
   height: 170px;
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   background:
-    radial-gradient(circle at 70% 55%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 60%),
-    color-mix(in srgb, var(--text) 4%, var(--bg));
+    linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 100% 28px,
+    var(--surface-1);
   overflow: hidden;
 }
 
@@ -215,8 +206,10 @@
   width: 38px;
   height: 44px;
   border-radius: 6px;
-  background: linear-gradient(135deg, #5ef2c2, #2f6bff);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--kind-image);
+  background: var(--surface-2);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .demo-key {
@@ -228,8 +221,7 @@
   border-bottom-width: 3px;
   border-radius: 7px;
   background: var(--bg);
-  font-size: 11px;
-  font-weight: 600;
+  font: 500 11px var(--font-mono);
 }
 
 .demo-drop {
@@ -261,6 +253,6 @@
   width: 34px;
   height: 34px;
   margin: -17px 0 0 -17px;
-  font-size: 8.5px;
+  font: 600 8.5px var(--font-mono);
   box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--kind-image) 55%, transparent);
 }

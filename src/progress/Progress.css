@@ -3,7 +3,7 @@ html[data-window="progress"] body {
 }
 
 .progress {
-  --surface: color-mix(in srgb, var(--text) 4%, var(--bg));
+  --surface: var(--surface-1);
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -44,7 +44,7 @@ html[data-window="progress"] body {
 .job {
   padding: 10px 12px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--r-md);
   background: var(--surface);
 }
 
@@ -117,16 +117,16 @@ html[data-window="progress"] body {
   inset: 0;
   transform-origin: left;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--accent-2), var(--accent));
-  transition: transform 0.25s ease-out;
+  background: var(--accent);
+  transition: transform 0.25s var(--ease-out);
 }
 
 .bar.is-done > span {
-  background: var(--kind-image);
+  background: var(--success);
 }
 
 .bar.is-warn > span {
-  background: #f5a524;
+  background: var(--warning);
 }
 
 .bar.is-small {
@@ -170,7 +170,7 @@ html[data-window="progress"] body {
 }
 
 .file.is-conflict .file-icon {
-  color: #f5a524;
+  color: var(--warning);
 }
 
 .spinner {
@@ -270,8 +270,8 @@ html[data-window="progress"] body {
 .job-conflicts {
   margin-top: 8px;
   padding: 8px;
-  border-radius: 8px;
-  background: color-mix(in srgb, #f5a524 12%, transparent);
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
 }
 
 .job-actions {

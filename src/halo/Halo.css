@@ -1,3 +1,6 @@
+/* Halo qui suit le curseur pendant un Maj + glisser : une cible nette (anneau fin à
+   l'accent, marque de Morph), sans lueur ni pulsation. */
+
 html[data-window="halo"],
 html[data-window="halo"] body {
   background: transparent;
@@ -10,55 +13,53 @@ html[data-window="halo"] body {
   inset: 0;
   display: grid;
   place-items: center;
-  animation: halo-in 0.22s ease-out both;
 }
 
 .halo > * {
   grid-area: 1 / 1;
 }
 
-.halo-glow {
-  width: 110px;
-  height: 110px;
+/* Repère extérieur : il se resserre une fois à l'apparition, puis ne bouge plus. */
+.halo-target {
+  width: 92px;
+  height: 92px;
   border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    color-mix(in srgb, var(--kind-image) 38%, transparent) 0%,
-    color-mix(in srgb, var(--accent) 22%, transparent) 45%,
-    transparent 70%
-  );
-  animation: halo-pulse 1.4s ease-in-out infinite;
+  border: 1px dashed color-mix(in srgb, var(--accent) 70%, transparent);
+  animation: halo-target 0.32s var(--ease-out) both;
 }
 
 .halo-ring {
-  width: 64px;
-  height: 64px;
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
-  border: 2px solid transparent;
-  background:
-    linear-gradient(var(--radial-surface-strong), var(--radial-surface-strong)) padding-box,
-    linear-gradient(135deg, var(--accent-2), var(--accent)) border-box;
-  box-shadow: 0 8px 24px var(--radial-shadow);
+  border: 1.5px solid var(--accent);
+  background: var(--radial-surface-strong);
+  box-shadow: var(--shadow-float);
+  backdrop-filter: blur(10px);
+  animation: halo-in 0.22s var(--ease-out) both;
 }
 
 .halo-mark {
-  font: 800 24px/1 var(--font);
-  background: linear-gradient(135deg, var(--accent-2), var(--accent));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  width: 24px;
+  height: 24px;
+  background: var(--radial-text);
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
 }
 
 @keyframes halo-in {
   from {
     opacity: 0;
-    transform: scale(0.6);
+    transform: scale(0.7);
   }
 }
 
-@keyframes halo-pulse {
-  50% {
-    transform: scale(1.12);
-    opacity: 0.75;
+@keyframes halo-target {
+  from {
+    opacity: 0;
+    transform: scale(1.35);
   }
 }

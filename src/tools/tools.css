@@ -3,8 +3,8 @@ html[data-window="tool"] body {
 }
 
 .tool {
-  --surface: color-mix(in srgb, var(--text) 4%, var(--bg));
-  --canvas: color-mix(in srgb, var(--text) 7%, var(--bg));
+  --surface: var(--surface-1);
+  --canvas: var(--surface-sunken);
   --checker: color-mix(in srgb, var(--text) 5%, transparent);
   display: flex;
   flex-direction: column;
@@ -37,7 +37,7 @@ html[data-window="tool"] body {
 }
 
 .titlebar-title svg {
-  color: var(--kind-image);
+  color: var(--accent);
 }
 
 .titlebar-file {
@@ -52,8 +52,7 @@ html[data-window="tool"] body {
   border-radius: 6px;
   background: color-mix(in srgb, var(--text) 8%, transparent);
   color: var(--muted);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
+  font: 500 11.5px var(--font-mono);
 }
 
 .titlebar-buttons {
@@ -125,7 +124,7 @@ html[data-window="tool"] body {
 .chip {
   padding: 7px 0;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: transparent;
   cursor: pointer;
 }
@@ -136,13 +135,13 @@ html[data-window="tool"] body {
 
 .chip.is-active {
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  background: var(--accent-soft);
 }
 
 .tool input[type="number"] {
   padding: 7px 8px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: var(--bg);
   color: var(--text);
   font: inherit;
@@ -205,16 +204,22 @@ html[data-window="tool"] body {
   gap: 6px;
   padding: 8px 16px;
   border: 1px solid var(--line);
-  border-radius: 9px;
-  background: transparent;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
   cursor: pointer;
+  transition: background-color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
 }
 
+/* Action principale : pleine, couleur du texte (comme dans les Réglages). */
 .tool-footer > button.primary {
-  border-color: transparent;
-  background: linear-gradient(135deg, var(--accent-2), var(--accent));
-  color: #06121a;
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--on-primary);
   font-weight: 600;
+}
+
+.tool-footer > button.primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--primary) 86%, var(--bg));
 }
 
 .tool-footer > button:disabled {
@@ -312,14 +317,14 @@ html[data-window="tool"] body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #f5a524;
+  color: var(--warning);
 }
 
 .save-conflict button {
   flex-shrink: 0;
   padding: 6px 10px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: transparent;
   cursor: pointer;
 }

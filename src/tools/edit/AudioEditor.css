@@ -23,7 +23,7 @@
   flex: 1;
   min-height: 160px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--r-md);
   overflow: hidden;
   background: var(--bg);
   touch-action: none;
@@ -42,7 +42,7 @@
   height: 38px;
   flex-shrink: 0;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   overflow: hidden;
   background: var(--bg);
   cursor: grab;
@@ -104,7 +104,7 @@
   display: flex;
   align-items: center;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
 }
 
 .segments li.is-active {

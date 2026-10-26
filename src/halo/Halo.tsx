@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import mark from "../assets/mark.png";
 import "./Halo.css";
 
 /** Halo qui suit le curseur pendant un Shift+glisser au-dessus de la zone de dépôt Morph. */
@@ -11,7 +12,7 @@ export default function Halo() {
     const win = getCurrentWebviewWindow();
     const unlisten = [
       win.listen("halo-show", () => setKey((k) => (k ?? 0) + 1)),
-      // Masqué : plus rien à dessiner, l'animation en boucle s'arrête.
+      // Masqué : plus rien à dessiner.
       win.listen("halo-hide", () => setKey(null)),
     ];
     return () => {
@@ -22,9 +23,10 @@ export default function Halo() {
   if (key === null) return null;
   return (
     <div className="halo" key={key}>
-      <div className="halo-glow" />
-      <div className="halo-ring" />
-      <span className="halo-mark">M</span>
+      <div className="halo-target" />
+      <div className="halo-ring">
+        <span className="halo-mark" style={{ maskImage: `url(${mark})`, WebkitMaskImage: `url(${mark})` }} />
+      </div>
     </div>
   );
 }
