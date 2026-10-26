@@ -242,6 +242,23 @@ pub fn convert(
     Ok(output)
 }
 
+/// Au plus autant d'images converties en même temps dans un lot (voir [`parallelism`]).
+const MAX_PARALLEL: usize = 6;
+
+/// Fichiers d'un lot convertis en même temps : plusieurs pour des images vers un format
+/// d'image (chaque image occupe à peu près un cœur), un seul sinon (ffmpeg, LibreOffice
+/// et le détourage se servent déjà de toute la machine). Partagé par l'application et
+/// morph-cli.
+pub fn parallelism(target: &str, inputs: &[&Path]) -> usize {
+    let to_image = catalog::find(target).is_some_and(|f| f.kind == Kind::Image);
+    let images = inputs.iter().all(|p| formats::kind_of(p) == Some(Kind::Image));
+    if !to_image || !images || inputs.is_empty() {
+        return 1;
+    }
+    let cores = std::thread::available_parallelism().map_or(1, |n| n.get());
+    (cores / 2).clamp(1, MAX_PARALLEL).min(inputs.len())
+}
+
 /// Le lot `paths` vers `target` produit un seul fichier : fusion de PDF, images → PDF,
 /// archive de la sélection.
 pub fn is_batch(target: &str, paths: &[String]) -> bool {

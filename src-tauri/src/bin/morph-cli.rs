@@ -14,8 +14,9 @@
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
-use morph_lib::convert::{self, formats};
+use morph_lib::convert::{self, formats, output};
 use morph_lib::edit::compress::{self, Level, Options, Outcome};
 use morph_lib::edit::cutout;
 use morph_lib::edit::trim::{self, Segment};
@@ -127,26 +128,45 @@ fn main() -> ExitCode {
         };
     }
 
-    let mut failed = false;
-    for file in files {
+    // Lot d'images : plusieurs à la fois, comme dans l'application (sans pourcentage, qui
+    // s'entremêlerait) ; sinon un par un avec la progression.
+    let paths: Vec<&Path> = files.iter().map(Path::new).collect();
+    let workers = convert::parallelism(command, &paths);
+    let failed = AtomicBool::new(false);
+    let next = AtomicUsize::new(0);
+    let run = |progress: bool| loop {
+        let i = next.fetch_add(1, Ordering::SeqCst);
+        let Some(file) = files.get(i) else { break };
         let mut last = -1;
         let mut report = |p: f32| {
             let pct = (p * 100.0) as i32;
-            if pct != last {
+            if progress && pct != last {
                 last = pct;
                 print!("\r{file} → {command} : {pct:3}%");
                 let _ = std::io::stdout().flush();
             }
         };
-        match convert::convert(&PathBuf::from(file), command, &mut report) {
+        // Contexte de sortie propre à chaque fichier : deux conversions simultanées ne
+        // visent jamais le même nom (« photo.png » et « photo.jpg » → « photo.webp »).
+        let result = output::scoped(output::Scope::default(), || convert::convert(&PathBuf::from(file), command, &mut report));
+        match result {
             Ok(out) => println!("\r{file} → {} ✓", out.display()),
             Err(e) => {
-                failed = true;
+                failed.store(true, Ordering::SeqCst);
                 println!("\r{file} → {command} ✗\n{e}");
             }
         }
+    };
+    if workers > 1 {
+        std::thread::scope(|s| {
+            for _ in 0..workers {
+                s.spawn(|| run(false));
+            }
+        });
+    } else {
+        run(true);
     }
-    if failed { ExitCode::FAILURE } else { ExitCode::SUCCESS }
+    if failed.load(Ordering::SeqCst) { ExitCode::FAILURE } else { ExitCode::SUCCESS }
 }
 
 fn compress_cmd(args: &[String]) -> ExitCode {
