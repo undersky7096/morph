@@ -50,7 +50,12 @@ export default function AudioEditor({ path, onSaved, footerExtra }: Props) {
   const [busy, setBusy] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const flow = useSaveFlow();
-  const [player] = useState(() => new Audio());
+  const [player] = useState(() => {
+    const a = new Audio();
+    // Sans CORS, Web Audio (le gain jusqu'à 200 %) ne reçoit que du silence d'une source « asset ».
+    a.crossOrigin = "anonymous";
+    return a;
+  });
   const updateSegments = (fn: (s: Segment[]) => Segment[], key?: string) =>
     update((s) => ({ ...s, segments: fn(s.segments) }), key);
   const trimmer = useTrimmer(player, track?.duration ?? 0, segments, updateSegments, setError, volume / 100);
