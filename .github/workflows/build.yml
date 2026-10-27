@@ -35,7 +35,12 @@ jobs:
 
       - name: Dépendances système (Linux)
         if: runner.os == 'Linux'
+        # Le miroir Azure des runners est parfois si lent que l'étape tourne des dizaines de
+        # minutes : on passe par le miroir principal d'Ubuntu, et on abandonne vite sinon.
+        timeout-minutes: 15
         run: |
+          sudo sed -i 's|http://azure.archive.ubuntu.com|http://archive.ubuntu.com|g' /etc/apt/sources.list
+          echo 'Acquire::Retries "3"; Acquire::http::Timeout "30";' | sudo tee /etc/apt/apt.conf.d/99morph
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
           # Lecture audio/vidéo dans les éditeurs : GStreamer embarqué dans l'AppImage
